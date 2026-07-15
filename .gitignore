@@ -1,0 +1,33 @@
+# Папки кэша, логов и сборки Unity
+/Library/
+/Logs/
+/Temp/
+/Obj/
+/Build/
+/Builds/
+/UserSettings/
+
+# Файлы Plastic SCM и автогенерация
+/.plastic/
+*.sln
+*.slnx
+*.csproj
+*.user
+*.userprefs
+*.pidb
+*.suo
+
+# Системный мусор и бэкапы
+.DS_Store
+Thumbs.db
+editor_layout.wlt
+
+# Neovim / Vim мусор
+.netrwhist
+*~
+*.swp
+*.swo
+.vim/
+
+# Настройки VS Code (если вдруг прилетит)
+.vscode/
