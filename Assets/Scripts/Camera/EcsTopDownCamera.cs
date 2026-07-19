@@ -1,16 +1,16 @@
-using UnityEngine;
 using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
+using UnityEngine;
 using UnityEngine.InputSystem;
-using ProjectTowerRpg.ECS.Components; // Убедитесь, что тут лежит ваш PlayerTag
+using ProjectTowerRpg.ECS.Components;
 
 public class EcsTopDownCamera : MonoBehaviour
 {
     [Header("Настройки орбиты")]
     [SerializeField] private float distanceToPlayer = 10f; 
     [SerializeField] private float cameraHeight = 8f;     
-    [SerializeField] private float rotateSpeed = 2f;      
+    [SerializeField] private float rotateSpeed = 0.1f;    // Подкручиваем под плавность дельты
 
     private EntityManager _entityManager;
     private EntityQuery _playerQuery;
@@ -19,7 +19,6 @@ public class EcsTopDownCamera : MonoBehaviour
 
     void Awake()
     {
-        // Инициализируем наш сгенерированный AAA-ввод
         _inputActions = new @InputSystem_Actions();
     }
 
@@ -28,36 +27,54 @@ public class EcsTopDownCamera : MonoBehaviour
 
     void Start()
     {
-        // Каноничный доступ к менеджеру сущностей ECS
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-
-        // Создаем эффективный быстрый кэш-запрос для поиска игрока
         _playerQuery = _entityManager.CreateEntityQuery(
             ComponentType.ReadOnly<LocalTransform>(),
             ComponentType.ReadOnly<PlayerTag>()
         );
     }
 
-    // Использование LateUpdate — закон для камер, чтобы избежать рывков рендера
     void LateUpdate()
     {
-        // 1. ИЩЕМ СУЩНОСТЬ ИГРОКА В ECS МИРЕ
         if (!_playerQuery.IsEmpty)
         {
-            // Получаем сущность и вытаскиваем ее компонент LocalTransform
             Entity playerEntity = _playerQuery.GetSingletonEntity();
             LocalTransform playerTransform = _entityManager.GetComponentData<LocalTransform>(playerEntity);
             float3 playerPosition = playerTransform.Position;
 
-            // 2. СЧИТЫВАЕМ ВРАЩЕНИЕ МЫШИ (BG3-стиль)
-            if (Mouse.current != null && (Mouse.current.middleButton.isPressed || Mouse.current.rightButton.isPressed))
+            // =========================================================================
+            // 1. ПЕРЕХВАТ УПРАВЛЕНИЯ: РАЗДЕЛЕНИЕ ЛКМ (ОСМОТР) И ПКМ/КОЛЕСО (БОЙ)
+            // =========================================================================
+            bool isLmbPressed = Mouse.current != null && Mouse.current.leftButton.isPressed;
+            bool isRmbPressed = Mouse.current != null && Mouse.current.rightButton.isPressed;
+            bool isMmbPressed = Mouse.current != null && Mouse.current.middleButton.isPressed;
+
+            // Крутим камеру по орбите, если зажата ВООБЩЕ ЛЮБАЯ кнопка мыши
+            if (isLmbPressed || isRmbPressed || isMmbPressed)
             {
-                // Читаем ось из вашего Input Actions
                 float mouseDeltaX = _inputActions.Player.CameraRotate.ReadValue<float>();
                 _currentAngle += mouseDeltaX * rotateSpeed * Time.deltaTime;
             }
 
-            // 3. ТРИГОНОМЕТРИЧЕСКИЙ РАСЧЕТ ОРБИТЫ СВЕРХУ-ВНИЗ
+            // Шлём данные и переключатель режимов в ОЗУ игрока
+            if (_entityManager.Exists(playerEntity))
+            {
+                var movementComponent = _entityManager.GetComponentData<MovementComponent>(playerEntity);
+                
+                // Записываем текущий угол орбиты
+                movementComponent.cameraAngle = _currentAngle; 
+                
+                // Включаем режим осмотра ТОЛЬКО если зажат ЛКМ, но не боевые кнопки!
+                movementComponent.isLookAroundMode = isLmbPressed && !isRmbPressed && !isMmbPressed;
+
+                movementComponent.isRmbOrMmbPressed = isRmbPressed || isMmbPressed;
+                
+                _entityManager.SetComponentData(playerEntity, movementComponent);
+            }
+
+            // =========================================================================
+            // 2. ТРИГОНОМЕТРИЧЕСКИЙ РАСЧЕТ ОРБИТЫ СВЕРХУ-ВНИЗ
+            // =========================================================================
             float offsetX = Mathf.Sin(_currentAngle) * distanceToPlayer;
             float offsetZ = Mathf.Cos(_currentAngle) * distanceToPlayer;
 
@@ -67,10 +84,13 @@ public class EcsTopDownCamera : MonoBehaviour
                 playerPosition.z + offsetZ
             );
 
-            // 4. ПЛАВНОЕ ПЕРЕМЕЩЕНИЕ И ПОВОРОТ
+            // =========================================================================
+            // 3. ПЛАВНОЕ ПЕРЕМЕЩЕНИЕ И ПОВОРОТ КАМЕРЫ НА СЦЕНЕ
+            // =========================================================================
             transform.position = Vector3.Lerp(transform.position, targetPosition, 10f * Time.deltaTime);
             transform.LookAt(new Vector3(playerPosition.x, playerPosition.y, playerPosition.z));
         }
     }
 }
+
 
