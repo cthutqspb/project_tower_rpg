@@ -1,0 +1,22 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- Корневой бокс ячейки (Твой slot_prefab/root) -->
+    <ui:VisualElement class="base-slot">
+        
+        <!-- 🎨 ИКОНКА ПРЕДМЕТА (Пока будем красить её цветом) -->
+        <ui:VisualElement class="slot-icon" />
+
+        <!-- ⏳ ШТОРКА КУЛДАУНА / ГКД (Затемняющий оверлей) -->
+        <ui:VisualElement class="slot-cooldown-overlay" />
+
+        <!-- ⌨️ ТЕКСТ ГОРЯЧЕЙ КЛАВИШИ (Для экшен-бара: "1", "2", "3") -->
+        <ui:Label class="slot-bind-label" text="" />
+
+        <!-- 🎒 ТЕКСТ КОЛИЧЕСТВА ПРЕДМЕТОВ В СТАКЕ (Для сумок: "99") -->
+        <ui:Label class="slot-amount-label" text="" />
+
+        <!-- 🦠 ТЕКСТ ДЛИТЕЛЬНОСТИ АУРЫ (Для баффов: "45s", "3m") -->
+        <ui:Label class="slot-duration-label" text="" />
+
+    </ui:VisualElement>
+</ui:UXML>
+

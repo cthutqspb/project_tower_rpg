@@ -1,0 +1,129 @@
+=== 🧠 ТИТАНОВЫЙ ДАМП PANEL RENDERER ДЛЯ NEOVIM ===
+Время дампа: 20.07.2026 23:28:01
+
+--- 📋 ВСЕ ПУБЛИЧНЫЕ СВОЙСТВА (PROPERTIES) ---
+[Property] Name: panelSettings | Type: UnityEngine.UIElements.PanelSettings
+[Property] Name: visualTreeAsset | Type: UnityEngine.UIElements.VisualTreeAsset
+[Property] Name: worldSpaceSizeMode | Type: UnityEngine.UIElements.WorldSpaceSizeMode
+[Property] Name: worldSpaceSize | Type: UnityEngine.Vector2
+[Property] Name: position | Type: UnityEngine.UIElements.Position
+[Property] Name: pivotReferenceSize | Type: UnityEngine.UIElements.PivotReferenceSize
+[Property] Name: pivot | Type: UnityEngine.UIElements.Pivot
+[Property] Name: parentUI | Type: UnityEngine.UIElements.PanelRenderer
+[Property] Name: lightmapTilingOffset | Type: UnityEngine.Vector4
+[Property] Name: lightProbeAnchor | Type: UnityEngine.Transform
+[Property] Name: castShadows | Type: System.Boolean
+[Property] Name: motionVectors | Type: System.Boolean
+[Property] Name: useLightProbes | Type: System.Boolean
+[Property] Name: bounds | Type: UnityEngine.Bounds
+[Property] Name: localBounds | Type: UnityEngine.Bounds
+[Property] Name: enabled | Type: System.Boolean
+[Property] Name: isVisible | Type: System.Boolean
+[Property] Name: shadowCastingMode | Type: UnityEngine.Rendering.ShadowCastingMode
+[Property] Name: receiveShadows | Type: System.Boolean
+[Property] Name: forceRenderingOff | Type: System.Boolean
+[Property] Name: staticShadowCaster | Type: System.Boolean
+[Property] Name: motionVectorGenerationMode | Type: UnityEngine.MotionVectorGenerationMode
+[Property] Name: lightProbeUsage | Type: UnityEngine.Rendering.LightProbeUsage
+[Property] Name: reflectionProbeUsage | Type: UnityEngine.Rendering.ReflectionProbeUsage
+[Property] Name: renderingLayerMask | Type: System.UInt32
+[Property] Name: rendererPriority | Type: System.Int32
+[Property] Name: rayTracingMode | Type: UnityEngine.Experimental.Rendering.RayTracingMode
+[Property] Name: rayTracingAccelerationStructureBuildFlags | Type: UnityEngine.Rendering.RayTracingAccelerationStructureBuildFlags
+[Property] Name: rayTracingAccelerationStructureBuildFlagsOverride | Type: System.Boolean
+[Property] Name: sortingLayerName | Type: System.String
+[Property] Name: sortingLayerID | Type: System.Int32
+[Property] Name: sortingOrder | Type: System.Int32
+[Property] Name: isLOD0 | Type: System.Boolean
+[Property] Name: allowOcclusionWhenDynamic | Type: System.Boolean
+[Property] Name: forceMeshLod | Type: System.Int16
+[Property] Name: meshLodSelectionBias | Type: System.Single
+[Property] Name: isPartOfStaticBatch | Type: System.Boolean
+[Property] Name: worldToLocalMatrix | Type: UnityEngine.Matrix4x4
+[Property] Name: localToWorldMatrix | Type: UnityEngine.Matrix4x4
+[Property] Name: lightProbeProxyVolumeOverride | Type: UnityEngine.GameObject
+[Property] Name: probeAnchor | Type: UnityEngine.Transform
+[Property] Name: lightmapIndex | Type: System.Int32
+[Property] Name: realtimeLightmapIndex | Type: System.Int32
+[Property] Name: lightmapScaleOffset | Type: UnityEngine.Vector4
+[Property] Name: realtimeLightmapScaleOffset | Type: UnityEngine.Vector4
+[Property] Name: materials | Type: UnityEngine.Material[]
+[Property] Name: material | Type: UnityEngine.Material
+[Property] Name: sharedMaterial | Type: UnityEngine.Material
+[Property] Name: sharedMaterials | Type: UnityEngine.Material[]
+[Property] Name: LODGroup | Type: UnityEngine.LODGroup
+[Property] Name: transform | Type: UnityEngine.Transform
+[Property] Name: transformHandle | Type: UnityEngine.TransformHandle
+[Property] Name: gameObject | Type: UnityEngine.GameObject
+[Property] Name: tag | Type: System.String
+[Property] Name: name | Type: System.String
+[Property] Name: hideFlags | Type: UnityEngine.HideFlags
+
+--- 📋 ВСЕ ПУБЛИЧНЫЕ ПОЛЯ (FIELDS) ---
+
+--- 📋 ВСЕ ПУБЛИЧНЫЕ МЕТОДЫ (METHODS) ---
+[Method] Name: RegisterUIReloadCallback | Return Type: Void
+[Method] Name: RegisterUIReloadCallback | Return Type: Void
+[Method] Name: UnregisterUIReloadCallback | Return Type: Void
+[Method] Name: UnregisterUIReloadCallback | Return Type: Void
+[Method] Name: ResetBounds | Return Type: Void
+[Method] Name: ResetLocalBounds | Return Type: Void
+[Method] Name: HasPropertyBlock | Return Type: Boolean
+[Method] Name: SetPropertyBlock | Return Type: Void
+[Method] Name: SetPropertyBlock | Return Type: Void
+[Method] Name: GetPropertyBlock | Return Type: Void
+[Method] Name: GetPropertyBlock | Return Type: Void
+[Method] Name: GetMaterials | Return Type: Void
+[Method] Name: SetSharedMaterials | Return Type: Void
+[Method] Name: SetMaterials | Return Type: Void
+[Method] Name: GetSharedMaterials | Return Type: Void
+[Method] Name: GetClosestReflectionProbes | Return Type: Void
+[Method] Name: GetComponent | Return Type: Component
+[Method] Name: GetComponent | Return Type: T
+[Method] Name: TryGetComponent | Return Type: Boolean
+[Method] Name: TryGetComponent | Return Type: Boolean
+[Method] Name: GetComponent | Return Type: Component
+[Method] Name: GetComponentInChildren | Return Type: Component
+[Method] Name: GetComponentInChildren | Return Type: Component
+[Method] Name: GetComponentInChildren | Return Type: T
+[Method] Name: GetComponentInChildren | Return Type: T
+[Method] Name: GetComponentsInChildren | Return Type: Component[]
+[Method] Name: GetComponentsInChildren | Return Type: Component[]
+[Method] Name: GetComponentsInChildren | Return Type: T[]
+[Method] Name: GetComponentsInChildren | Return Type: Void
+[Method] Name: GetComponentsInChildren | Return Type: T[]
+[Method] Name: GetComponentsInChildren | Return Type: Void
+[Method] Name: GetComponentInParent | Return Type: Component
+[Method] Name: GetComponentInParent | Return Type: Component
+[Method] Name: GetComponentInParent | Return Type: T
+[Method] Name: GetComponentInParent | Return Type: T
+[Method] Name: GetComponentsInParent | Return Type: Component[]
+[Method] Name: GetComponentsInParent | Return Type: Component[]
+[Method] Name: GetComponentsInParent | Return Type: T[]
+[Method] Name: GetComponentsInParent | Return Type: Void
+[Method] Name: GetComponentsInParent | Return Type: T[]
+[Method] Name: GetComponents | Return Type: Component[]
+[Method] Name: GetComponents | Return Type: Void
+[Method] Name: GetComponents | Return Type: Void
+[Method] Name: GetComponents | Return Type: T[]
+[Method] Name: GetComponentIndex | Return Type: Int32
+[Method] Name: CompareTag | Return Type: Boolean
+[Method] Name: CompareTag | Return Type: Boolean
+[Method] Name: SendMessageUpwards | Return Type: Void
+[Method] Name: SendMessageUpwards | Return Type: Void
+[Method] Name: SendMessageUpwards | Return Type: Void
+[Method] Name: SendMessageUpwards | Return Type: Void
+[Method] Name: SendMessage | Return Type: Void
+[Method] Name: SendMessage | Return Type: Void
+[Method] Name: SendMessage | Return Type: Void
+[Method] Name: SendMessage | Return Type: Void
+[Method] Name: BroadcastMessage | Return Type: Void
+[Method] Name: BroadcastMessage | Return Type: Void
+[Method] Name: BroadcastMessage | Return Type: Void
+[Method] Name: BroadcastMessage | Return Type: Void
+[Method] Name: GetEntityId | Return Type: EntityId
+[Method] Name: GetInstanceID | Return Type: Int32
+[Method] Name: GetHashCode | Return Type: Int32
+[Method] Name: Equals | Return Type: Boolean
+[Method] Name: ToString | Return Type: String
+[Method] Name: GetType | Return Type: Type

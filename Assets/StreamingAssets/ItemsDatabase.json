@@ -1,0 +1,357 @@
+{
+  "unit_loot_bag": {
+    "action_type": "container_item",
+    "identity": {
+      "name_key": "container_chest_common_name",
+      "desc_key": "container_chest_common_desc",
+      "type": "container",
+      "quality": "common",
+      "price": 8,
+      "weight": 10.0,
+      "durability": 150
+    },
+    "visuals": {
+      "animation": "unit_loot_bag",
+      "texture": "project_utumno",
+      "tile_index": 3408,
+      "color": null
+    },
+    "properties": {
+      "stackable": false,
+      "max_stack": 1,
+      "columns": 6,
+      "rows": 4,
+      "equip_slot": null,
+      "weapon_type": null,
+      "armor_type": null,
+      "triggers_gcd": false
+    }
+  },
+  "wooden_barrel": {
+    "action_type": "container_item",
+    "identity": {
+      "name_key": "container_wooden_barrel_name",
+      "desc_key": "container_wooden_barrel_desk",
+      "type": "container",
+      "quality": "common",
+      "price": 8,
+      "weight": 12.5,
+      "durability": 125
+    },
+    "visuals": {
+      "animation": "wooden_barrel",
+      "texture": "project_utumno",
+      "tile_index": 8,
+      "color": null
+    },
+    "properties": {
+      "stackable": false,
+      "max_stack": 1,
+      "columns": 6,
+      "rows": 2,
+      "equip_slot": null,
+      "weapon_type": null,
+      "armor_type": null,
+      "triggers_gcd": false
+    }
+  },
+  "chest_common": {
+    "action_type": "container_item",
+    "identity": {
+      "name_key": "container_chest_common_name",
+      "desc_key": "container_chest_common_desc",
+      "type": "container",
+      "quality": "common",
+      "price": 8,
+      "weight": 25.0,
+      "durability": 275
+    },
+    "visuals": {
+      "animation": "chest_common",
+      "texture": "project_utumno",
+      "tile_index": 7,
+      "color": null
+    },
+    "properties": {
+      "stackable": false,
+      "max_stack": 1,
+      "columns": 6,
+      "rows": 4,
+      "equip_slot": null,
+      "weapon_type": null,
+      "armor_type": null,
+      "triggers_gcd": false
+    }
+  },
+  "iron_sword": {
+    "action_type": "item",
+    "identity": {
+      "name_key": "item_iron_sword_name",
+      "desc_key": "item_iron_sword_desc",
+      "type": "weapon",
+      "quality": "common",
+      "price": 25,
+      "weight": 2.4,
+      "durability": 100
+    },
+    "visuals": {
+      "animation": "iron_sword",
+      "texture": "project_utumno",
+      "tile_index": 2976,
+      "color": [0.8, 0.8, 1.0, 1.0]
+    },
+    "properties": {
+      "equip_slot": "MAIN_HAND",
+      "weapon_type": "one_hand_sword",
+      "armor_type": null,
+      "stackable": false,
+      "max_stack": 1,
+      "triggers_gcd": false
+    },
+    "requirements": {
+      "level": 1,
+      "strength": 6,
+      "agility": 0,
+      "intellect": 0,
+      "resource": null
+    },
+    "combat_stats": {
+      "attributes": {
+        "strength": 3,
+        "intellect": 0,
+        "agility": 0,
+        "stamina": 0
+      },
+      "damage": {
+        "min": 3.0,
+        "max": 7.0,
+        "type": "physical"
+      },
+      "bonus_damage": null,
+      "resists": {},
+      "armor_rating": 0
+    }
+  },
+  "crystal_sword": {
+    "action_type": "item",
+    "identity": {
+      "name_key": "item_crystal_sword_name",
+      "desc_key": "item_crystal_sword_desc",
+      "type": "weapon",
+      "quality": "rare",
+      "price": 75,
+      "weight": 2.4,
+      "durability": 100
+    },
+    "visuals": {
+      "animation": "crystal_sword",
+      "texture": "project_utumno",
+      "tile_index": 3013,
+      "color": [0.8, 0.8, 1.0, 1.0]
+    },
+    "properties": {
+      "equip_slot": "MAIN_HAND",
+      "weapon_type": "one_hand_sword",
+      "armor_type": null,
+      "stackable": false,
+      "max_stack": 1,
+      "triggers_gcd": false
+    },
+    "requirements": {
+      "level": 3,
+      "strength": 0,
+      "agility": 0,
+      "intellect": 10,
+      "resource": null
+    },
+    "combat_stats": {
+      "attributes": {
+        "strength": 3,
+        "intellect": 2,
+        "agility": 0,
+        "stamina": 0
+      },
+      "damage": {
+        "min": 4.0,
+        "max": 8.0,
+        "type": "physical"
+      },
+      "bonus_damage": [
+        {
+          "min": 2.0,
+          "max": 3.0,
+          "type": "arcane"
+        }
+      ],
+      "resists": {
+        "arcane": 15
+      },
+      "armor_rating": 0
+    },
+    "effects": [
+      {
+        "aura_id": "mana_leech_on_hit",
+        "value": 1.0,
+        "chance": 100
+      }
+    ],
+    "use_effects": [
+      {
+        "ability_id": "restore_mana",
+        "value": {
+          "min": 10.0,
+          "max": 10.0
+        },
+        "cooldown": 300
+      }
+    ]
+  },
+  "leather_helmet": {
+    "action_type": "item",
+    "identity": {
+      "name_key": "item_leather_helmet_name",
+      "desc_key": "item_leather_helmet_desc",
+      "type": "armor",
+      "quality": "common",
+      "price": 15,
+      "weight": 1.0,
+      "durability": 200
+    },
+    "visuals": {
+      "animation": "leather_helmet",
+      "texture": "project_utumno",
+      "tile_index": 2345,
+      "color": [0.8, 0.8, 1.0, 1.0]
+    },
+    "properties": {
+      "equip_slot": "HEAD",
+      "weapon_type": null,
+      "armor_type": "leather",
+      "stackable": false,
+      "max_stack": 1,
+      "triggers_gcd": false
+    },
+    "requirements": {
+      "level": 2,
+      "strength": 0,
+      "agility": 0,
+      "intellect": 0,
+      "resource": null
+    },
+    "combat_stats": {
+      "attributes": {
+        "strength": 0,
+        "intellect": 0,
+        "agility": 2,
+        "stamina": 5
+      },
+      "damage": null,
+      "bonus_damage": null,
+      "resists": {},
+      "armor_rating": 27
+    },
+    "effects": [
+      {
+        "aura_id": "increase_max_health",
+        "value": 20.0,
+        "chance": null
+      }
+    ]
+  },
+  "clown_hat": {
+    "action_type": "item",
+    "identity": {
+      "name_key": "item_clown_hat_name",
+      "desc_key": "item_clown_hat_desc",
+      "type": "armor",
+      "quality": "uncommon",
+      "price": 40,
+      "weight": 1.2,
+      "durability": 100
+    },
+    "visuals": {
+      "animation": "clown_hat",
+      "texture": "project_utumno",
+      "tile_index": 2347,
+      "color": [0.8, 0.8, 1.0, 1.0]
+    },
+    "properties": {
+      "equip_slot": "HEAD",
+      "weapon_type": null,
+      "armor_type": "leather",
+      "stackable": false,
+      "max_stack": 1,
+      "triggers_gcd": false
+    },
+    "requirements": {
+      "level": 2,
+      "strength": 0,
+      "agility": 12,
+      "intellect": 8,
+      "resource": null
+    },
+    "combat_stats": {
+      "attributes": {
+        "strength": 0,
+        "intellect": 5,
+        "agility": 3,
+        "stamina": -2
+      },
+      "damage": null,
+      "bonus_damage": null,
+      "resists": {},
+      "armor_rating": 15
+    },
+    "effects": [
+      {
+        "aura_id": "chance_to_critical_hit",
+        "value": 2.5,
+        "chance": null
+      }
+    ]
+  },
+  "lesser_mana_potion": {
+    "action_type": "item",
+    "identity": {
+      "name_key": "item_lesser_mana_potion_name",
+      "desc_key": "item_lesser_mana_potion_desc",
+      "type": "potion",
+      "quality": "common",
+      "price": 5,
+      "weight": 0.1,
+      "durability": 0
+    },
+    "visuals": {
+      "animation": "lesser_mana_potion",
+      "texture": "project_utumno",
+      "tile_index": 2683,
+      "color": [0.8, 0.8, 1.0, 1.0]
+    },
+    "properties": {
+      "equip_slot": null,
+      "weapon_type": null,
+      "armor_type": null,
+      "stackable": true,
+      "max_stack": 20,
+      "triggers_gcd": true
+    },
+    "requirements": {
+      "level": 1,
+      "strength": 0,
+      "agility": 0,
+      "intellect": 0,
+      "resource": "mana"
+    },
+    "use_effects": [
+      {
+        "ability_id": "restore_mana",
+        "value": {
+          "min": 20.0,
+          "max": 40.0
+        },
+        "cooldown": 25
+      }
+    ]
+  }
+}
+
