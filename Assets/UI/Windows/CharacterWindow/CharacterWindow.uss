@@ -3,7 +3,7 @@
     background-color: rgba(26, 30, 30, 0.95);
     padding: 12px;
     position: relative;
-    left: 100px;
+    left: 200px;
     top: 100px;
     border-width: 2px;
     border-color: #3a3a3a;
@@ -12,6 +12,15 @@
     /* 🎰 ХАК ВЕБ-ВЕРСТКИ: Говорим окну сжиматься строго по габаритам его контента!
        Благодаря этому окно станет ровно такой ширины, какой ширины наша сетка сумок! */
     align-self: flex-start; 
+
+     /* Жесткие размеры, чтобы окно гарантированно имело физическое тело */
+    width: 300px;
+    height: 250px;
+    
+    /* Жирная неоновая рамка для 100% видимости в дебаге */
+    border-width: 4px;
+    border-color: #00ffcc; 
+    border-radius: 6px;
 }
 
 /* Красивый шрифт шапки */
@@ -22,10 +31,8 @@
     margin-bottom: 12px;
 }
 
-/* 🎰 ФИКС КОНТЕЙНЕРА СЕТКИ (grid-container из нашего UXML) */
-#grid-container {
-    /* Намертво блокируем сжатие или растяжение контейнера во все стороны! */
+/* Ищем по классу (через точку!), который наш StaticGrid.cs вешает в C# конструкторе! */
+.static-grid-container {
     flex-shrink: 0;
     flex-grow: 0;
 }
-

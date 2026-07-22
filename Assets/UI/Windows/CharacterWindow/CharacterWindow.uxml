@@ -1,8 +1,9 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- Движок сам прописал эту ссылку, когда ты кликнул в UI Builder! -->
+    <ui:Style src="project://database/Assets/UI/Windows/CharacterWindow/CharacterWindow.uss" />
+
     <ui:VisualElement class="character-window">
         <ui:Label class="window-header-label" text="РЮКЗАК ПЕРСОНАЖА" />
-        
-        <!-- Обычный чистый контейнер, куда C# вставит ячейки -->
         <ui:VisualElement name="grid-container" />
     </ui:VisualElement>
 </ui:UXML>
