@@ -1,0 +1,4 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/UILayer.uss?fileID=7433441132597879392&amp;guid=a0cfd6b2d43060406a2ee8545bd33bc1&amp;type=3#UILayer"/>
+    <ui:VisualElement picking-mode="Ignore" class="ui-layer"/>
+</ui:UXML>

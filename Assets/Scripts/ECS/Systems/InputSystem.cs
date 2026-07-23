@@ -3,34 +3,38 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
-    // 🚀 СВЕРХЗВУКОВОЙ МЕНЕДЖЕД-КЛАСС ВВОДА:
-    // Мы заменили struct на class! Варнинг CS0282 навсегда уничтожен в ОЗУ!
     public partial class InputSystem : SystemBase
     {
-        private @InputSystem_Actions _inputActions;
+        private InputAction _moveAction;
+        private InputAction _jumpAction;
+        private InputAction _interactOrLookAction;
+        private InputAction _actionOrOrbitAction;
 
-        // В SystemBase вместо OnCreate используется OnCreate() без SystemState!
         protected override void OnCreate()
         {
-            _inputActions = new @InputSystem_Actions();
-            _inputActions.Enable();
-        }
-
-        protected override void OnDestroy()
-        {
-            _inputActions.Disable();
-            _inputActions.Dispose();
+            RequireForUpdate<PlayerTag>();
         }
 
         protected override void OnUpdate()
         {
-            // 1. Выкачиваем чистый Vector2 из сгенерированной карты действий Unity
-            Vector2 moveInput = _inputActions.Player.Move.ReadValue<Vector2>();
+            if (_moveAction == null)
+            {
+                var globalActions = UnityEngine.InputSystem.InputSystem.actions;
+                if (globalActions == null) return;
 
-            // 2. Конвертируем в убер-быстрый 3D-вектор float3 (ось Y изначально по нулям)
+                _moveAction = globalActions.FindAction("Player/Move");
+                _jumpAction = globalActions.FindAction("Player/Jump");
+                _interactOrLookAction = globalActions.FindAction("Player/InteractOrLook");
+                _actionOrOrbitAction = globalActions.FindAction("Player/ActionOrOrbit");
+
+                if (_moveAction == null) return;
+            }
+
+            Vector2 moveInput = _moveAction.ReadValue<Vector2>();
             float3 inputDirection = new float3(moveInput.x, 0f, moveInput.y);
 
             if (math.lengthsq(inputDirection) > 0)
@@ -38,29 +42,21 @@ namespace ProjectTowerRpg.ECS.Systems
                 inputDirection = math.normalize(inputDirection);
             }
 
-            // 3. Считываем состояние триггера прыжка (Пробел)
-            bool jumpPressed = _inputActions.Player.Jump.triggered;
+            // ПРОВЕРКА БЛОКИРОВКИ
+            bool isUiBlocked =  UIManager.IsBlocked; // <-- ИЗ UIBlock
 
-            // 4. Считываем состояния кнопок мыши для нашей WoW/Genshin камеры
-            bool isLmbPressed = Mouse.current != null && Mouse.current.leftButton.isPressed;
-            bool isRmbPressed = Mouse.current != null && Mouse.current.rightButton.isPressed;
-            bool isMmbPressed = Mouse.current != null && Mouse.current.middleButton.isPressed;
+            bool isLmbPressed = !isUiBlocked && _interactOrLookAction.IsPressed();
+            bool isRmbPressed = !isUiBlocked && _actionOrOrbitAction.IsPressed();
 
-            // 5. 🎰 СНАЙПЕРСКИЙ ЗАПРОС К КЭШУ ПРОЦЕССОРА:
-            // Пробегаем по ОЗУ и шёлково заполняем компоненты игрока
             foreach (var movement in SystemAPI.Query<RefRW<MovementComponent>>().WithAll<PlayerTag>())
             {
-                // 🔥 КРИТИЧЕСКИЙ ФИКС: Перезаписываем ТОЛЬКО горизонтальный ввод X и Z!
-                // Координату Y мы вообще не трогаем, чтобы не занулять расчеты гравитации в MovementSystem!
                 movement.ValueRW.direction.x = inputDirection.x;
                 movement.ValueRW.direction.z = inputDirection.z;
 
-                // Записываем состояния кнопок мыши
-                movement.ValueRW.isLookAroundMode = isLmbPressed && !isRmbPressed && !isMmbPressed;
-                movement.ValueRW.isRmbOrMmbPressed = isRmbPressed || isMmbPressed;
+                movement.ValueRW.isLookAroundMode = isLmbPressed && !isRmbPressed;
+                movement.ValueRW.isRmbOrMmbPressed = isRmbPressed;
 
-                // Если прожали Пробел — взводим флаг для физического толчка вверх
-                if (jumpPressed)
+                if (_jumpAction.triggered)
                 {
                     movement.ValueRW.jumpRequested = true;
                 }
@@ -68,6 +64,3 @@ namespace ProjectTowerRpg.ECS.Systems
         }
     }
 }
-
-
-

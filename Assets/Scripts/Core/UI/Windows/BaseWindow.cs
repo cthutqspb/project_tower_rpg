@@ -4,51 +4,67 @@ using UnityEngine.UIElements;
 
 namespace ProjectTowerRpg.Core.UI.Windows
 {
-    // 👑 ТИТАНОВЫЙ КОНТРАКТ БАЗОВОГО ОКНА (Версия без слепоты стилей!)
-    [RequireComponent(typeof(PanelRenderer))]
+    // Базовое окно - ТОЛЬКО логика окна (создание, драг, показ/скрытие)
+    // Блокировка инпута теперь в UIManager на уровне всего UI
     public abstract class BaseWindow : MonoBehaviour
     {
-        protected PanelRenderer PanelRenderer { get; private set; }
-        public VisualTreeAsset visualTreeAsset => PanelRenderer != null ? PanelRenderer.visualTreeAsset : null;
+        [Header("Настройки UI Toolkit")]
+        [SerializeField] private VisualTreeAsset windowUxml;
+
         public VisualElement RootNode { get; private set; }
         protected VisualElement HeaderNode { get; private set; }
 
         public Action OnWindowShown;
         public Action OnWindowHidden;
 
+        private PanelRenderer _globalPanelRenderer;
         private bool _isDragging = false;
-        private Vector2 _dragStartOffset;
 
-        // 🎰 ОКНО ВИДИМО, ЕСЛИ САМ КОМПОНЕНТ PANEL RENDERER ВКЛЮЧЕН В ИНСПЕКТОРЕ!
-        public bool IsVisible => PanelRenderer != null && PanelRenderer.enabled;
+        public bool IsVisible => RootNode != null && RootNode.style.display == DisplayStyle.Flex;
 
-        protected virtual void Awake()
+        protected virtual void Start()
         {
-            PanelRenderer = GetComponent<PanelRenderer>();
-            
-            if (PanelRenderer != null)
+            if (windowUxml == null)
             {
-                // Подписываемся на реактивный Hot Reload коллбэк Unity 6
-                PanelRenderer.RegisterUIReloadCallback(InitializeWindowTree);
+                Debug.LogError($"🚨 [{gameObject.name}]: Забыл закинуть UXML ассет в инспектор!");
+                return;
             }
+
+            _globalPanelRenderer = FindAnyObjectByType<PanelRenderer>();
+            
+            if (_globalPanelRenderer == null)
+            {
+                Debug.LogError($"🚨 [{gameObject.name}]: На сцене нет пустышки [UI] с компонентом PanelRenderer!");
+                return;
+            }
+
+            _globalPanelRenderer.RegisterUIReloadCallback(OnGlobalUiReloaded);
         }
 
         protected virtual void OnDestroy()
         {
-            if (PanelRenderer != null)
+            if (_globalPanelRenderer != null)
             {
-                PanelRenderer.UnregisterUIReloadCallback(InitializeWindowTree);
+                _globalPanelRenderer.UnregisterUIReloadCallback(OnGlobalUiReloaded);
             }
         }
 
-        private void InitializeWindowTree(PanelRenderer renderer, VisualElement panelRoot, int version)
+        private void OnGlobalUiReloaded(PanelRenderer renderer, VisualElement globalUiRoot, int version)
         {
-            if (panelRoot == null) return;
+            if (globalUiRoot == null || RootNode != null) return;
 
-            RootNode = panelRoot;
+            // Клонируем разметку окна
+            RootNode = windowUxml.CloneTree();
+            RootNode.pickingMode = PickingMode.Position;
+            globalUiRoot.Add(RootNode);
 
-            HeaderNode = panelRoot.Q<VisualElement>(className: "window-header-label") 
-                         ?? panelRoot.Q<VisualElement>("header");
+            // =========================================================================
+            // ТОЛЬКО ЛОГИКА ОКНА (без блокировки - она в UIManager)
+            // =========================================================================
+            
+            // Находим хедер для драга
+            HeaderNode = RootNode.Q<VisualElement>(className: "window-header-label") 
+                         ?? RootNode.Q<VisualElement>("header");
 
             if (HeaderNode != null)
             {
@@ -57,68 +73,61 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 HeaderNode.RegisterCallback<PointerUpEvent>(OnDragEnd);
             }
 
-            // Пинаем дочерний скрипт рюкзака через абстрактный хук
-            OnWindowTreeRebuilt(panelRoot);
-            
-            // 🪓 ВЫЖИГАЕМ СЛЕПОТУ СТАРТА: Пусть окно горит при запуске, пока мы дебажим!
-            // Hide(); 
+            // Передаем управление в дочерний класс
+            OnWindowTreeRebuilt(RootNode);
         }
 
         protected abstract void OnWindowTreeRebuilt(VisualElement panelRoot);
 
-        // =========================================================================
-        // 🦾 УПРАВЛЕНИЕ ВИДИМОСТЬЮ ЧЕРЕЗ КAНOНИЧНЫЙ ДВИЖКОВЫЙ КОМПОНЕНТ:
-        // =========================================================================
         public virtual void Show()
         {
-            if (PanelRenderer == null) return;
-            
-            // Включаем сам 3D-принтер интерфейса в инспекторе!
-            PanelRenderer.enabled = true;
+            if (RootNode == null) return;
+            RootNode.style.display = DisplayStyle.Flex;
             OnWindowShown?.Invoke();
         }
 
         public virtual void Hide()
         {
-            if (PanelRenderer == null) return;
-            
-            // Гасим сам 3D-принтер интерфейса в инспекторе!
-            PanelRenderer.enabled = false;
+            if (RootNode == null) return;
+            RootNode.style.display = DisplayStyle.None;
             OnWindowHidden?.Invoke();
         }
 
-        public virtual void Toggle()
+        public void BringToFront()
         {
-            if (IsVisible) Hide();
-            else Show();
+            RootNode?.BringToFront();
         }
 
         // =========================================================================
-        // ЛОГИКА НАТИВНОГО ДРАГА (Захват мыши Wayland-эпохи)
+        // ЛОГИКА ДРАГА
         // =========================================================================
-        private void OnDragStart(PointerDownEvent evt)
-        {
-            _isDragging = true;
-            _dragStartOffset = evt.localPosition;
-            HeaderNode.CapturePointer(evt.pointerId);
-            evt.StopPropagation();
-        }
 
         private void OnDragMove(PointerMoveEvent evt)
         {
-            if (!_isDragging || RootNode == null) return;
+            if (!_isDragging || RootNode == null || RootNode.childCount == 0) return;
 
-            Vector2 mousePos = evt.position;
-            
-            // Ищем само тело окна внутри холста, чтобы двигать именно его, а не весь экран!
-            var windowBox = RootNode.Q<VisualElement>(className: "character-window");
+            VisualElement windowBox = RootNode[0];
+
             if (windowBox != null)
             {
-                windowBox.style.position = Position.Absolute;
-                windowBox.style.left = mousePos.x - _dragStartOffset.x;
-                windowBox.style.top = mousePos.y - _dragStartOffset.y;
+                if (windowBox.style.position != Position.Absolute)
+                {
+                    windowBox.style.position = Position.Absolute;
+                    windowBox.style.left = windowBox.resolvedStyle.left;
+                    windowBox.style.top = windowBox.resolvedStyle.top;
+                }
+
+                windowBox.style.left = windowBox.style.left.value.value + evt.deltaPosition.x;
+                windowBox.style.top = windowBox.style.top.value.value + evt.deltaPosition.y;
             }
             
+            evt.StopPropagation();
+        }
+
+        private void OnDragStart(PointerDownEvent evt)
+        {
+            _isDragging = true;
+            HeaderNode.CapturePointer(evt.pointerId);
             evt.StopPropagation();
         }
 
@@ -131,4 +140,3 @@ namespace ProjectTowerRpg.Core.UI.Windows
         }
     }
 }
-

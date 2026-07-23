@@ -5,17 +5,17 @@
     position: relative;
     left: 200px;
     top: 100px;
-    border-width: 2px;
+    border-width: 1px;
     border-color: #3a3a3a;
-    border-radius: 4px;
+    border-radius: 2px;
     
     /* 🎰 ХАК ВЕБ-ВЕРСТКИ: Говорим окну сжиматься строго по габаритам его контента!
        Благодаря этому окно станет ровно такой ширины, какой ширины наша сетка сумок! */
     align-self: flex-start; 
 
      /* Жесткие размеры, чтобы окно гарантированно имело физическое тело */
-    width: 300px;
-    height: 250px;
+    width: 320px;
+    height: 280px;
     
     /* Жирная неоновая рамка для 100% видимости в дебаге */
     border-width: 4px;

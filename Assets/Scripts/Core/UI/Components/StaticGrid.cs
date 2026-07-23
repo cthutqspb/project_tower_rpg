@@ -27,6 +27,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             
             this.AddToClassList("static-grid-container");
             this.AddToClassList($"grid-{_gridType}"); // Мутирует в "grid-inventory", "grid-action_bar" и т.д.
+            
+             // ================================================================
+    // 🧪 ТЕСТ: Яркий фон и pickingMode
+    // ================================================================
+    this.pickingMode = PickingMode.Position;
+    this.style.backgroundColor = new Color(1f, 0f, 0f, 0.3f); // КРАСНЫЙ полупрозрачный
 
             style.flexDirection = FlexDirection.Row;
             style.flexWrap = Wrap.Wrap;

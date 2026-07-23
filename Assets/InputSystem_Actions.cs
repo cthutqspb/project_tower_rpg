@@ -114,7 +114,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""name"": ""Attack"",
                     ""type"": ""Button"",
                     ""id"": ""6c2ab1b8-8984-453a-af3d-a3c78ae1679a"",
-                    ""expectedControlType"": ""Button"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
@@ -123,7 +123,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""name"": ""Interact"",
                     ""type"": ""Button"",
                     ""id"": ""852140f2-7766-474d-8707-702459ba45f3"",
-                    ""expectedControlType"": ""Button"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": ""Hold"",
                     ""initialStateCheck"": false
@@ -141,7 +141,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""name"": ""Jump"",
                     ""type"": ""Button"",
                     ""id"": ""f1ba0d36-48eb-4cd5-b651-1c94a6531f70"",
-                    ""expectedControlType"": ""Button"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
@@ -181,6 +181,33 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""InteractOrLook"",
+                    ""type"": ""Button"",
+                    ""id"": ""01c1b1f1-a1f4-4bd2-82fb-8da50757b97c"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""ActionOrOrbit"",
+                    ""type"": ""Button"",
+                    ""id"": ""46fefd18-8efe-4d0c-a853-1543761ee0c5"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""MmbOrbit"",
+                    ""type"": ""Button"",
+                    ""id"": ""a36c8cea-b600-4228-9596-f5ec78fdf3e3"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -579,6 +606,39 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""action"": ""CameraRotate"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""8b10b91a-8c81-45af-8af9-14c7d9ce5ebf"",
+                    ""path"": ""<Mouse>/leftButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""InteractOrLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""4299e95b-c44f-45b5-8d01-ae6ad41bab24"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ActionOrOrbit"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""7ac6fc80-2c2f-43a6-a5a4-e23898f1e197"",
+                    ""path"": ""<Mouse>/middleButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MmbOrbit"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -608,7 +668,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""name"": ""Cancel"",
                     ""type"": ""Button"",
                     ""id"": ""15cef263-9014-4fd5-94d9-4e4a6234a6ef"",
-                    ""expectedControlType"": ""Button"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
@@ -638,7 +698,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": false
+                    ""initialStateCheck"": true
                 },
                 {
                     ""name"": ""MiddleClick"",
@@ -647,7 +707,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": false
+                    ""initialStateCheck"": true
                 },
                 {
                     ""name"": ""ScrollWheel"",
@@ -1174,6 +1234,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Player_Next = m_Player.FindAction("Next", throwIfNotFound: true);
         m_Player_Sprint = m_Player.FindAction("Sprint", throwIfNotFound: true);
         m_Player_CameraRotate = m_Player.FindAction("CameraRotate", throwIfNotFound: true);
+        m_Player_InteractOrLook = m_Player.FindAction("InteractOrLook", throwIfNotFound: true);
+        m_Player_ActionOrOrbit = m_Player.FindAction("ActionOrOrbit", throwIfNotFound: true);
+        m_Player_MmbOrbit = m_Player.FindAction("MmbOrbit", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1277,6 +1340,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Next;
     private readonly InputAction m_Player_Sprint;
     private readonly InputAction m_Player_CameraRotate;
+    private readonly InputAction m_Player_InteractOrLook;
+    private readonly InputAction m_Player_ActionOrOrbit;
+    private readonly InputAction m_Player_MmbOrbit;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -1328,6 +1394,18 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/CameraRotate".
         /// </summary>
         public InputAction @CameraRotate => m_Wrapper.m_Player_CameraRotate;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/InteractOrLook".
+        /// </summary>
+        public InputAction @InteractOrLook => m_Wrapper.m_Player_InteractOrLook;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/ActionOrOrbit".
+        /// </summary>
+        public InputAction @ActionOrOrbit => m_Wrapper.m_Player_ActionOrOrbit;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/MmbOrbit".
+        /// </summary>
+        public InputAction @MmbOrbit => m_Wrapper.m_Player_MmbOrbit;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -1384,6 +1462,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @CameraRotate.started += instance.OnCameraRotate;
             @CameraRotate.performed += instance.OnCameraRotate;
             @CameraRotate.canceled += instance.OnCameraRotate;
+            @InteractOrLook.started += instance.OnInteractOrLook;
+            @InteractOrLook.performed += instance.OnInteractOrLook;
+            @InteractOrLook.canceled += instance.OnInteractOrLook;
+            @ActionOrOrbit.started += instance.OnActionOrOrbit;
+            @ActionOrOrbit.performed += instance.OnActionOrOrbit;
+            @ActionOrOrbit.canceled += instance.OnActionOrOrbit;
+            @MmbOrbit.started += instance.OnMmbOrbit;
+            @MmbOrbit.performed += instance.OnMmbOrbit;
+            @MmbOrbit.canceled += instance.OnMmbOrbit;
         }
 
         /// <summary>
@@ -1425,6 +1512,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @CameraRotate.started -= instance.OnCameraRotate;
             @CameraRotate.performed -= instance.OnCameraRotate;
             @CameraRotate.canceled -= instance.OnCameraRotate;
+            @InteractOrLook.started -= instance.OnInteractOrLook;
+            @InteractOrLook.performed -= instance.OnInteractOrLook;
+            @InteractOrLook.canceled -= instance.OnInteractOrLook;
+            @ActionOrOrbit.started -= instance.OnActionOrOrbit;
+            @ActionOrOrbit.performed -= instance.OnActionOrOrbit;
+            @ActionOrOrbit.canceled -= instance.OnActionOrOrbit;
+            @MmbOrbit.started -= instance.OnMmbOrbit;
+            @MmbOrbit.performed -= instance.OnMmbOrbit;
+            @MmbOrbit.canceled -= instance.OnMmbOrbit;
         }
 
         /// <summary>
@@ -1795,6 +1891,27 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnCameraRotate(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "InteractOrLook" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnInteractOrLook(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "ActionOrOrbit" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnActionOrOrbit(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "MmbOrbit" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnMmbOrbit(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

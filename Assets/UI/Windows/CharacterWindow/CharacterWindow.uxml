@@ -2,7 +2,7 @@
     <!-- Движок сам прописал эту ссылку, когда ты кликнул в UI Builder! -->
     <ui:Style src="project://database/Assets/UI/Windows/CharacterWindow/CharacterWindow.uss" />
 
-    <ui:VisualElement class="character-window">
+    <ui:VisualElement class="character-window" picking-mode="Position">
         <ui:Label class="window-header-label" text="РЮКЗАК ПЕРСОНАЖА" />
         <ui:VisualElement name="grid-container" />
     </ui:VisualElement>
