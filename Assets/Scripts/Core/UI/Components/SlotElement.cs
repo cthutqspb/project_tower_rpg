@@ -1,82 +1,130 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.Items;
+using Unity.Properties;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
-    // 👑 УНИВЕРСАЛЬНЫЙ СЛОТ-ВИДЖЕТ (PascalCase, без подчеркиваний!)
     public class SlotElement : VisualElement
     {
-        private VisualElement _iconNode;
-        private VisualElement _cooldownOverlayNode;
-        private Label _bindLabelNode;
-        private Label _amountLabelNode;
-        private Label _durationLabelNode;
+        private VisualElement _icon;
+        private VisualElement _cooldownOverlay;
+        private Label _bindLabel;
+        private Label _amountLabel;
+        private Label _durationLabel;
+        private DragManipulator _dragManipulator;
 
-        public int SlotIndex { get; private set; }
+        public int SlotIndex { get; set; }
+        public string ItemId { get; private set; }
+        public string DataSourceId { get; set; }
+        public string GridType { get; set; }
+        public object Source { get; set; }  // Ссылка на StaticGrid
 
-        public SlotElement(VisualTreeAsset template, int index)
+        public SlotElement()
         {
-            SlotIndex = index;
-            template.CloneTree(this); 
-
-            // Кэшируем ноды по их CSS-классам из SlotElement.uss
-            _iconNode = this.Q<VisualElement>(className: "slot-icon");
-            _cooldownOverlayNode = this.Q<VisualElement>(className: "slot-cooldown-overlay");
-            _bindLabelNode = this.Q<Label>(className: "slot-bind-label");
-            _amountLabelNode = this.Q<Label>(className: "slot-amount-label");
-            _durationLabelNode = this.Q<Label>(className: "slot-duration-label");
-
-            ClearVisual();
-        }
-
-        public void DrawSlot(ItemConfig itemCfg, string gridType)
-        {
-            _bindLabelNode.text = "";
-            _amountLabelNode.text = "";
-            _durationLabelNode.text = "";
-            RemoveFromClassList("disabled");
-            RemoveFromClassList("insufficient-mana");
-
-            if (itemCfg == null)
-            {
-                ClearVisual();
-                return;
-            }
-
-            _iconNode.style.display = DisplayStyle.Flex;
+            this.AddToClassList("slot");
+            this.style.width = 40;
+            this.style.height = 40;
+            this.style.marginLeft = 2;
+            this.style.marginRight = 2;
+            this.style.marginTop = 2;
+            this.style.marginBottom = 2;
+            this.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
             
-            // Затычка цветом качества из твоей JSON базы
-            if (itemCfg.identity.quality == "rare") _iconNode.style.backgroundColor = new Color(0.2f, 0.4f, 0.8f, 1f);
-            else if (itemCfg.identity.quality == "uncommon") _iconNode.style.backgroundColor = new Color(0.2f, 0.7f, 0.3f, 1f);
-            else _iconNode.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f, 1f);
+            _icon = new VisualElement();
+            _icon.AddToClassList("slot-icon");
+            _icon.style.width = 40;
+            _icon.style.height = 40;
+            _icon.style.display = DisplayStyle.None;
+            Add(_icon);
+            
+            _cooldownOverlay = new VisualElement();
+            _cooldownOverlay.AddToClassList("slot-cooldown-overlay");
+            _cooldownOverlay.style.width = 40;
+            _cooldownOverlay.style.height = 0;
+            _cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
+            Add(_cooldownOverlay);
+            
+            _bindLabel = new Label();
+            _bindLabel.AddToClassList("slot-bind-label");
+            _bindLabel.style.display = DisplayStyle.None;
+            Add(_bindLabel);
+            
+            _amountLabel = new Label();
+            _amountLabel.AddToClassList("slot-amount-label");
+            _amountLabel.style.display = DisplayStyle.None;
+            Add(_amountLabel);
+            
+            _durationLabel = new Label();
+            _durationLabel.AddToClassList("slot-duration-label");
+            _durationLabel.style.display = DisplayStyle.None;
+            Add(_durationLabel);
 
-            // =========================================================================
-            // 🧱 TODO: ЗАДЕЛ ПОД ДОМЕНЫ ИНТЕРФЕЙСА (Твой оригинальный код):
-            // =========================================================================
-            if (gridType == "action_bar") { /* TODO */ }
-            else if (gridType == "aura_frame") { /* TODO */ }
+            // ================================================================
+            // 🖱️ ДРАГ МАНИПУЛЯТОР НА КАЖДЫЙ СЛОТ
+            // ================================================================
+            _dragManipulator = new DragManipulator(
+                target: this,
+                mode: DragMode.Slot
+            );
+            this.AddManipulator(_dragManipulator);
         }
 
-        public void ClearVisual()
+        public void SetData(string itemId, ItemConfig config, string gridType, int index)
         {
-            _iconNode.style.display = DisplayStyle.None;
-            _bindLabelNode.text = "";
-            _amountLabelNode.text = "";
-            _durationLabelNode.text = "";
-            _cooldownOverlayNode.style.backgroundColor = new Color(0, 0, 0, 0);
-        }
+            ItemId = itemId;
+            GridType = gridType;
+            SlotIndex = index;
+            ClearSlot();
 
-        public void UpdateCooldownVisual(float progress01)
-        {
-            if (progress01 <= 0f)
+            if (config == null || string.IsNullOrEmpty(itemId))
             {
-                _cooldownOverlayNode.style.backgroundColor = new Color(0, 0, 0, 0);
                 return;
             }
-            _cooldownOverlayNode.style.backgroundColor = StyleKeyword.Null;
-            // TODO: Накатить conic-gradient
+
+            _icon.style.display = DisplayStyle.Flex;
+            _icon.style.backgroundColor = GetQualityColor(config.identity.quality);
+
+            if (gridType == "action_bar")
+            {
+                _bindLabel.style.display = DisplayStyle.Flex;
+                _bindLabel.text = GetBindKey(index);
+            }
+        }
+
+        public void ClearSlot()
+        {
+            _icon.style.display = DisplayStyle.None;
+            _icon.style.backgroundColor = Color.clear;
+            _bindLabel.text = "";
+            _bindLabel.style.display = DisplayStyle.None;
+            _amountLabel.text = "";
+            _amountLabel.style.display = DisplayStyle.None;
+            _durationLabel.text = "";
+            _durationLabel.style.display = DisplayStyle.None;
+            _cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
+            RemoveFromClassList("disabled");
+        }
+
+        private Color GetQualityColor(string quality)
+        {
+            return quality switch
+            {
+                "rare" => new Color(0.2f, 0.4f, 0.8f, 1f),
+                "uncommon" => new Color(0.2f, 0.7f, 0.3f, 1f),
+                _ => new Color(0.3f, 0.3f, 0.3f, 1f)
+            };
+        }
+
+        private string GetBindKey(int index)
+        {
+            return index switch
+            {
+                9 => "0",
+                10 => "-",
+                11 => "=",
+                _ => (index + 1).ToString()
+            };
         }
     }
 }
-

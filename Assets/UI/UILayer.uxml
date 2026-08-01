@@ -1,4 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <Style src="project://database/Assets/UI/UILayer.uss?fileID=7433441132597879392&amp;guid=a0cfd6b2d43060406a2ee8545bd33bc1&amp;type=3#UILayer"/>
+    <Style src="project://database/Assets/UI/UILayer.uss?fileID=7433441132597879392&amp;guid=ac0b8a35e5473c3d2a05eed72952e713&amp;type=3#UILayer"/>
+    <Style src="project://database/Assets/UI/Components/HeaderComponent.uss?fileID=7433441132597879392&amp;guid=7a76694d1381deb5f90bf3f33fd834a6&amp;type=3#HeaderComponent"/>
+    <Style src="project://database/Assets/UI/Components/StaticGrid.uss?fileID=7433441132597879392&amp;guid=ec6fc1a942765a28eabd5c9bb6dcb934&amp;type=3#StaticGrid"/>
     <ui:VisualElement picking-mode="Ignore" class="ui-layer"/>
 </ui:UXML>

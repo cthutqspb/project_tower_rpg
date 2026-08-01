@@ -1,10 +1,11 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <!-- Движок сам прописал эту ссылку, когда ты кликнул в UI Builder! -->
     <ui:Style src="project://database/Assets/UI/Windows/CharacterWindow/CharacterWindow.uss" />
 
-    <ui:VisualElement class="character-window" picking-mode="Position">
-        <ui:Label class="window-header-label" text="РЮКЗАК ПЕРСОНАЖА" />
-        <ui:VisualElement name="grid-container" />
+    <ui:VisualElement class="character-window" name="window-root" picking-mode="Position">
+        <ui:VisualElement name="header-container" />
+        <ui:VisualElement name="content-container">
+            <ui:VisualElement name="paperdoll-container" />
+            <ui:VisualElement name="inventory-container" />
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
-

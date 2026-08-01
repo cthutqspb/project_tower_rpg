@@ -5,19 +5,15 @@ using ProjectTowerRpg.Core.Items;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
-    public class StaticGrid : VisualElement
+    public class StaticGrid : VisualElement, IDataSourceProvider
     {
         private string _gridType;
         private int _columns;
         private int _rows;
-        
-        private List<string> _dataSource; 
-        private List<GridSlotNodeCache> _slots = new(); // Храним чистый кэш нод ячеек!
-        
-        private bool _isDirty = false;
+        private List<SlotElement> _slots = new();
 
+        public string DataSourceId { get; set; }
         public string GridType => _gridType;
-        public bool IsShiftPressed { get; private set; }
 
         public StaticGrid(int columns, int rows, string gridType)
         {
@@ -26,156 +22,103 @@ namespace ProjectTowerRpg.Core.UI.Components
             _gridType = gridType;
             
             this.AddToClassList("static-grid-container");
-            this.AddToClassList($"grid-{_gridType}"); // Мутирует в "grid-inventory", "grid-action_bar" и т.д.
-            
-             // ================================================================
-    // 🧪 ТЕСТ: Яркий фон и pickingMode
-    // ================================================================
-    this.pickingMode = PickingMode.Position;
-    this.style.backgroundColor = new Color(1f, 0f, 0f, 0.3f); // КРАСНЫЙ полупрозрачный
+            this.AddToClassList($"grid-{gridType}");
+            this.pickingMode = PickingMode.Position;
 
-            style.flexDirection = FlexDirection.Row;
-            style.flexWrap = Wrap.Wrap;
-            style.flexShrink = 0;
-            style.flexGrow = 0;
-            style.width = _columns * 48;
+            this.style.width = columns * 48;
+            this.style.height = rows * 48;
+            this.style.flexDirection = FlexDirection.Row;
+            this.style.flexWrap = Wrap.Wrap;
+            this.style.flexShrink = 0;
+            this.style.flexGrow = 0;
 
-            // Выкачиваем ассеты ячейки со SSD
-            VisualTreeAsset slotTemplate = UnityEditor.AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Components/SlotElement.uxml");
-            StyleSheet slotStyles = UnityEditor.AssetDatabase.LoadAssetAtPath<StyleSheet>("Assets/UI/Components/SlotElement.uss");
-
-            if (slotTemplate == null)
+            // Создаём слоты
+            for (int i = 0; i < columns * rows; i++)
             {
-                Debug.LogError("🚨 [StaticGrid]: Не удалось найти SlotElement.uxml!");
+                var slot = new SlotElement();
+                slot.SlotIndex = i;
+                slot.DataSourceId = DataSourceId;
+                slot.GridType = _gridType;
+                slot.Source = this;
+
+                slot.style.width = 40;
+                slot.style.height = 40;
+                slot.style.marginTop = 2;
+                slot.style.marginRight = 2;
+                slot.style.marginBottom = 2;
+                slot.style.marginLeft = 2;
+                slot.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+                slot.RegisterCallback<PointerDownEvent>(OnSlotPointerDown);
+                slot.RegisterCallback<PointerUpEvent>(OnSlotPointerUp);
+                _slots.Add(slot);
+                Add(slot);
+            }
+        }
+
+        // ================================================================
+        // 🔄 РЕАКТИВНОЕ ОБНОВЛЕНИЕ СЛОТА ИЗ ECS СИСТЕМЫ
+        // ================================================================
+        public void UpdateSlot(int index, string dataId, string dataType, int amount, string containerType)
+        {
+            if (index < 0 || index >= _slots.Count) return;
+
+            var slot = _slots[index];
+            
+            // Если в ячейке ECS пусто — очищаем UI-слот
+            if (string.IsNullOrEmpty(dataId) || amount <= 0)
+            {
+                slot.ClearSlot();
                 return;
             }
 
-            int totalSlots = _columns * _rows;
-            for (int i = 0; i < totalSlots; i++)
+            // Достаем конфиг предмета (для способностей/аур здесь добавится их база данных)
+            ItemConfig config = null;
+            if (dataType == "item" || containerType == "inventory")
             {
-                // Клонируем UXML дерево одной ячейки (Вместо gui.clone_tree)
-                VisualElement slotRootInstance = slotTemplate.CloneTree();
-                if (slotStyles != null) slotRootInstance.styleSheets.Add(slotStyles);
-
-                // Находим ноды внутри клонированного дерева и пакуем в GridSlotNodeCache!
-                GridSlotNodeCache slotCache = new GridSlotNodeCache
-                {
-                    Root = slotRootInstance.Q<VisualElement>(className: "base-slot") ?? slotRootInstance,
-                    Icon = slotRootInstance.Q<VisualElement>(className: "slot-icon"),
-                    GcdOverlay = slotRootInstance.Q<VisualElement>(className: "slot-cooldown-overlay"),
-                    Amount = slotRootInstance.Q<Label>(className: "slot-amount-label"),
-                    Bind = slotRootInstance.Q<Label>(className: "slot-bind-label"),
-                    Duration = slotRootInstance.Q<Label>(className: "slot-duration-label")
-                };
-
-                // Запекаем индекс слота прямо в userData корневой ноды, чтобы инпуты знали, какой это слот!
-                slotCache.Root.userData = i;
-
-                // ВЕБ-ПОДПИСКА НА ИНПУТЫ (Interactions.setup): вешаем события на корень ячейки
-                slotCache.Root.RegisterCallback<PointerDownEvent>(OnSlotPointerDown);
-                slotCache.Root.RegisterCallback<PointerUpEvent>(OnSlotPointerUp);
-
-                _slots.Add(slotCache);
-                Add(slotRootInstance); // Пушим элемент в общее дерево сетки
+                config = ItemsDatabase.GetItem(dataId);
             }
 
-            RegisterCallback<KeyDownEvent>(evt => { if (evt.keyCode == KeyCode.LeftShift) IsShiftPressed = true; });
-            RegisterCallback<KeyUpEvent>(evt => { if (evt.keyCode == KeyCode.LeftShift) IsShiftPressed = false; });
-        }
-
-        public void RequestRefresh() { _isDirty = true; Refresh(); }
-        public void SetDataSource(List<string> dataSource) { _dataSource = dataSource; RequestRefresh(); }
-
-        // Универсальный рефреш всей сетки (Твой M:refresh)
-        public void Refresh()
-        {
-            _isDirty = false;
-            bool hidesEmptySlots = (_gridType == "aura_frame");
-
-            for (int i = 0; i < _slots.Count; i++)
-            {
-                GridSlotNodeCache slot = _slots[i];
-                string itemId = (_dataSource != null && i < _dataSource.Count) ? _dataSource[i] : null;
-
-                // Скрытие пустых ячеек для баффов/аур (.display = None)
-                bool isSlotActive = !hidesEmptySlots || !string.IsNullOrEmpty(itemId);
-                slot.Root.style.display = isSlotActive ? DisplayStyle.Flex : DisplayStyle.None;
-
-                if (!string.IsNullOrEmpty(itemId))
-                {
-                    var itemCfg = ItemsDatabase.GetItem(itemId);
-                    // Слепо швыряем структуру в Layout. Он занимается ТОЛЬКО внутренними нодами!
-                    StaticGridLayout.DrawSlot(slot, itemCfg, _gridType, i);
-                }
-                else
-                {
-                    StaticGridLayout.ClearSlotVisual(slot);
-                }
-            }
-        }
-
-        public string GetSlot(int index)
-        {
-            if (_dataSource == null || index < 0 || index >= _dataSource.Count) return null;
-            return _dataSource[index];
+            // Передаем плоские данные в UI-слот.
+            // Убедись, что твой SlotElement принимает параметры в таком порядке или обнови его.
+            slot.SetData(dataId, config, _gridType, index);
         }
 
         private void OnSlotPointerDown(PointerDownEvent evt)
         {
-            var slotRoot = evt.currentTarget as VisualElement;
-            if (slotRoot == null || slotRoot.userData == null) return;
-            int slotIndex = (int)slotRoot.userData;
+            var slot = evt.currentTarget as SlotElement;
+            if (slot == null) return;
 
-            if (evt.button == 1) // ПКМ (mouse_right)
+            if (evt.button == 1) // ПКМ
             {
-                Debug.Log($"🎯 ПКМ по ячейке: Индекс {slotIndex} | В режиме: {_gridType}");
+                Debug.Log($"ПКМ по слоту {slot.SlotIndex}");
                 evt.StopPropagation();
                 return;
             }
 
-            if (evt.button == 0) // ЛКМ
+            if (evt.button == 0 && !string.IsNullOrEmpty(slot.ItemId)) // ЛКМ
             {
-                string itemId = GetSlot(slotIndex);
-                if (!string.IsNullOrEmpty(itemId))
-                {
-                    Debug.Log($"鼠标 ЛКМ по шмотке '{itemId}' в слоте {slotIndex}");
-                    // TODO: DragManager.StartDrag!
-                }
+                DragManager.Instance.StartDrag(
+                    source: this,
+                    slotIndex: slot.SlotIndex,
+                    itemId: slot.ItemId,
+                    amount: 1,
+                    icon: null,
+                    sourceId: DataSourceId,
+                    gridType: _gridType
+                );
+                evt.StopPropagation();
             }
         }
 
         private void OnSlotPointerUp(PointerUpEvent evt)
         {
-            var slotRoot = evt.currentTarget as VisualElement;
-            if (slotRoot == null || slotRoot.userData == null) return;
-            int slotIndex = (int)slotRoot.userData;
+            if (!DragManager.Instance.IsDragging) return;
 
-            // СЦЕНАРИЙ Б: УСПЕШНЫЙ СБРОС ДРАГА (Твой M:on_drop)
-            Debug.Log($"🎯 ПРЕДМЕТ СБРОШЕН! Ячейка-цель: Индекс {slotIndex}");
-            // TODO: DragManager.FinishDrag(this, slotIndex);
+            var slot = evt.currentTarget as SlotElement;
+            if (slot == null) return;
+
+            DragManager.Instance.Finish(this, slot.SlotIndex);
             evt.StopPropagation();
-        }
-
-        // Запустить сочную WoW-анимацию шторок ГКД (Твой trigger_gcd)
-        public void TriggerGcd(float durationSeconds)
-        {
-            for (int i = 0; i < _slots.Count; i++)
-            {
-                string itemId = GetSlot(i);
-                if (string.IsNullOrEmpty(itemId)) continue;
-
-                var itemCfg = ItemsDatabase.GetItem(itemId);
-                if (itemCfg != null && itemCfg.properties.triggers_gcd)
-                {
-                    // TODO: Накатить conic-gradient на slot.GcdOverlay через нативный таймер
-                }
-            }
-        }
-
-        public void SetSlotColors(int index, Color iconColor, Color bindColor)
-        {
-            if (index < 0 || index >= _slots.Count) return;
-            StaticGridLayout.SetSlotColors(_slots[index], iconColor, bindColor);
         }
     }
 }

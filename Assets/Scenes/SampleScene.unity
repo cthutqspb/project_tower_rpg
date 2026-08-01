@@ -288,37 +288,6 @@ MonoBehaviour:
   target: {fileID: 0}
   offset: {x: 0, y: 8, z: -10}
   smoothSpeed: 5
---- !u!1 &309154872
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 309154873}
-  m_Layer: 0
-  m_Name: UIManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &309154873
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 309154872}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1367445829}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &625965103 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: c5ea7056da8ab24c0a42f67ca9051124, type: 3}
@@ -539,6 +508,7 @@ GameObject:
   - component: {fileID: 1367445832}
   - component: {fileID: 1367445833}
   - component: {fileID: 1367445834}
+  - component: {fileID: 1367445835}
   m_Layer: 0
   m_Name: '[UI]'
   m_TagString: Untagged
@@ -559,7 +529,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 309154873}
   - {fileID: 738699063}
   - {fileID: 885080749}
   m_Father: {fileID: 0}
@@ -629,7 +598,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1367445828}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8a410b213209442fb15a69799f0240a5, type: 3}
   m_Name: 
@@ -641,7 +610,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1367445828}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7a79c4e23d4d4b64bfa5fa9e6671a460, type: 3}
   m_Name: 
@@ -658,6 +627,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d047ee185fe1ec66aba404ec80d66b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.UIManager
+--- !u!114 &1367445835
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1367445828}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfd47a510d79a988c8b555177b70aa30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.DragManager
 --- !u!1001 &1401807447
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -814,7 +795,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 611141fb7d48d6b81bcd097ab1d99dfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.Windows.CharacterWindow
-  windowUxml: {fileID: 9197481963319205126, guid: 80b5602470cc869418acf44714520a33, type: 3}
+  _windowUxml: {fileID: 9197481963319205126, guid: 80b5602470cc869418acf44714520a33, type: 3}
 --- !u!1 &1972775475
 GameObject:
   m_ObjectHideFlags: 0

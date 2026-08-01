@@ -1,9 +1,11 @@
 .static-grid-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     flex-direction: row;
     flex-wrap: wrap;
     flex-shrink: 0;
     flex-grow: 0;
-
     background-color: rgba(0, 0, 0, 0.001);
 }
 

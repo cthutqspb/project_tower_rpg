@@ -16,18 +16,26 @@ namespace ProjectTowerRpg.ECS.Authoring
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
+            // ================================================================
+            // ДВИЖЕНИЕ
+            // ================================================================
             AddComponent(entity, new MovementComponent
             {
                 speed = authoring.moveSpeed,
                 direction = Unity.Mathematics.float3.zero
             });
 
+            // ================================================================
+            // ИГРОК (маркер)
+            // ================================================================
             if (authoring.isPlayer)
             {
                 AddComponent<PlayerTag>(entity);
             }
+
+            // ================================================================
+            // ❌ ИНВЕНТАРЬ НЕ СОЗДАЁМ! (только в UnitSpawnSystem)
+            // ================================================================
         }
     }
 }
-
-

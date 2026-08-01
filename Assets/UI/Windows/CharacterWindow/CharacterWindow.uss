@@ -23,14 +23,6 @@
     border-radius: 6px;
 }
 
-/* Красивый шрифт шапки */
-.window-header-label {
-    color: #ffffff;
-    font-size: 14px;
-    -unity-font-style: bold;
-    margin-bottom: 12px;
-}
-
 /* Ищем по классу (через точку!), который наш StaticGrid.cs вешает в C# конструкторе! */
 .static-grid-container {
     flex-shrink: 0;
