@@ -18,22 +18,22 @@ namespace ProjectTowerRpg.Core.Items
             // 1. Проверяем, создался ли вообще ECS мир симуляции (Live World) во время игры
             if (World.DefaultGameObjectInjectionWorld == null) return;
             
-           // Ищем мир живой симуляции рантайма (Live World) по флагам Unity 6
-var world = World.DefaultGameObjectInjectionWorld;
-if (world != null && (world.Flags & WorldFlags.Simulation) == 0)
-{
-    foreach (var w in World.All)
-    {
-        if ((w.Flags & WorldFlags.Simulation) != 0)
-        {
-            world = w;
-            break;
-        }
-    }
-}
+            // Ищем мир живой симуляции рантайма (Live World) по флагам Unity 6
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world != null && (world.Flags & WorldFlags.Simulation) == 0)
+            {
+                foreach (var w in World.All)
+                {
+                    if ((w.Flags & WorldFlags.Simulation) != 0)
+                    {
+                        world = w;
+                        break;
+                    }
+                }
+            }
 
-if (world == null) return;
-var em = world.EntityManager;
+            if (world == null) return;
+            var em = world.EntityManager;
 
 
             // 2. Используем чистый и каноничный SystemAPI.Query прямо внутри MonoBehaviour!
@@ -60,9 +60,9 @@ var em = world.EntityManager;
                         GameObject visualCube = Instantiate(_itemPrefab, targetPosition, targetRotation);
                         
                         if (visualCube.TryGetComponent<ItemAuthoring>(out var authoring))
-{
-    authoring.Entity = currentEntity;
-}
+                        {
+                            authoring.Entity = currentEntity;
+                        }
                         // Фиксируем связь в чистом реестре графики
                         EntityRegistry.RegisterItemVisual(currentEntity, visualCube);
                         _spawnedEntities.Add(currentEntity);
