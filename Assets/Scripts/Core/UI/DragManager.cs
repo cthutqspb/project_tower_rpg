@@ -24,7 +24,7 @@ namespace ProjectTowerRpg.Core.UI
 
         private PanelRenderer _panelRenderer;
         private VisualElement _root;
-        private IPanel _panel;  // ← ДОБАВИТЬ
+        private IPanel _panel;  
         private VisualElement _ghost;
         private Label _amountLabel;
         private DragData _activeDrag;
@@ -48,7 +48,7 @@ namespace ProjectTowerRpg.Core.UI
         private void OnUIReloaded(PanelRenderer renderer, VisualElement root, int version)
         {
             _root = root;
-            _panel = root?.panel;  // ← ДОБАВИТЬ
+            _panel = root?.panel;  
             if (_root == null) return;
 
             _ghost = new VisualElement();
@@ -93,16 +93,77 @@ namespace ProjectTowerRpg.Core.UI
 
             if (!mouse.leftButton.isPressed)
             {
-                // Проверяем, над чем отпустили
+                // Проверяем, над чем отпустили мышь в UI
                 var localPos = new Vector2(mousePos.x, Screen.height - mousePos.y);
                 var picked = _panel?.Pick(localPos);
                 
                 if (picked == null || picked == _root)
                 {
-                    // Отпустили мимо UI → отмена
-                    CancelDrag();
+                    // ================================================================
+                    // 🌍 СБРОС МИМО UI → ФИЗИЧЕСКИЙ ДРОП В МИР
+                    // ================================================================
+                    HandleWorldDrop(mousePos);
                 }
-                // Если над UI — Finish вызовется из OnSlotPointerUp
+                // Если над UI — Finish вызовется из OnSlotPointerUp у ячейки
+            }
+        }
+
+        private void HandleWorldDrop(Vector2 mousePosition)
+        {
+            if (Camera.main == null)
+            {
+                Debug.LogWarning("[DragManager] Основная камера не найдена. Дроп отменён.");
+                CancelDrag();
+                return;
+            }
+
+            // Стреляем физическим лучом из камеры сквозь курсор мыши
+            Ray ray = Camera.main.ScreenPointToRay(mousePosition);
+
+            if (Physics.Raycast(ray, out RaycastHit hit))
+            {
+                // Точка соприкосновения луча с землей
+                Unity.Mathematics.float3 worldDropPosition = hit.point;
+
+                Entity sourceEntity = EntityRegistry.Get(_activeDrag.SourceId);
+
+                if (sourceEntity != Entity.Null)
+                {
+                    // Скрываем визуал призрака
+                    _ghost.style.display = DisplayStyle.None;
+                    _ghost.style.backgroundImage = StyleKeyword.Null;
+
+                    // Создаем ECS-команду дропа
+                    var actionEntity = _entityManager.CreateEntity();
+                    _entityManager.AddComponentData(actionEntity, new ActionCommand
+                    {
+                        Type = "item_drop",
+                        SourceEntity = sourceEntity,
+                        SourceSlot = _activeDrag.SlotIndex,
+                        TargetEntity = Entity.Null, // У земли нет сущности-цели
+                        TargetSlot = -1,
+                        ItemId = _activeDrag.ItemId,
+                        Amount = _activeDrag.Amount,
+                        Position = worldDropPosition
+                    });
+
+                    Debug.Log($"[DragManager]: Отправлена команда дропа {_activeDrag.ItemId} в мир. Позиция: {worldDropPosition}");
+                }
+                else
+                {
+                    Debug.LogWarning("[DragManager] Ошибка: Исходная ECS-сущность сетки не найдена в EntityRegistry");
+                    CancelDrag();
+                    return;
+                }
+
+                // Очищаем стейт драга без возврата предмета
+                _activeDrag = null;
+            }
+            else
+            {
+                // Если луч улетел в небо/пустоту — выполняем обычную отмену драга
+                Debug.Log("[DragManager] Дроп отменён: луч не пересёк землю.");
+                CancelDrag();
             }
         }
 
@@ -205,3 +266,4 @@ namespace ProjectTowerRpg.Core.UI
         }
     }
 }
+

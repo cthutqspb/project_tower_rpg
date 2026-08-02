@@ -67,6 +67,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     case "item_drop":
                         ItemActions.Drop(
                             ref _slotDataLookup,
+                            ecb,
                             cmd.ValueRO.SourceEntity,
                             cmd.ValueRO.SourceSlot,
                             cmd.ValueRO.ItemId.ToString(),

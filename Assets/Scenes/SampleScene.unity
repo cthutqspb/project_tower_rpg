@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 204697935}
   - component: {fileID: 204697939}
   - component: {fileID: 204697940}
+  - component: {fileID: 204697941}
   m_Layer: 5
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -288,6 +289,77 @@ MonoBehaviour:
   target: {fileID: 0}
   offset: {x: 0, y: 8, z: -10}
   smoothSpeed: 5
+--- !u!114 &204697941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 204697934}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61e8991c2e6ea0f1b88497c1e93a5624, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.Interaction.InteractionManager
+--- !u!1 &607799491
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 607799492}
+  - component: {fileID: 607799493}
+  - component: {fileID: 607799494}
+  m_Layer: 0
+  m_Name: '[ItemFactory]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &607799492
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607799491}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &607799493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607799491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76445c8df95207534806ae861d994c30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.Items.ItemVisualizer
+  _itemPrefab: {fileID: 3088839651529755295, guid: 7d9adfda806bb07f89ba69fe49894e16, type: 3}
+--- !u!114 &607799494
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607799491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0683db3a26d4f1388ad7fd3513182578, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.Items.ItemVisualizer
+  _itemPrefab: {fileID: 3088839651529755295, guid: 7d9adfda806bb07f89ba69fe49894e16, type: 3}
 --- !u!1 &625965103 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: c5ea7056da8ab24c0a42f67ca9051124, type: 3}
@@ -902,3 +974,4 @@ SceneRoots:
   - {fileID: 1972775477}
   - {fileID: 2126767774}
   - {fileID: 1367445829}
+  - {fileID: 607799492}

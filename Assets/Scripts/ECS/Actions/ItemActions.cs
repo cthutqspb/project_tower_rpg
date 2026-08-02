@@ -101,7 +101,7 @@ namespace ProjectTowerRpg.ECS.Actions
             Debug.Log($"[ItemActions] Перенос предмета {itemId} из слота {sourceSlot} в {targetSlot}");
         }
 
-        public static void Drop(ref BufferLookup<SlotData> slotDataLookup, Entity containerEntity, int slot, string itemId, int amount, float3 position)
+        public static void Drop(ref BufferLookup<SlotData> slotDataLookup, EntityCommandBuffer ecb, Entity containerEntity, int slot, string itemId, int amount, float3 position)
         {
             if (!slotDataLookup.HasBuffer(containerEntity))
             {
@@ -130,6 +130,7 @@ namespace ProjectTowerRpg.ECS.Actions
                 return;
             }
 
+            // 1. КАНОН: Очищаем ячейку в ECS-буфере памяти инвентаря
             slots[slot] = new SlotData
             {
                 SlotIndex = slot,
@@ -140,7 +141,16 @@ namespace ProjectTowerRpg.ECS.Actions
                 EquipSlot = ""
             };
 
-            Debug.Log($"[ItemActions] Выброс предмета {itemId} x{amount} из слота {slot} в позицию {position}");
+            // 2. КАНОН: Вместо спавна куба создаем отложенный запрос на спавн через ECB
+            Entity requestEntity = ecb.CreateEntity();
+            ecb.AddComponent(requestEntity, new DropItemRequest
+            {
+                ItemId = itemId,
+                Amount = amount,
+                Position = position
+            });
+
+            Debug.Log($"[ItemActions] Запрос на спавн предмета {itemId} x{amount} отправлен в ItemSpawnSystem");
         }
 
         public static void Use(ref BufferLookup<SlotData> slotDataLookup, Entity containerEntity, int slot, string itemId, Entity userEntity)

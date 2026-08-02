@@ -1,5 +1,6 @@
 using Unity.Entities;
 using System.Collections.Generic;
+using UnityEngine; // Подключаем для GameObject
 using ProjectTowerRpg.Core.UI.Components; // Подключаем для StaticGrid
 
 namespace ProjectTowerRpg.Core.UI
@@ -11,6 +12,9 @@ namespace ProjectTowerRpg.Core.UI
         
         // Храним обратную связь: ECS Entity сетки -> Экземпляр UI-компонента StaticGrid
         private static Dictionary<Entity, StaticGrid> _gridUiRegistry = new Dictionary<Entity, StaticGrid>();
+
+        // Храним связь: ECS Entity предмета -> Его графический GameObject
+        private static Dictionary<Entity, GameObject> _itemVisuals = new Dictionary<Entity, GameObject>();
 
         // ================================================================
         // РЕГИСТРАЦИЯ СУЩНОСТЕЙ
@@ -48,12 +52,33 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // ================================================================
+        // РЕГИСТРАЦИЯ ВИЗУАЛА ПРЕДМЕТОВ (Для Фабрики Отображения)
+        // ================================================================
+        public static void RegisterItemVisual(Entity entity, GameObject visual)
+        {
+            if (entity == Entity.Null || visual == null) return;
+            _itemVisuals[entity] = visual;
+        }
+
+        public static GameObject GetItemVisual(Entity entity)
+        {
+            if (entity == Entity.Null) return null;
+            return _itemVisuals.TryGetValue(entity, out var visual) ? visual : null;
+        }
+
+        public static void UnregisterItemVisual(Entity entity)
+        {
+            _itemVisuals.Remove(entity);
+        }
+
+        // ================================================================
         // ОЧИСТКА ВСЕГО
         // ================================================================
         public static void Clear()
         {
             _registry.Clear();
             _gridUiRegistry.Clear();
+            _itemVisuals.Clear();
         }
     }
 }

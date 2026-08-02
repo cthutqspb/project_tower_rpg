@@ -1,14 +1,15 @@
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
-using Newtonsoft.Json; // Подключаем промышленный парсер
+using Newtonsoft.Json;
 
 namespace ProjectTowerRpg.Core.Items
 {
     public static class ItemsDatabase
     {
-        // Наша RAM-база данных (Хэш-карта): [строковый_id] = Паспорт вещи
         private static Dictionary<string, ItemConfig> _database = new();
+        // Новый кэш для моментального поиска из ECS-систем по числу!
+        private static Dictionary<int, ItemConfig> _hashedDatabase = new();
         
         public static bool IsLoaded { get; private set; } = false;
 
@@ -17,7 +18,6 @@ namespace ProjectTowerRpg.Core.Items
             if (IsLoaded) return;
 
             string filePath = Path.Combine(Application.streamingAssetsPath, "ItemsDatabase.json");
-
             if (!File.Exists(filePath))
             {
                 Debug.LogError($"🚨 БАЗА ДАННЫХ [Items]: Файл JSON не найден по пути: {filePath}");
@@ -27,43 +27,50 @@ namespace ProjectTowerRpg.Core.Items
             try
             {
                 string jsonText = File.ReadAllText(filePath);
-
-                // Читаем сырую матрешку из JSON
                 _database = JsonConvert.DeserializeObject<Dictionary<string, ItemConfig>>(jsonText);
 
-                // 🎯 ТВОЙ ПРОМЫШЛЕННЫЙ ЗАДЕЛ (Инжекция ID и дефолтных типов прямо в RAM):
+                _hashedDatabase.Clear();
+
                 foreach (var pair in _database)
                 {
                     string idStr = pair.Key;
                     ItemConfig cfg = pair.Value;
 
-                    cfg.id = idStr; // Вклеиваем строковый ID в паспорт шмотки
+                    cfg.id = idStr;
 
-                    // Если экшен-тип забыли указать в JSON, инжектируем дефолтный "item"
                     if (string.IsNullOrEmpty(cfg.action_type))
                     {
                         cfg.action_type = "item";
                     }
+
+                    // ГЕНЕРИРУЕМ ХЭШ: Берем строку "iron_sword", делаем из нее инт
+                    int numericHash = idStr.GetHashCode();
+                    _hashedDatabase[numericHash] = cfg;
                 }
 
                 IsLoaded = true;
-                Debug.Log($"🎮 БАЗА ДАННЫХ [Items]: Успешно загружен реестр. Шмоток в ОЗУ: {_database.Count}");
+                Debug.Log($"🎮 БАЗА ДАННЫХ [Items]: Успешно загружен реестр. Шмоток в ОЗУ: {_database.Count} (Хэшировано: {_hashedDatabase.Count})");
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"🚨 БАЗА ДАННЫХ [Items]: Ошибка парсинга JSON! Рефактори структуру: {ex.Message}");
+                Debug.LogError($"🚨 БАЗА ДАННЫХ [Items]: Ошибка парсинга JSON! {ex.Message}");
             }
         }
 
-        // 🎯 ТВОЙ УНИВЕРСАЛЬНЫЙ ГEТТEР M.get_item(id):
+        // Геттер по строке (для UI Toolkit, DragManager и JS-подобной логики)
         public static ItemConfig GetItem(string itemId)
         {
-            if (_database.TryGetValue(itemId, out var config))
+            return _database.TryGetValue(itemId, out var config) ? config : null;
+        }
+
+        // КАНОНИЧНЫЙ ГЕТТЕР ДЛЯ ECS (Вызывается из систем и ItemActions)
+        public static ItemConfig GetItem(int itemHashId)
+        {
+            if (_hashedDatabase.TryGetValue(itemHashId, out var config))
             {
                 return config;
             }
-
-            Debug.LogWarning($"⚠️ БАЗА ДАННЫХ [Items]: Запрос несуществующего item_id: '{itemId}'");
+            Debug.LogWarning($"⚠️ БАЗА ДАННЫХ [Items]: Запрос несуществующего хэша: {itemHashId}");
             return null;
         }
     }

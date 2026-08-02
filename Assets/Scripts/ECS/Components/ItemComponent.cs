@@ -2,13 +2,21 @@ using Unity.Entities;
 
 namespace ProjectTowerRpg.ECS.Components
 {
-    // 🛡️ ТВОЙ ПЕРВЫЙ ЧИСТОКРОВНЫЙ ECS-КОМПОНЕНТ ДАННЫХ ПРЕДМЕТА:
+    /// <summary>
+    /// Главный компонент предмета в мире. Полный канон на интах.
+    /// </summary>
     public struct ItemComponent : IComponentData
     {
-        public int itemId;       // Числовой хэш из базы предметов
-        public int amount;       // Количество в стаке
-        public int lootTableId;  // ID таблицы лута
-        public bool isLooted;    // Наш вечный флаг обыска!
+        // Уникальный паспорт куба на карте. 
+        // Вместо тяжелой строки делаем хэш от координат (как в твоем Defold: i_X_Y -> GetHashCode())
+        public int Uid;
+
+        // Числовой хэш предмета ("iron_sword".GetHashCode())
+        public int ItemId;       
+
+        public int Amount;       
+        public int LootTableId;  
+        public bool IsLooted;    
     }
 }
 

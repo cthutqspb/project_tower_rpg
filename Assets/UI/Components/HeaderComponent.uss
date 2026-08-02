@@ -1,0 +1,23 @@
+.header-component {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 4px 8px;
+    background-color: rgba(27, 72, 72, 0.72);
+}
+
+.header-component__label {
+    flex-grow: 1;  /* ← Заголовок занимает всё свободное место */
+    color: #ffffff;
+    font-size: 14px;
+    font-style: bold;
+}
+
+.header-component__close-btn {
+    flex-shrink: 0;  /* ← Кнопка не сжимается */
+    background-color: transparent;
+    color: #ff6b6b;
+    font-size: 16px;
+    padding: 0 4px;
+    border-width: 0;
+}
