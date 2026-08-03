@@ -150,9 +150,6 @@ namespace ProjectTowerRpg.ECS.Actions
                 EquipSlot = ""
             };
 
-            // ✅ Уведомляем UI
-            UIEvents.TriggerInventoryChanged(containerEntity, slot);
-
             // Создаём запрос на спавн предмета в мире
             Entity requestEntity = ecb.CreateEntity();
             ecb.AddComponent(requestEntity, new DropItemRequest
@@ -217,9 +214,6 @@ namespace ProjectTowerRpg.ECS.Actions
                     EquipSlot = "",
                     ContainerType = "inventory"
                 };
-
-                // ✅ Уведомляем UI
-                UIEvents.TriggerInventoryChanged(inventoryEntity, targetSlotIndex);
 
                 Debug.Log($"[ItemActions.Loot] Предмет {itemData.ItemId} перенесён в слот #{targetSlotIndex}");
 
@@ -288,8 +282,6 @@ namespace ProjectTowerRpg.ECS.Actions
                     };
                 }
 
-                // ✅ Уведомляем UI
-                UIEvents.TriggerInventoryChanged(containerEntity, slot);
             }
 
             Debug.Log($"[ItemActions] Использован предмет {itemId} пользователем {userEntity}");

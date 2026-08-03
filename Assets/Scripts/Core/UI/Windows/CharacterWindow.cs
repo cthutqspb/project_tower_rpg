@@ -26,8 +26,6 @@ namespace ProjectTowerRpg.Core.UI.Windows
             }
 
             _panelRenderer.RegisterUIReloadCallback(OnUIReloaded);
-
-            UIEvents.InventoryChanged += OnInventoryChanged;
         }
 
         private void OnUIReloaded(PanelRenderer renderer, VisualElement globalUiRoot, int version)
@@ -87,27 +85,8 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 return;
             }
 
-            // Регистрируем грид в реестре для SyncAllGridsUiSystem
-            //EntityRegistry.RegisterGrid(inventoryEntity, _inventoryGrid);
-
-            // Устанавливаем Entity для всех слотов
-            _inventoryGrid.SetInventoryEntity(inventoryEntity);
-            
-            // Принудительно обновляем все слоты
-            _inventoryGrid.RefreshAll();
-        }
-
-        private void OnInventoryChanged(Entity containerEntity, int slotIndex)
-        {
-            Debug.Log($"[CharacterWindow] OnInventoryChanged: entity={containerEntity}, slot={slotIndex}");
-            
-            if (_inventoryGrid == null) return;
-
-            var inventoryEntity = EntityRegistry.Get("unit_inventory");
-            if (containerEntity != inventoryEntity) return;
-
-            // Обновляем только изменившийся слот
-            _inventoryGrid.RefreshSlot(slotIndex);
+            // ✅ НОВАЯ АРХИТЕКТУРА: BindToEntity регистрирует грид в UIRegistry
+            _inventoryGrid.BindToEntity(inventoryEntity);
         }
 
         private void ShowWindow()
@@ -129,7 +108,11 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 _panelRenderer.UnregisterUIReloadCallback(OnUIReloaded);
             }
 
-            UIEvents.InventoryChanged -= OnInventoryChanged;
+            // ✅ Отписываемся от реестра при закрытии
+            if (_inventoryGrid != null && _inventoryGrid.InventoryEntity != Entity.Null)
+            {
+                UIRegistry.Unregister(_inventoryGrid.InventoryEntity, _inventoryGrid);
+            }
         }
     }
 }

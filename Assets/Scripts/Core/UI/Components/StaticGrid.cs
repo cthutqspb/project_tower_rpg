@@ -2,10 +2,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
+using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
-    public class StaticGrid : VisualElement, IDataSourceProvider
+    public class StaticGrid : VisualElement, IDataSourceProvider, IEcsUiBufferReceiver<SlotData>
     {
         private string _gridType;
         private int _columns;
@@ -34,6 +37,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             this.style.flexShrink = 0;
             this.style.flexGrow = 0;
 
+            // Создаём слоты
             for (int i = 0; i < columns * rows; i++)
             {
                 var slot = new SlotElement();
@@ -41,7 +45,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 slot.DataSourceId = DataSourceId;
                 slot.GridType = _gridType;
                 slot.Source = this;
-                slot.InventoryEntity = _inventoryEntity;
+                // slot.InventoryEntity будет задано позже в BindToEntity
 
                 slot.style.width = 40;
                 slot.style.height = 40;
@@ -59,54 +63,75 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
 
-        public void SetInventoryEntity(Entity inventoryEntity)
+        public void BindToEntity(Entity inventoryEntity)
         {
+            Debug.Log($"[StaticGrid] BindToEntity: {inventoryEntity}");
+            
             _inventoryEntity = inventoryEntity;
+            
+            // Обновляем InventoryEntity у всех слотов
             foreach (var slot in _slots)
             {
                 slot.InventoryEntity = inventoryEntity;
             }
-            RefreshAll();
-        }
-
-        public void RefreshAll()
-        {
-            foreach (var slot in _slots)
+            
+            UIRegistry.Register(inventoryEntity, this);
+            
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world == null) return;
+            
+            var em = world.EntityManager;
+            if (em.HasBuffer<SlotData>(inventoryEntity))
             {
-                slot.Refresh();
+                var slots = em.GetBuffer<SlotData>(inventoryEntity);
+                UpdateFromBuffer(slots);
+            }
+            else
+            {
+                Debug.LogWarning($"[StaticGrid] InventoryEntity {inventoryEntity} не имеет буфера SlotData");
             }
         }
 
-        public void RefreshSlot(int index)
+        public void UpdateFromBuffer(DynamicBuffer<SlotData> slots)
         {
-            if (index < 0 || index >= _slots.Count) return;
-            _slots[index].Refresh();
+            Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} слотов");
+            
+            for (int i = 0; i < slots.Length && i < _slots.Count; i++)
+            {
+                var slot = slots[i];
+                var itemId = slot.DataId.ToString();
+                var config = !string.IsNullOrEmpty(itemId) ? ItemsDatabase.GetItem(itemId) : null;
+                _slots[i].SetData(itemId, config, _gridType, i);
+            }
         }
-
-        // ================================================================
-        // 🖱️ ОБРАБОТЧИКИ КЛИКОВ
-        // ================================================================
 
         private void OnSlotPointerDown(PointerDownEvent evt)
         {
             var slot = evt.currentTarget as SlotElement;
             if (slot == null) return;
 
-            if (evt.button == 1) // ПКМ
+            if (evt.button == 1)
             {
                 Debug.Log($"ПКМ по слоту {slot.SlotIndex}");
                 evt.StopPropagation();
                 return;
             }
 
-            if (evt.button == 0) // ЛКМ
+            if (evt.button == 0)
             {
-                // ✅ Берём данные из ECS через слот
                 string itemId = slot.GetItemId();
                 int amount = slot.GetAmount();
                 
+                Debug.Log($"[StaticGrid] OnSlotPointerDown: itemId={itemId}, amount={amount}");
+                
                 if (!string.IsNullOrEmpty(itemId))
                 {
+                    if (DragManager.Instance == null)
+                    {
+                        Debug.LogError("[StaticGrid] DragManager.Instance = null!");
+                        return;
+                    }
+                    
                     DragManager.Instance.StartDrag(
                         source: this,
                         slotIndex: slot.SlotIndex,
@@ -123,7 +148,7 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         private void OnSlotPointerUp(PointerUpEvent evt)
         {
-            if (!DragManager.Instance.IsDragging) return;
+            if (DragManager.Instance == null || !DragManager.Instance.IsDragging) return;
 
             var slot = evt.currentTarget as SlotElement;
             if (slot == null) return;
@@ -132,9 +157,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             evt.StopPropagation();
         }
 
-        // ================================================================
-        // IDataSourceProvider
-        // ================================================================
         string IDataSourceProvider.DataSourceId => DataSourceId;
     }
 }

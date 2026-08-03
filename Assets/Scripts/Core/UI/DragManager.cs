@@ -4,6 +4,7 @@ using UnityEngine.UIElements;
 using UnityEngine.InputSystem;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Systems;
+using ProjectTowerRpg.Core.UI.Components;
 
 namespace ProjectTowerRpg.Core.UI
 {
@@ -119,14 +120,14 @@ namespace ProjectTowerRpg.Core.UI
             {
                 float3 worldDropPosition = hit.point;
 
-                Entity sourceEntity = EntityRegistry.Get(_activeDrag.SourceId);
+                // ✅ Получаем Entity через UIRegistry
+                Entity sourceEntity = GetEntityFromComponent(_activeDrag.Source);
 
                 if (sourceEntity != Entity.Null)
                 {
                     _ghost.style.display = DisplayStyle.None;
                     _ghost.style.backgroundImage = StyleKeyword.Null;
 
-                    // ✅ Передаём строку напрямую
                     var actionEntity = _entityManager.CreateEntity();
                     _entityManager.AddComponentData(actionEntity, new ActionCommand
                     {
@@ -135,7 +136,7 @@ namespace ProjectTowerRpg.Core.UI
                         SourceSlot = _activeDrag.SlotIndex,
                         TargetEntity = Entity.Null,
                         TargetSlot = -1,
-                        ItemId = _activeDrag.ItemId,  // ← строка
+                        ItemId = _activeDrag.ItemId,
                         Amount = _activeDrag.Amount,
                         Position = worldDropPosition
                     });
@@ -144,7 +145,7 @@ namespace ProjectTowerRpg.Core.UI
                 }
                 else
                 {
-                    Debug.LogWarning("[DragManager] Ошибка: Исходная ECS-сущность сетки не найдена в EntityRegistry");
+                    Debug.LogWarning("[DragManager] Ошибка: Исходная ECS-сущность сетки не найдена");
                     CancelDrag();
                     return;
                 }
@@ -193,32 +194,49 @@ namespace ProjectTowerRpg.Core.UI
 
             if (targetComponent != null && targetSlot >= 0)
             {
-                string targetId = GetDataSourceId(targetComponent);
-                if (!string.IsNullOrEmpty(targetId))
+                // ✅ Получаем Entity через UIRegistry
+                Entity sourceEntity = GetEntityFromComponent(_activeDrag.Source);
+                Entity targetEntity = GetEntityFromComponent(targetComponent);
+
+                if (sourceEntity != Entity.Null && targetEntity != Entity.Null)
                 {
-                    Entity sourceEntity = EntityRegistry.Get(_activeDrag.SourceId);
-                    Entity targetEntity = EntityRegistry.Get(targetId);
-
-                    if (sourceEntity != Entity.Null && targetEntity != Entity.Null)
+                    var actionEntity = _entityManager.CreateEntity();
+                    _entityManager.AddComponentData(actionEntity, new ActionCommand
                     {
-                        var actionEntity = _entityManager.CreateEntity();
-                        _entityManager.AddComponentData(actionEntity, new ActionCommand
-                        {
-                            Type = "item_transfer",
-                            SourceEntity = sourceEntity,
-                            SourceSlot = _activeDrag.SlotIndex,
-                            TargetEntity = targetEntity,
-                            TargetSlot = targetSlot,
-                            ItemId = _activeDrag.ItemId,  // ← строка
-                            Amount = _activeDrag.Amount
-                        });
+                        Type = "item_transfer",
+                        SourceEntity = sourceEntity,
+                        SourceSlot = _activeDrag.SlotIndex,
+                        TargetEntity = targetEntity,
+                        TargetSlot = targetSlot,
+                        ItemId = _activeDrag.ItemId,
+                        Amount = _activeDrag.Amount
+                    });
 
-                        Debug.Log($"[DragManager]: Команда создана {_activeDrag.ItemId} -> {targetSlot}");
-                    }
+                    Debug.Log($"[DragManager]: Команда создана {_activeDrag.ItemId} -> {targetSlot}");
                 }
             }
 
             _activeDrag = null;
+        }
+
+        private Entity GetEntityFromComponent(object component)
+        {
+            if (component == null) return Entity.Null;
+
+            // ✅ Новый способ: через UIRegistry
+            if (component is StaticGrid grid)
+            {
+                return grid.InventoryEntity;
+            }
+
+            // ✅ Для обратной совместимости: через IDataSourceProvider + EntityRegistry
+            if (component is IDataSourceProvider provider)
+            {
+                var entity = EntityRegistry.Get(provider.DataSourceId);
+                if (entity != Entity.Null) return entity;
+            }
+
+            return Entity.Null;
         }
 
         private void CancelDrag()

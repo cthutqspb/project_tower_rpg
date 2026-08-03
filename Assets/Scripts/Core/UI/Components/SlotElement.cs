@@ -13,6 +13,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         private Label _bindLabel;
         private Label _amountLabel;
         private Label _durationLabel;
+        private string _itemId;
 
         public int SlotIndex { get; set; }
         public Entity InventoryEntity { get; set; }
@@ -65,6 +66,39 @@ namespace ProjectTowerRpg.Core.UI.Components
                 mode: DragMode.Slot
             );
             this.AddManipulator(dragManipulator);
+        }
+
+        public void SetData(string itemId, ItemConfig config, string gridType, int index, int amount = 1)
+        {
+            _itemId = itemId;
+            GridType = gridType;
+            SlotIndex = index;
+            ClearVisual();
+
+            if (config == null || string.IsNullOrEmpty(itemId))
+            {
+                return;
+            }
+
+            _icon.style.display = DisplayStyle.Flex;
+            _icon.style.backgroundColor = GetQualityColor(config.identity.quality);
+
+            if (gridType == "action_bar")
+            {
+                _bindLabel.style.display = DisplayStyle.Flex;
+                _bindLabel.text = GetBindKey(index);
+            }
+
+            if (amount > 1)
+            {
+                _amountLabel.style.display = DisplayStyle.Flex;
+                _amountLabel.text = amount.ToString();
+            }
+            else
+            {
+                _amountLabel.style.display = DisplayStyle.None;
+                _amountLabel.text = "";
+            }
         }
 
         public void Refresh()
@@ -131,6 +165,7 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         public void ClearVisual()
         {
+            _itemId = "";
             _icon.style.display = DisplayStyle.None;
             _icon.style.backgroundColor = Color.clear;
             _bindLabel.text = "";
@@ -145,6 +180,8 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         public string GetItemId()
         {
+            if (!string.IsNullOrEmpty(_itemId)) return _itemId;
+            
             var world = World.DefaultGameObjectInjectionWorld;
             if (world == null || InventoryEntity == Entity.Null) return "";
 

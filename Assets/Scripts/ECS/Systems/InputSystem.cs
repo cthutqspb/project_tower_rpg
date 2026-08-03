@@ -47,7 +47,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
             bool isLmbPressed = !isUiBlocked && _interactOrLookAction.IsPressed();
             bool isRmbPressed = !isUiBlocked && _actionOrOrbitAction.IsPressed();
-
+ 
             // ... (Твой стандартный блок OnUpdate с проверкой осей и UIManager.IsBlocked)
 
             // ОБРАБОТКА КЛИКА В 3D МИРЕ — СТЕРИЛЬНЫЙ ВАРИАНТ

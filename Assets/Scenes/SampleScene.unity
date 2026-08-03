@@ -133,7 +133,6 @@ GameObject:
   - component: {fileID: 204697935}
   - component: {fileID: 204697939}
   - component: {fileID: 204697940}
-  - component: {fileID: 204697941}
   m_Layer: 5
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -289,18 +288,6 @@ MonoBehaviour:
   target: {fileID: 0}
   offset: {x: 0, y: 8, z: -10}
   smoothSpeed: 5
---- !u!114 &204697941
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 204697934}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 61e8991c2e6ea0f1b88497c1e93a5624, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.Interaction.InteractionManager
 --- !u!1 &607799491
 GameObject:
   m_ObjectHideFlags: 0
@@ -346,7 +333,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76445c8df95207534806ae861d994c30, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.Items.ItemVisualizer
-  _itemPrefab: {fileID: 3088839651529755295, guid: 7d9adfda806bb07f89ba69fe49894e16, type: 3}
 --- !u!114 &607799494
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -375,6 +361,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4efa3ae5ac09a2c63ae870f534b0fa15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SyncTransformWithEntity
+--- !u!114 &625965110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 625965103}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5af93c656fc34e399aec1df9c5c242d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SyncTransformWithEntity
 --- !u!1 &738699062
@@ -790,6 +788,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c5ea7056da8ab24c0a42f67ca9051124, type: 3}
       insertIndex: -1
       addedObject: {fileID: 625965107}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c5ea7056da8ab24c0a42f67ca9051124, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 625965110}
   m_SourcePrefab: {fileID: 100100000, guid: c5ea7056da8ab24c0a42f67ca9051124, type: 3}
 --- !u!1 &1895062905
 GameObject:
