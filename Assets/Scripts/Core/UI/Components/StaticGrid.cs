@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
-using ProjectTowerRpg.Core.Items;
+using Unity.Entities;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -11,9 +11,11 @@ namespace ProjectTowerRpg.Core.UI.Components
         private int _columns;
         private int _rows;
         private List<SlotElement> _slots = new();
+        private Entity _inventoryEntity;
 
         public string DataSourceId { get; set; }
         public string GridType => _gridType;
+        public Entity InventoryEntity => _inventoryEntity;
 
         public StaticGrid(int columns, int rows, string gridType)
         {
@@ -32,7 +34,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             this.style.flexShrink = 0;
             this.style.flexGrow = 0;
 
-            // Создаём слоты
             for (int i = 0; i < columns * rows; i++)
             {
                 var slot = new SlotElement();
@@ -40,6 +41,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 slot.DataSourceId = DataSourceId;
                 slot.GridType = _gridType;
                 slot.Source = this;
+                slot.InventoryEntity = _inventoryEntity;
 
                 slot.style.width = 40;
                 slot.style.height = 40;
@@ -48,40 +50,42 @@ namespace ProjectTowerRpg.Core.UI.Components
                 slot.style.marginBottom = 2;
                 slot.style.marginLeft = 2;
                 slot.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+
                 slot.RegisterCallback<PointerDownEvent>(OnSlotPointerDown);
                 slot.RegisterCallback<PointerUpEvent>(OnSlotPointerUp);
+
                 _slots.Add(slot);
                 Add(slot);
             }
         }
 
-        // ================================================================
-        // 🔄 РЕАКТИВНОЕ ОБНОВЛЕНИЕ СЛОТА ИЗ ECS СИСТЕМЫ
-        // ================================================================
-        public void UpdateSlot(int index, string dataId, string dataType, int amount, string containerType)
+        public void SetInventoryEntity(Entity inventoryEntity)
+        {
+            _inventoryEntity = inventoryEntity;
+            foreach (var slot in _slots)
+            {
+                slot.InventoryEntity = inventoryEntity;
+            }
+            RefreshAll();
+        }
+
+        public void RefreshAll()
+        {
+            foreach (var slot in _slots)
+            {
+                slot.Refresh();
+            }
+        }
+
+        public void RefreshSlot(int index)
         {
             if (index < 0 || index >= _slots.Count) return;
-
-            var slot = _slots[index];
-            
-            // Если в ячейке ECS пусто — очищаем UI-слот
-            if (string.IsNullOrEmpty(dataId) || amount <= 0)
-            {
-                slot.ClearSlot();
-                return;
-            }
-
-            // Достаем конфиг предмета (для способностей/аур здесь добавится их база данных)
-            ItemConfig config = null;
-            if (dataType == "item" || containerType == "inventory")
-            {
-                config = ItemsDatabase.GetItem(dataId);
-            }
-
-            // Передаем плоские данные в UI-слот.
-            // Убедись, что твой SlotElement принимает параметры в таком порядке или обнови его.
-            slot.SetData(dataId, config, _gridType, index);
+            _slots[index].Refresh();
         }
+
+        // ================================================================
+        // 🖱️ ОБРАБОТЧИКИ КЛИКОВ
+        // ================================================================
 
         private void OnSlotPointerDown(PointerDownEvent evt)
         {
@@ -95,18 +99,25 @@ namespace ProjectTowerRpg.Core.UI.Components
                 return;
             }
 
-            if (evt.button == 0 && !string.IsNullOrEmpty(slot.ItemId)) // ЛКМ
+            if (evt.button == 0) // ЛКМ
             {
-                DragManager.Instance.StartDrag(
-                    source: this,
-                    slotIndex: slot.SlotIndex,
-                    itemId: slot.ItemId,
-                    amount: 1,
-                    icon: null,
-                    sourceId: DataSourceId,
-                    gridType: _gridType
-                );
-                evt.StopPropagation();
+                // ✅ Берём данные из ECS через слот
+                string itemId = slot.GetItemId();
+                int amount = slot.GetAmount();
+                
+                if (!string.IsNullOrEmpty(itemId))
+                {
+                    DragManager.Instance.StartDrag(
+                        source: this,
+                        slotIndex: slot.SlotIndex,
+                        itemId: itemId,
+                        amount: amount,
+                        icon: null,
+                        sourceId: DataSourceId,
+                        gridType: _gridType
+                    );
+                    evt.StopPropagation();
+                }
             }
         }
 
@@ -120,6 +131,10 @@ namespace ProjectTowerRpg.Core.UI.Components
             DragManager.Instance.Finish(this, slot.SlotIndex);
             evt.StopPropagation();
         }
+
+        // ================================================================
+        // IDataSourceProvider
+        // ================================================================
+        string IDataSourceProvider.DataSourceId => DataSourceId;
     }
 }
-

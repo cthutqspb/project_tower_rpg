@@ -36,46 +36,77 @@ namespace ProjectTowerRpg.Core.Items
             var em = world.EntityManager;
 
 
-            // 2. Используем чистый и каноничный SystemAPI.Query прямо внутри MonoBehaviour!
+                        // 2. Используем чистый и каноничный SystemAPI.Query прямо внутри MonoBehaviour!
             // Для этого мы временно переключаем контекст выполнения на мир симуляции
             using (var query = em.CreateEntityQuery(typeof(ItemComponent), typeof(LocalTransform)))
             {
-                if (query.IsEmpty) return;
-
-                var entitiesArray = query.ToEntityArray(Unity.Collections.Allocator.Temp);
-
-                foreach (var currentEntity in entitiesArray)
+                // ВАЖНО: Больше не пишем return! Если query пустой — мы просто пропускаем цикл спавна, 
+                // но позволяем коду спуститься ниже к логике удаления графики!
+                if (!query.IsEmpty) 
                 {
-                    // Если для этой ECS-сущности из ОЗУ мы еще не спавнили куб в Главной Сцене
-                    if (!_spawnedEntities.Contains(currentEntity))
+                    var entitiesArray = query.ToEntityArray(Unity.Collections.Allocator.Temp);
+
+                    foreach (var currentEntity in entitiesArray)
                     {
-                        var transformData = em.GetComponentData<LocalTransform>(currentEntity);
-
-                        // Берём чистые координаты из ECS
-                        Vector3 targetPosition = (Vector3)transformData.Position;
-                        Quaternion targetRotation = (Quaternion)transformData.Rotation;
-
-                        // 3. Спавним ГРАФИКУ. Так как этот скрипт висит на [ItemFactory] в Главной Сцене,
-                        // Instantiate гарантированно создаст куб в SampleScene, а не внутри сабсцены!
-                        GameObject visualCube = Instantiate(_itemPrefab, targetPosition, targetRotation);
-                        
-                        if (visualCube.TryGetComponent<ItemAuthoring>(out var authoring))
+                        // Если для этой ECS-сущности из ОЗУ мы еще не спавнили куб в Главной Сцене
+                        if (!_spawnedEntities.Contains(currentEntity))
                         {
-                            authoring.Entity = currentEntity;
+                            var transformData = em.GetComponentData<LocalTransform>(currentEntity);
+
+                            // Берём чистые координаты из ECS
+                            Vector3 targetPosition = (Vector3)transformData.Position;
+                            Quaternion targetRotation = (Quaternion)transformData.Rotation;
+
+                            // 3. Спавним ГРАФИКУ.
+                            GameObject visualCube = Instantiate(_itemPrefab, targetPosition, targetRotation);
+                            
+                            if (visualCube.TryGetComponent<ItemAuthoring>(out var authoring))
+                            {
+                                authoring.Entity = currentEntity;
+                            }
+                            
+                            // Фиксируем связь в чистом реестре графики
+                            EntityRegistry.RegisterItemVisual(currentEntity, visualCube);
+                            _spawnedEntities.Add(currentEntity);
+
+                            Debug.Log($"[ItemVisualizer] Графика куба успешно создана в Главной Сцене для Entity {currentEntity.Index} на {targetPosition}");
                         }
-                        // Фиксируем связь в чистом реестре графики
-                        EntityRegistry.RegisterItemVisual(currentEntity, visualCube);
-                        _spawnedEntities.Add(currentEntity);
-
-                        Debug.Log($"[ItemVisualizer] Графика куба успешно создана в Главной Сцене для Entity {currentEntity.Index} на {targetPosition}");
                     }
-                }
 
-                entitiesArray.Dispose();
+                    entitiesArray.Dispose();
+                }
             }
 
-            // Убираем из кэша сущности, которые были удалены из ECS ОЗУ (слутаны)
-            _spawnedEntities.RemoveWhere(entity => !em.Exists(entity));
+            // 🎯 Физическое уничтожение графики при удалении сущности из ECS ОЗУ
+System.Collections.Generic.List<Entity> toRemove = new System.Collections.Generic.List<Entity>();
+
+foreach (Entity entity in _spawnedEntities)
+{
+    if (!em.Exists(entity))
+    {
+        toRemove.Add(entity);
+        
+        // Нативно вытаскиваем игровой объект куба из нашего реестра
+        GameObject cubeObject = EntityRegistry.GetItemVisual(entity);
+        if (cubeObject != null)
+        {
+            // Насильно стираем куб со сцены в реальном времени!
+            Destroy(cubeObject);
+            
+            // Зачищаем реестр, чтобы не копить утечки памяти
+            EntityRegistry.UnregisterItemVisual(entity);
+        }
+    }
+}
+
+// Безопасно очищаем наш HashSet
+foreach (Entity entity in toRemove)
+{
+    _spawnedEntities.Remove(entity);
+}
+
+
+
         }
     }
 }

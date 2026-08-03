@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Entities;
-using ProjectTowerRpg.ECS.Components; // ← Подключаем твой ЕДИНСТВЕННЫЙ каноничный компонент
+using Unity.Collections;    // ← ДОБАВИТЬ для FixedString
+using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.Items
 {
@@ -19,13 +20,13 @@ namespace ProjectTowerRpg.Core.Items
             {
                 Entity entity = GetEntity(TransformUsageFlags.Dynamic);
                 
-                // Запекаем данные в твой единственный Pure ECS компонент
+                // ✅ Передаём строку напрямую
                 AddComponent(entity, new ItemComponent 
                 { 
                     Uid = $"i_{(int)authoring.transform.position.x}_{(int)authoring.transform.position.z}".GetHashCode(),
-                    ItemId = authoring.itemId.GetHashCode(), 
+                    ItemId = authoring.itemId,  // ← строка
                     Amount = authoring.amount,
-                    LootTableId = authoring.lootTableId.GetHashCode(),
+                    LootTableId = authoring.lootTableId,  // ← строка
                     IsLooted = false
                 });
 
@@ -34,5 +35,4 @@ namespace ProjectTowerRpg.Core.Items
         }
     }
 }
-
 

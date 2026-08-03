@@ -3,6 +3,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.ECS.Actions
 {
@@ -68,6 +69,10 @@ namespace ProjectTowerRpg.ECS.Actions
                         EquipSlot = ""
                     };
 
+                    // ✅ Уведомляем UI
+                    UIEvents.TriggerInventoryChanged(sourceEntity, sourceSlot);
+                    UIEvents.TriggerInventoryChanged(targetEntity, targetSlot);
+
                     Debug.Log($"[ItemActions] Стакание {itemId} x{amount} в слот {targetSlot}");
                     return;
                 }
@@ -76,7 +81,7 @@ namespace ProjectTowerRpg.ECS.Actions
                 return;
             }
 
-            // Записываем в целевой слот, сохраняя ЕГО родной индекс и тип контейнера
+            // Записываем в целевой слот
             targetSlots[targetSlot] = new SlotData
             {
                 SlotIndex = targetSlot,
@@ -87,7 +92,7 @@ namespace ProjectTowerRpg.ECS.Actions
                 EquipSlot = sourceItem.EquipSlot
             };
 
-            // Записываем в исходный слот (очищаем его), сохраняя ЕГО родной индекс и тип контейнера
+            // Очищаем исходный слот
             sourceSlots[sourceSlot] = new SlotData
             {
                 SlotIndex = sourceSlot,
@@ -98,10 +103,20 @@ namespace ProjectTowerRpg.ECS.Actions
                 EquipSlot = ""
             };
 
+            // ✅ Уведомляем UI
+            UIEvents.TriggerInventoryChanged(sourceEntity, sourceSlot);
+            UIEvents.TriggerInventoryChanged(targetEntity, targetSlot);
+
             Debug.Log($"[ItemActions] Перенос предмета {itemId} из слота {sourceSlot} в {targetSlot}");
         }
 
-        public static void Drop(ref BufferLookup<SlotData> slotDataLookup, EntityCommandBuffer ecb, Entity containerEntity, int slot, string itemId, int amount, float3 position)
+        public static void Drop(ref BufferLookup<SlotData> slotDataLookup, 
+                                EntityCommandBuffer ecb, 
+                                Entity containerEntity, 
+                                int slot, 
+                                string itemId, 
+                                int amount, 
+                                float3 position)
         {
             if (!slotDataLookup.HasBuffer(containerEntity))
             {
@@ -124,13 +139,7 @@ namespace ProjectTowerRpg.ECS.Actions
                 return;
             }
 
-            if (item.DataType.ToString() != "item")
-            {
-                Debug.LogWarning($"[ItemActions] Слот содержит не предмет: {item.DataType}");
-                return;
-            }
-
-            // 1. КАНОН: Очищаем ячейку в ECS-буфере памяти инвентаря
+            // Очищаем слот
             slots[slot] = new SlotData
             {
                 SlotIndex = slot,
@@ -141,7 +150,10 @@ namespace ProjectTowerRpg.ECS.Actions
                 EquipSlot = ""
             };
 
-            // 2. КАНОН: Вместо спавна куба создаем отложенный запрос на спавн через ECB
+            // ✅ Уведомляем UI
+            UIEvents.TriggerInventoryChanged(containerEntity, slot);
+
+            // Создаём запрос на спавн предмета в мире
             Entity requestEntity = ecb.CreateEntity();
             ecb.AddComponent(requestEntity, new DropItemRequest
             {
@@ -153,6 +165,72 @@ namespace ProjectTowerRpg.ECS.Actions
             Debug.Log($"[ItemActions] Запрос на спавн предмета {itemId} x{amount} отправлен в ItemSpawnSystem");
         }
 
+        public static void Loot(
+            ref BufferLookup<SlotData> slotDataLookup, 
+            EntityCommandBuffer ecb, 
+            Entity itemWorldEntity, 
+            Entity inventoryEntity)
+        {
+            if (!slotDataLookup.HasBuffer(inventoryEntity))
+            {
+                Debug.LogError($"[ItemActions.Loot] У сущности инвентаря {inventoryEntity.Index} отсутствует DynamicBuffer<SlotData>!");
+                return;
+            }
+
+            var em = Unity.Entities.World.DefaultGameObjectInjectionWorld.EntityManager;
+            foreach (var world in Unity.Entities.World.All)
+            {
+                if ((world.Flags & Unity.Entities.WorldFlags.Simulation) != 0)
+                {
+                    em = world.EntityManager;
+                    break;
+                }
+            }
+
+            if (!em.HasComponent<ItemComponent>(itemWorldEntity))
+            {
+                Debug.LogWarning($"[ItemActions.Loot] Предмет {itemWorldEntity.Index} больше не существует в ОЗУ или уже собран!");
+                return;
+            }
+
+            var itemData = em.GetComponentData<ItemComponent>(itemWorldEntity);
+            var inventoryBuffer = slotDataLookup[inventoryEntity];
+
+            int targetSlotIndex = -1;
+            for (int i = 0; i < inventoryBuffer.Length; i++)
+            {
+                if (inventoryBuffer[i].DataId.IsEmpty)
+                {
+                    targetSlotIndex = i;
+                    break;
+                }
+            }
+
+            if (targetSlotIndex != -1)
+            {
+                inventoryBuffer[targetSlotIndex] = new SlotData
+                {
+                    SlotIndex = targetSlotIndex,
+                    DataId = itemData.ItemId,
+                    DataType = "item",
+                    Amount = itemData.Amount,
+                    EquipSlot = "",
+                    ContainerType = "inventory"
+                };
+
+                // ✅ Уведомляем UI
+                UIEvents.TriggerInventoryChanged(inventoryEntity, targetSlotIndex);
+
+                Debug.Log($"[ItemActions.Loot] Предмет {itemData.ItemId} перенесён в слот #{targetSlotIndex}");
+
+                ecb.DestroyEntity(itemWorldEntity);
+            }
+            else
+            {
+                Debug.LogWarning("[ItemActions.Loot] Инвентарь полон!");
+            }
+        }
+
         public static void Use(ref BufferLookup<SlotData> slotDataLookup, Entity containerEntity, int slot, string itemId, Entity userEntity)
         {
             var config = ItemsDatabase.GetItem(itemId);
@@ -162,20 +240,17 @@ namespace ProjectTowerRpg.ECS.Actions
                 return;
             }
 
-            // Проверяем use_effects (массив)
             if (config.use_effects == null || config.use_effects.Count == 0)
             {
                 Debug.LogWarning($"[ItemActions] У предмета {itemId} нет use_effects");
                 return;
             }
 
-            // Применяем все эффекты
             foreach (var effect in config.use_effects)
             {
                 ApplyItemEffect(effect, userEntity, config);
             }
 
-            // Проверяем, расходный ли предмет (stackable == true, но не бесконечный)
             if (config.properties.stackable && config.properties.max_stack > 0)
             {
                 if (!slotDataLookup.HasBuffer(containerEntity))
@@ -212,6 +287,9 @@ namespace ProjectTowerRpg.ECS.Actions
                         EquipSlot = ""
                     };
                 }
+
+                // ✅ Уведомляем UI
+                UIEvents.TriggerInventoryChanged(containerEntity, slot);
             }
 
             Debug.Log($"[ItemActions] Использован предмет {itemId} пользователем {userEntity}");
@@ -219,7 +297,6 @@ namespace ProjectTowerRpg.ECS.Actions
 
         public static void Equip(Entity containerEntity, int slot, string itemId, Entity userEntity)
         {
-            // Метод пока пустой, оставляем как в оригинале
             var config = ItemsDatabase.GetItem(itemId);
             if (config == null)
             {
@@ -261,4 +338,3 @@ namespace ProjectTowerRpg.ECS.Actions
         }
     }
 }
-

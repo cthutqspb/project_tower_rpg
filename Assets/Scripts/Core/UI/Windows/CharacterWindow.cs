@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.UI.Components;
@@ -27,22 +26,18 @@ namespace ProjectTowerRpg.Core.UI.Windows
             }
 
             _panelRenderer.RegisterUIReloadCallback(OnUIReloaded);
+
+            UIEvents.InventoryChanged += OnInventoryChanged;
         }
 
         private void OnUIReloaded(PanelRenderer renderer, VisualElement globalUiRoot, int version)
         {
             if (globalUiRoot == null || _root != null) return;
 
-            // ================================================================
-            // 1. ЗАГРУЖАЕМ КАРКАС
-            // ================================================================
             _root = _windowUxml.CloneTree();
             _root.pickingMode = PickingMode.Position;
             globalUiRoot.Add(_root);
 
-            // ================================================================
-            // 2. ХЕДЕР
-            // ================================================================
             var headerContainer = _root.Q<VisualElement>("header-container");
             if (headerContainer != null)
             {
@@ -59,39 +54,23 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 _header.AddManipulator(dragManipulator);
             }
 
-            // ================================================================
-            // 3. ИНВЕНТАРЬ
-            // ================================================================
             var inventoryContainer = _root.Q<VisualElement>("inventory-container");
             if (inventoryContainer != null)
             {
                 _inventoryGrid = new StaticGrid(columns: 6, rows: 4, gridType: "inventory");
-                
-                // DataSourceId — это строковый идентификатор, который будет улетать в DragManager.
-                // Передаем туда точное название ключа регистрации сетки.
                 _inventoryGrid.DataSourceId = "unit_inventory";
                 inventoryContainer.Add(_inventoryGrid);
 
-                // Регистрируем и принудительно инициализируем UI актуальными ECS-данными
                 LinkAndInitializeInventory();
             }
 
-            // ================================================================
-            // 4. КУКЛА (задел)
-            // ================================================================
             var paperdollContainer = _root.Q<VisualElement>("paperdoll-container");
             if (paperdollContainer != null)
             {
                 // TODO: PaperdollComponent
-                // var paperdoll = new PaperdollComponent();
-                // paperdollContainer.Add(paperdoll);
             }
 
-            // ================================================================
-            // 5. ПОКАЗЫВАЕМ ОКНО
-            // ================================================================
             ShowWindow();
-            
             Debug.Log("🎯 [CharacterWindow]: Окно собрано из компонентов!");
         }
 
@@ -100,9 +79,6 @@ namespace ProjectTowerRpg.Core.UI.Windows
             if (World.DefaultGameObjectInjectionWorld == null) return;
 
             var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-            
-            // "unit_inventory" — это сущность САМОЙ СЕТКИ инвентаря, 
-            // которая была создана при спавне и зарегистрирована в реестре.
             var inventoryEntity = EntityRegistry.Get("unit_inventory");
 
             if (inventoryEntity == Entity.Null)
@@ -111,28 +87,27 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 return;
             }
 
-            // Связываем ECS Сущность инвентаря с UI экземпляром в нашем статическом реестре сеток.
-            // Теперь SyncAllGridsUiSystem сможет мгновенно находить это окно!
-            EntityRegistry.RegisterGrid(inventoryEntity, _inventoryGrid);
+            // Регистрируем грид в реестре для SyncAllGridsUiSystem
+            //EntityRegistry.RegisterGrid(inventoryEntity, _inventoryGrid);
 
-            // ПЕРВИЧНАЯ ЗАЛИВКА ДАННЫХ ПРИ ОТКРЫТИИ ОКНА:
-            // Чтобы не ждать следующего перемещения предмета для отрисовки,
-            // принудительно забираем текущее состояние буфера и заливаем в слоты.
-            if (entityManager.HasBuffer<SlotData>(inventoryEntity))
-            {
-                var slots = entityManager.GetBuffer<SlotData>(inventoryEntity);
-                for (int i = 0; i < slots.Length; i++)
-                {
-                    var slot = slots[i];
-                    _inventoryGrid.UpdateSlot(
-                        slot.SlotIndex,
-                        slot.DataId.ToString(),
-                        slot.DataType.ToString(),
-                        slot.Amount,
-                        slot.ContainerType.ToString()
-                    );
-                }
-            }
+            // Устанавливаем Entity для всех слотов
+            _inventoryGrid.SetInventoryEntity(inventoryEntity);
+            
+            // Принудительно обновляем все слоты
+            _inventoryGrid.RefreshAll();
+        }
+
+        private void OnInventoryChanged(Entity containerEntity, int slotIndex)
+        {
+            Debug.Log($"[CharacterWindow] OnInventoryChanged: entity={containerEntity}, slot={slotIndex}");
+            
+            if (_inventoryGrid == null) return;
+
+            var inventoryEntity = EntityRegistry.Get("unit_inventory");
+            if (containerEntity != inventoryEntity) return;
+
+            // Обновляем только изменившийся слот
+            _inventoryGrid.RefreshSlot(slotIndex);
         }
 
         private void ShowWindow()
@@ -154,13 +129,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 _panelRenderer.UnregisterUIReloadCallback(OnUIReloaded);
             }
 
-            // Разрываем связь в реестре, чтобы избежать утечек памяти при уничтожении UI окна
-            var inventoryEntity = EntityRegistry.Get("unit_inventory");
-            if (inventoryEntity != Entity.Null)
-            {
-                EntityRegistry.UnregisterGrid(inventoryEntity);
-            }
+            UIEvents.InventoryChanged -= OnInventoryChanged;
         }
     }
 }
-

@@ -43,10 +43,27 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             // ПРОВЕРКА БЛОКИРОВКИ
-            bool isUiBlocked =  UIManager.IsBlocked; // <-- ИЗ UIBlock
+            bool isUiBlocked = UIManager.IsBlocked; 
 
             bool isLmbPressed = !isUiBlocked && _interactOrLookAction.IsPressed();
             bool isRmbPressed = !isUiBlocked && _actionOrOrbitAction.IsPressed();
+
+            // ... (Твой стандартный блок OnUpdate с проверкой осей и UIManager.IsBlocked)
+
+            // ОБРАБОТКА КЛИКА В 3D МИРЕ — СТЕРИЛЬНЫЙ ВАРИАНТ
+            if (!isUiBlocked && _interactOrLookAction.triggered)
+            {
+                if (DragManager.Instance != null && !DragManager.Instance.IsDragging)
+                {
+                    if (SystemAPI.TryGetSingleton<HoverState>(out var hover) && hover.HasTarget)
+                    {
+                        // Просто вешаем сигнал клика на сущность из ховера. Всё!
+                        EntityManager.AddComponent<ClickIntent>(hover.CurrentEntity);
+                        
+                        Debug.Log($"[InputSystem] Послан сигнал клика на Entity ID: {hover.CurrentEntity.Index}");
+                    }
+                }
+            }
 
             foreach (var movement in SystemAPI.Query<RefRW<MovementComponent>>().WithAll<PlayerTag>())
             {
@@ -64,3 +81,4 @@ namespace ProjectTowerRpg.ECS.Systems
         }
     }
 }
+

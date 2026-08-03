@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using Unity.Entities;
 using ProjectTowerRpg.Core.Items;
-using Unity.Properties;
+using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -12,13 +13,12 @@ namespace ProjectTowerRpg.Core.UI.Components
         private Label _bindLabel;
         private Label _amountLabel;
         private Label _durationLabel;
-        private DragManipulator _dragManipulator;
 
         public int SlotIndex { get; set; }
-        public string ItemId { get; private set; }
+        public Entity InventoryEntity { get; set; }
         public string DataSourceId { get; set; }
         public string GridType { get; set; }
-        public object Source { get; set; }  // Ссылка на StaticGrid
+        public object Source { get; set; }
 
         public SlotElement()
         {
@@ -41,7 +41,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             _cooldownOverlay = new VisualElement();
             _cooldownOverlay.AddToClassList("slot-cooldown-overlay");
             _cooldownOverlay.style.width = 40;
-            _cooldownOverlay.style.height = 0;
+            _cooldownOverlay.style.height = 40;
             _cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
             Add(_cooldownOverlay);
             
@@ -60,39 +60,76 @@ namespace ProjectTowerRpg.Core.UI.Components
             _durationLabel.style.display = DisplayStyle.None;
             Add(_durationLabel);
 
-            // ================================================================
-            // 🖱️ ДРАГ МАНИПУЛЯТОР НА КАЖДЫЙ СЛОТ
-            // ================================================================
-            _dragManipulator = new DragManipulator(
+            var dragManipulator = new DragManipulator(
                 target: this,
                 mode: DragMode.Slot
             );
-            this.AddManipulator(_dragManipulator);
+            this.AddManipulator(dragManipulator);
         }
 
-        public void SetData(string itemId, ItemConfig config, string gridType, int index)
+        public void Refresh()
         {
-            ItemId = itemId;
-            GridType = gridType;
-            SlotIndex = index;
-            ClearSlot();
-
-            if (config == null || string.IsNullOrEmpty(itemId))
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world == null || InventoryEntity == Entity.Null)
             {
+                ClearVisual();
+                return;
+            }
+
+            var entityManager = world.EntityManager;
+            if (!entityManager.HasBuffer<SlotData>(InventoryEntity))
+            {
+                ClearVisual();
+                return;
+            }
+
+            var slots = entityManager.GetBuffer<SlotData>(InventoryEntity);
+            if (SlotIndex < 0 || SlotIndex >= slots.Length)
+            {
+                ClearVisual();
+                return;
+            }
+
+            var slot = slots[SlotIndex];
+            
+            if (string.IsNullOrEmpty(slot.DataId.ToString()) || slot.Amount <= 0)
+            {
+                ClearVisual();
+                return;
+            }
+
+            var itemId = slot.DataId.ToString();
+            var config = ItemsDatabase.GetItem(itemId);
+            
+            if (config == null)
+            {
+                _icon.style.display = DisplayStyle.Flex;
+                _icon.style.backgroundColor = Color.gray;
                 return;
             }
 
             _icon.style.display = DisplayStyle.Flex;
             _icon.style.backgroundColor = GetQualityColor(config.identity.quality);
 
-            if (gridType == "action_bar")
+            if (GridType == "action_bar")
             {
                 _bindLabel.style.display = DisplayStyle.Flex;
-                _bindLabel.text = GetBindKey(index);
+                _bindLabel.text = GetBindKey(SlotIndex);
+            }
+
+            if (slot.Amount > 1)
+            {
+                _amountLabel.style.display = DisplayStyle.Flex;
+                _amountLabel.text = slot.Amount.ToString();
+            }
+            else
+            {
+                _amountLabel.style.display = DisplayStyle.None;
+                _amountLabel.text = "";
             }
         }
 
-        public void ClearSlot()
+        public void ClearVisual()
         {
             _icon.style.display = DisplayStyle.None;
             _icon.style.backgroundColor = Color.clear;
@@ -104,6 +141,34 @@ namespace ProjectTowerRpg.Core.UI.Components
             _durationLabel.style.display = DisplayStyle.None;
             _cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
             RemoveFromClassList("disabled");
+        }
+
+        public string GetItemId()
+        {
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world == null || InventoryEntity == Entity.Null) return "";
+
+            var entityManager = world.EntityManager;
+            if (!entityManager.HasBuffer<SlotData>(InventoryEntity)) return "";
+
+            var slots = entityManager.GetBuffer<SlotData>(InventoryEntity);
+            if (SlotIndex < 0 || SlotIndex >= slots.Length) return "";
+
+            return slots[SlotIndex].DataId.ToString();
+        }
+
+        public int GetAmount()
+        {
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world == null || InventoryEntity == Entity.Null) return 0;
+
+            var entityManager = world.EntityManager;
+            if (!entityManager.HasBuffer<SlotData>(InventoryEntity)) return 0;
+
+            var slots = entityManager.GetBuffer<SlotData>(InventoryEntity);
+            if (SlotIndex < 0 || SlotIndex >= slots.Length) return 0;
+
+            return slots[SlotIndex].Amount;
         }
 
         private Color GetQualityColor(string quality)

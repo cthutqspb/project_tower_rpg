@@ -55,7 +55,7 @@ namespace ProjectTowerRpg.Core.UI
             {
                 if (!IsBlocked)
                 {
-                    Debug.Log($"[UIManager]: 🟢 Мышь НАД UI - {picked.name}");
+                    //Debug.Log($"[UIManager]: 🟢 Мышь НАД UI - {picked.name}");
                     SetBlocked(true);
                 }
             }
@@ -63,7 +63,7 @@ namespace ProjectTowerRpg.Core.UI
             {
                 if (IsBlocked)
                 {
-                    Debug.Log("[UIManager]: 🔴 Мышь НЕ НАД UI");
+                    //Debug.Log("[UIManager]: 🔴 Мышь НЕ НАД UI");
                     SetBlocked(false);
                 }
             }

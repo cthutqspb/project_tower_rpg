@@ -1,18 +1,13 @@
-using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Collections;
 
 namespace ProjectTowerRpg.ECS.Components
 {
-    /// <summary>
-    /// Временный компонент-запрос на спавн предмета в мире.
-    /// Создается в экшене, обрабатывается в ItemSpawnSystem.
-    /// </summary>
     public struct DropItemRequest : IComponentData
     {
-        public FixedString32Bytes ItemId; // Строка из UI ("iron_sword")
+        public FixedString64Bytes ItemId;   // ← СТРОКА
         public int Amount;
-        public float3 Position;           // Координаты падения куба
+        public float3 Position;
     }
 }
-

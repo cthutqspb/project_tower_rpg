@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Mathematics;
 using UnityEngine.UIElements;
 using UnityEngine.InputSystem;
 using Unity.Entities;
@@ -24,7 +25,7 @@ namespace ProjectTowerRpg.Core.UI
 
         private PanelRenderer _panelRenderer;
         private VisualElement _root;
-        private IPanel _panel;  
+        private IPanel _panel;
         private VisualElement _ghost;
         private Label _amountLabel;
         private DragData _activeDrag;
@@ -48,7 +49,7 @@ namespace ProjectTowerRpg.Core.UI
         private void OnUIReloaded(PanelRenderer renderer, VisualElement root, int version)
         {
             _root = root;
-            _panel = root?.panel;  
+            _panel = root?.panel;
             if (_root == null) return;
 
             _ghost = new VisualElement();
@@ -93,18 +94,13 @@ namespace ProjectTowerRpg.Core.UI
 
             if (!mouse.leftButton.isPressed)
             {
-                // Проверяем, над чем отпустили мышь в UI
                 var localPos = new Vector2(mousePos.x, Screen.height - mousePos.y);
                 var picked = _panel?.Pick(localPos);
-                
+
                 if (picked == null || picked == _root)
                 {
-                    // ================================================================
-                    // 🌍 СБРОС МИМО UI → ФИЗИЧЕСКИЙ ДРОП В МИР
-                    // ================================================================
                     HandleWorldDrop(mousePos);
                 }
-                // Если над UI — Finish вызовется из OnSlotPointerUp у ячейки
             }
         }
 
@@ -117,32 +113,29 @@ namespace ProjectTowerRpg.Core.UI
                 return;
             }
 
-            // Стреляем физическим лучом из камеры сквозь курсор мыши
             Ray ray = Camera.main.ScreenPointToRay(mousePosition);
 
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                // Точка соприкосновения луча с землей
-                Unity.Mathematics.float3 worldDropPosition = hit.point;
+                float3 worldDropPosition = hit.point;
 
                 Entity sourceEntity = EntityRegistry.Get(_activeDrag.SourceId);
 
                 if (sourceEntity != Entity.Null)
                 {
-                    // Скрываем визуал призрака
                     _ghost.style.display = DisplayStyle.None;
                     _ghost.style.backgroundImage = StyleKeyword.Null;
 
-                    // Создаем ECS-команду дропа
+                    // ✅ Передаём строку напрямую
                     var actionEntity = _entityManager.CreateEntity();
                     _entityManager.AddComponentData(actionEntity, new ActionCommand
                     {
                         Type = "item_drop",
                         SourceEntity = sourceEntity,
                         SourceSlot = _activeDrag.SlotIndex,
-                        TargetEntity = Entity.Null, // У земли нет сущности-цели
+                        TargetEntity = Entity.Null,
                         TargetSlot = -1,
-                        ItemId = _activeDrag.ItemId,
+                        ItemId = _activeDrag.ItemId,  // ← строка
                         Amount = _activeDrag.Amount,
                         Position = worldDropPosition
                     });
@@ -156,12 +149,10 @@ namespace ProjectTowerRpg.Core.UI
                     return;
                 }
 
-                // Очищаем стейт драга без возврата предмета
                 _activeDrag = null;
             }
             else
             {
-                // Если луч улетел в небо/пустоту — выполняем обычную отмену драга
                 Debug.Log("[DragManager] Дроп отменён: луч не пересёк землю.");
                 CancelDrag();
             }
@@ -218,7 +209,7 @@ namespace ProjectTowerRpg.Core.UI
                             SourceSlot = _activeDrag.SlotIndex,
                             TargetEntity = targetEntity,
                             TargetSlot = targetSlot,
-                            ItemId = _activeDrag.ItemId,
+                            ItemId = _activeDrag.ItemId,  // ← строка
                             Amount = _activeDrag.Amount
                         });
 
@@ -233,11 +224,11 @@ namespace ProjectTowerRpg.Core.UI
         private void CancelDrag()
         {
             if (_activeDrag == null) return;
-            
+
             _ghost.style.display = DisplayStyle.None;
             _ghost.style.backgroundImage = StyleKeyword.Null;
             _activeDrag = null;
-            
+
             Debug.Log("[DragManager] Драг отменён (отпущен мимо UI)");
         }
 
@@ -266,4 +257,3 @@ namespace ProjectTowerRpg.Core.UI
         }
     }
 }
-

@@ -1,28 +1,25 @@
 using UnityEngine;
 using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Collections;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.ECS.Actions;
+using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
-    // ================================================================
-    // КОМАНДА (Перенесена внутрь общего пространства имен систем)
-    // ================================================================
     public struct ActionCommand : IComponentData
     {
-        public Unity.Collections.FixedString64Bytes Type;  // "item_transfer", "item_equip", "item_drop"
+        public FixedString64Bytes Type;
         public Entity SourceEntity;
         public int SourceSlot;
         public Entity TargetEntity;
         public int TargetSlot;
-        public Unity.Collections.FixedString64Bytes ItemId;
+        public FixedString64Bytes ItemId;  // ← СТРОКА
         public int Amount;
-        public Unity.Mathematics.float3 Position;          // Для дропа
+        public float3 Position;
     }
 
-    // ================================================================
-    // ДИСПЕТЧЕР
-    // ================================================================
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     [UpdateBefore(typeof(MovementSystem))]
     public partial class ActionDispatcherSystem : SystemBase
@@ -39,15 +36,35 @@ namespace ProjectTowerRpg.ECS.Systems
         protected override void OnUpdate()
         {
             var ecb = _ecbSystem.CreateCommandBuffer();
-            int commandCount = 0;
-
             _slotDataLookup.Update(ref CheckedStateRef);
+
+            // ================================================================
+            // 🚀 ПРЯМОЙ РОУТЕР КЛИКОВ
+            // ================================================================
+            foreach (var (item, entity) in 
+                     SystemAPI.Query<RefRO<ItemComponent>>().WithAll<ClickIntent>().WithEntityAccess())
+            {
+                ItemActions.Loot(
+                    ref _slotDataLookup,
+                    ecb,
+                    entity,
+                    EntityRegistry.Get("unit_inventory")
+                );
+
+                ecb.RemoveComponent<ClickIntent>(entity);
+                Debug.Log($"[ActionDispatcher] Клик по ПРЕДМЕТУ {entity.Index} направлен напрямую в ItemActions.Loot.");
+            }
+
+            // ================================================================
+            // 🔄 ЦИКЛ ОБРАБОТКИ АСИНХРОННЫХ КОМАНД
+            // ================================================================
+            int commandCount = 0;
 
             foreach (var (cmd, entity) in 
                      SystemAPI.Query<RefRO<ActionCommand>>().WithEntityAccess())
             {
                 commandCount++;
-                Debug.Log($"[ActionDispatcher] Получена команда #{commandCount}: Type={cmd.ValueRO.Type}, SourceSlot={cmd.ValueRO.SourceSlot}, TargetSlot={cmd.ValueRO.TargetSlot}");
+                Debug.Log($"[ActionDispatcher] Получена UI-команда #{commandCount}: Type={cmd.ValueRO.Type}");
                 var type = cmd.ValueRO.Type.ToString();
 
                 switch (type)
@@ -59,7 +76,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             cmd.ValueRO.SourceSlot,
                             cmd.ValueRO.TargetEntity,
                             cmd.ValueRO.TargetSlot,
-                            cmd.ValueRO.ItemId.ToString(),
+                            cmd.ValueRO.ItemId.ToString(),  // ← FixedString → string
                             cmd.ValueRO.Amount
                         );
                         break;
@@ -70,7 +87,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             ecb,
                             cmd.ValueRO.SourceEntity,
                             cmd.ValueRO.SourceSlot,
-                            cmd.ValueRO.ItemId.ToString(),
+                            cmd.ValueRO.ItemId.ToString(),  // ← FixedString → string
                             cmd.ValueRO.Amount,
                             cmd.ValueRO.Position
                         );
@@ -81,7 +98,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             ref _slotDataLookup,
                             cmd.ValueRO.SourceEntity,
                             cmd.ValueRO.SourceSlot,
-                            cmd.ValueRO.ItemId.ToString(),
+                            cmd.ValueRO.ItemId.ToString(),  // ← FixedString → string
                             cmd.ValueRO.TargetEntity
                         );
                         break;
@@ -98,4 +115,3 @@ namespace ProjectTowerRpg.ECS.Systems
         }
     }
 }
-

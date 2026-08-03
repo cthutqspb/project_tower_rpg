@@ -31,7 +31,7 @@ namespace ProjectTowerRpg.ECS.Systems
             EntityManager.AddComponent<PlayerTag>(unitEntity);
 
             // ================================================================
-            // 2. СОЗДАЁМ ИНВЕНТАРЬ (отдельная Entity)
+            // 2. СОЗДАЁМ ИНВЕНТАРЬ
             // ================================================================
             var inventoryEntity = EntityManager.CreateEntity();
 
@@ -42,22 +42,21 @@ namespace ProjectTowerRpg.ECS.Systems
             });
             EntityManager.AddComponent<InventoryTag>(inventoryEntity);
 
-            // Инициализируем пустой буфер с индексами ячеек
             var slots = EntityManager.AddBuffer<SlotData>(inventoryEntity);
             for (int i = 0; i < 24; i++)
             {
                 slots.Add(new SlotData
                 {
-                    SlotIndex = i, // ← ВАЖНО: сохраняем индекс ячейки
+                    SlotIndex = i,
                     DataId = "",
                     DataType = "",
                     Amount = 0,
                     EquipSlot = "",
-                    ContainerType = "inventory" // ← ВАЖНО: задаем тип контейнера
+                    ContainerType = "inventory"
                 });
             }
 
-            // Заполняем тестовыми предметами
+            // Заполняем тестовыми предметами (конвертируем строки в хэши)
             var testItems = new (string id, int amount)[]
             {
                 ("iron_sword", 1),
@@ -69,19 +68,22 @@ namespace ProjectTowerRpg.ECS.Systems
 
             for (int i = 0; i < testItems.Length && i < slots.Length; i++)
             {
+                // ✅ Конвертируем строку в хэш
+                int hash = testItems[i].id.GetHashCode();
+                
                 slots[i] = new SlotData
                 {
-                    SlotIndex = i, // ← ВАЖНО: не теряем индекс при перезаписи структуры
-                    DataId = testItems[i].id,
+                    SlotIndex = i,
+                    DataId = testItems[i].id,   // ← "iron_sword"
                     DataType = "item",
                     Amount = testItems[i].amount,
                     EquipSlot = "",
-                    ContainerType = "inventory" // ← ВАЖНО: тип контейнера
+                    ContainerType = "inventory"
                 };
             }
 
             // ================================================================
-            // 3. РЕГИСТРИРУЕМ В ENTITYREGISTRY (инвентарь, НЕ юнит!)
+            // 3. РЕГИСТРИРУЕМ В ENTITYREGISTRY
             // ================================================================
             Debug.Log($"[UnitSpawnSystem] Регистрирую инвентарь: {inventoryEntity}");
             EntityRegistry.Register("unit_inventory", inventoryEntity);
@@ -92,4 +94,3 @@ namespace ProjectTowerRpg.ECS.Systems
         }
     }
 }
-

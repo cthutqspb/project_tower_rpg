@@ -1,20 +1,19 @@
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Properties; // ← ДОБАВИТЬ для Unity 6 Data Binding
+using Unity.Properties;
 
 namespace ProjectTowerRpg.ECS.Components
 {
-    [GeneratePropertyBag] // ← ДОБАВИТЬ: генерирует свойства для UI Toolkit
+    [GeneratePropertyBag]
     public struct SlotData : IBufferElementData
     {
-        public int SlotIndex; // ← ДОБАВИТЬ: индекс ячейки в сетке
-        public FixedString64Bytes DataId;
+        public int SlotIndex;
+        public FixedString64Bytes DataId;   // ← СТРОКА
         public FixedString64Bytes DataType;
         public int Amount;
         public FixedString64Bytes EquipSlot;
-        public FixedString64Bytes ContainerType; // "inventory", "actionbar", "aura"
+        public FixedString64Bytes ContainerType;
         
-        public bool IsEmpty => string.IsNullOrEmpty(DataId.ToString()) || Amount <= 0;
+        public bool IsEmpty => DataId.IsEmpty || Amount <= 0;
     }
 }
-

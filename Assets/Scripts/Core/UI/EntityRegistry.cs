@@ -1,7 +1,6 @@
 using Unity.Entities;
 using System.Collections.Generic;
-using UnityEngine; // Подключаем для GameObject
-using ProjectTowerRpg.Core.UI.Components; // Подключаем для StaticGrid
+using UnityEngine;
 
 namespace ProjectTowerRpg.Core.UI
 {
@@ -9,9 +8,6 @@ namespace ProjectTowerRpg.Core.UI
     {
         // Храним связь: Строковый ID (для UI/Drag) -> ECS Entity
         private static Dictionary<string, Entity> _registry = new Dictionary<string, Entity>();
-        
-        // Храним обратную связь: ECS Entity сетки -> Экземпляр UI-компонента StaticGrid
-        private static Dictionary<Entity, StaticGrid> _gridUiRegistry = new Dictionary<Entity, StaticGrid>();
 
         // Храним связь: ECS Entity предмета -> Его графический GameObject
         private static Dictionary<Entity, GameObject> _itemVisuals = new Dictionary<Entity, GameObject>();
@@ -29,26 +25,6 @@ namespace ProjectTowerRpg.Core.UI
         {
             if (string.IsNullOrEmpty(id)) return Entity.Null;
             return _registry.TryGetValue(id, out var entity) ? entity : Entity.Null;
-        }
-
-        // ================================================================
-        // РЕГИСТРАЦИЯ UI СЕТОК (Для SyncAllGridsUiSystem)
-        // ================================================================
-        public static void RegisterGrid(Entity entity, StaticGrid grid)
-        {
-            if (entity == Entity.Null || grid == null) return;
-            _gridUiRegistry[entity] = grid;
-        }
-
-        public static StaticGrid GetGrid(Entity entity)
-        {
-            if (entity == Entity.Null) return null;
-            return _gridUiRegistry.TryGetValue(entity, out var grid) ? grid : null;
-        }
-
-        public static void UnregisterGrid(Entity entity)
-        {
-            _gridUiRegistry.Remove(entity);
         }
 
         // ================================================================
@@ -77,9 +53,7 @@ namespace ProjectTowerRpg.Core.UI
         public static void Clear()
         {
             _registry.Clear();
-            _gridUiRegistry.Clear();
             _itemVisuals.Clear();
         }
     }
 }
-
