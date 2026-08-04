@@ -8,17 +8,6 @@ using ProjectTowerRpg.Core.UI.Components;
 
 namespace ProjectTowerRpg.Core.UI
 {
-    public class DragData
-    {
-        public object Source;
-        public int SlotIndex;
-        public string ItemId;
-        public int Amount;
-        public Sprite Icon;
-        public string SourceId;
-        public string GridType;
-    }
-
     public class DragManager : MonoBehaviour
     {
         private static DragManager _instance;
@@ -80,6 +69,7 @@ namespace ProjectTowerRpg.Core.UI
             _ghost.Add(_amountLabel);
 
             _root.Add(_ghost);
+            Debug.Log("[DragManager]: Ghost создан");
         }
 
         private void Update()
@@ -90,6 +80,7 @@ namespace ProjectTowerRpg.Core.UI
             if (mouse == null) return;
 
             Vector2 mousePos = mouse.position.ReadValue();
+            
             _ghost.style.left = mousePos.x - 24;
             _ghost.style.top = Screen.height - mousePos.y - 24;
 
@@ -98,10 +89,25 @@ namespace ProjectTowerRpg.Core.UI
                 var localPos = new Vector2(mousePos.x, Screen.height - mousePos.y);
                 var picked = _panel?.Pick(localPos);
 
-                if (picked == null || picked == _root)
+                if (picked != null && picked != _root)
                 {
-                    HandleWorldDrop(mousePos);
+                    var slot = picked.GetFirstAncestorOfType<IDragSource>();
+                    if (slot != null)
+                    {
+                        int targetSlot = slot is SlotElement slotElement ? slotElement.SlotIndex : -1;
+                        Finish(slot, targetSlot);
+                        return;
+                    }
+                    
+                    var provider = picked.GetFirstAncestorOfType<IDataSourceProvider>();
+                    if (provider != null)
+                    {
+                        Finish(provider, -1);
+                        return;
+                    }
                 }
+                
+                HandleWorldDrop(mousePos);
             }
         }
 
@@ -120,13 +126,11 @@ namespace ProjectTowerRpg.Core.UI
             {
                 float3 worldDropPosition = hit.point;
 
-                // ✅ Получаем Entity через UIRegistry
                 Entity sourceEntity = GetEntityFromComponent(_activeDrag.Source);
 
                 if (sourceEntity != Entity.Null)
                 {
-                    _ghost.style.display = DisplayStyle.None;
-                    _ghost.style.backgroundImage = StyleKeyword.Null;
+                    ClearGhost();
 
                     var actionEntity = _entityManager.CreateEntity();
                     _entityManager.AddComponentData(actionEntity, new ActionCommand
@@ -159,42 +163,37 @@ namespace ProjectTowerRpg.Core.UI
             }
         }
 
-        public void StartDrag(object source, int slotIndex, string itemId, int amount, Sprite icon,
-                              string sourceId, string gridType)
+        public void StartDrag(DragData data)
         {
-            if (_activeDrag != null) return;
-
-            _activeDrag = new DragData
+            if (_activeDrag != null)
             {
-                Source = source,
-                SlotIndex = slotIndex,
-                ItemId = itemId,
-                Amount = amount,
-                Icon = icon,
-                SourceId = sourceId,
-                GridType = gridType
-            };
-
-            _ghost.style.display = DisplayStyle.Flex;
-            if (icon != null)
-            {
-                _ghost.style.backgroundImage = new StyleBackground(icon);
+                CancelDrag();
             }
 
-            _amountLabel.text = amount > 1 ? amount.ToString() : "";
-            _amountLabel.style.display = amount > 1 ? DisplayStyle.Flex : DisplayStyle.None;
+            _activeDrag = data;
+
+            ClearGhost();
+
+            _ghost.style.display = DisplayStyle.Flex;
+            if (data.Icon != null)
+            {
+                _ghost.style.backgroundImage = new StyleBackground(data.Icon);
+            }
+
+            _amountLabel.text = data.Amount > 1 ? data.Amount.ToString() : "";
+            _amountLabel.style.display = data.Amount > 1 ? DisplayStyle.Flex : DisplayStyle.None;
+
+            Debug.Log($"[DragManager]: Драг начат {data.ItemId} x{data.Amount}");
         }
 
         public void Finish(object targetComponent, int targetSlot)
         {
             if (_activeDrag == null) return;
 
-            _ghost.style.display = DisplayStyle.None;
-            _ghost.style.backgroundImage = StyleKeyword.Null;
+            ClearGhost();
 
             if (targetComponent != null && targetSlot >= 0)
             {
-                // ✅ Получаем Entity через UIRegistry
                 Entity sourceEntity = GetEntityFromComponent(_activeDrag.Source);
                 Entity targetEntity = GetEntityFromComponent(targetComponent);
 
@@ -223,13 +222,16 @@ namespace ProjectTowerRpg.Core.UI
         {
             if (component == null) return Entity.Null;
 
-            // ✅ Новый способ: через UIRegistry
+            if (component is SlotElement slotElement)
+            {
+                return slotElement.InventoryEntity;
+            }
+
             if (component is StaticGrid grid)
             {
                 return grid.InventoryEntity;
             }
 
-            // ✅ Для обратной совместимости: через IDataSourceProvider + EntityRegistry
             if (component is IDataSourceProvider provider)
             {
                 var entity = EntityRegistry.Get(provider.DataSourceId);
@@ -239,27 +241,24 @@ namespace ProjectTowerRpg.Core.UI
             return Entity.Null;
         }
 
-        private void CancelDrag()
+        public void CancelDrag()
         {
             if (_activeDrag == null) return;
 
-            _ghost.style.display = DisplayStyle.None;
-            _ghost.style.backgroundImage = StyleKeyword.Null;
+            ClearGhost();
             _activeDrag = null;
 
-            Debug.Log("[DragManager] Драг отменён (отпущен мимо UI)");
+            Debug.Log("[DragManager] Драг отменён");
         }
 
-        private string GetDataSourceId(object component)
+        private void ClearGhost()
         {
-            if (component == null) return null;
+            if (_ghost == null) return;
 
-            if (component is IDataSourceProvider provider)
-            {
-                return provider.DataSourceId;
-            }
-
-            return null;
+            _ghost.style.display = DisplayStyle.None;
+            _ghost.style.backgroundImage = StyleKeyword.Null;
+            _amountLabel.text = "";
+            _amountLabel.style.display = DisplayStyle.None;
         }
 
         public bool IsDragging => _activeDrag != null;

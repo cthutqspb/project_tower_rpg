@@ -3,10 +3,11 @@ using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
-    public class SlotElement : VisualElement
+    public class SlotElement : VisualElement, IDragSource
     {
         private VisualElement _icon;
         private VisualElement _cooldownOverlay;
@@ -61,12 +62,37 @@ namespace ProjectTowerRpg.Core.UI.Components
             _durationLabel.style.display = DisplayStyle.None;
             Add(_durationLabel);
 
-            var dragManipulator = new DragManipulator(
-                target: this,
-                mode: DragMode.Slot
-            );
+            var dragManipulator = new DragManipulator(this, DragMode.Slot);
             this.AddManipulator(dragManipulator);
         }
+
+        // ================================================================
+        // IDragSource Implementation
+        // ================================================================
+        
+        public bool CanDrag()
+        {
+            return !string.IsNullOrEmpty(GetItemId());
+        }
+
+        public DragData GetDragData()
+        {
+            return new DragData
+            {
+                Source = this,
+                SlotIndex = SlotIndex,
+                ItemId = GetItemId(),
+                Amount = GetAmount(),
+                Icon = null, // TODO: Получить иконку из ItemConfig
+                SourceId = DataSourceId,
+                GridType = GridType,
+                SourceEntity = InventoryEntity
+            };
+        }
+
+        // ================================================================
+        // Public Methods
+        // ================================================================
 
         public void SetData(string itemId, ItemConfig config, string gridType, int index, int amount = 1)
         {
@@ -207,6 +233,10 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             return slots[SlotIndex].Amount;
         }
+
+        // ================================================================
+        // Private Helpers
+        // ================================================================
 
         private Color GetQualityColor(string quality)
         {

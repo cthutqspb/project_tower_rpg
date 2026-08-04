@@ -44,18 +44,59 @@ namespace ProjectTowerRpg.ECS.Actions
             }
 
             var targetItem = targetSlots[targetSlot];
-            if (!targetItem.IsEmpty)
+
+            // ================================================================
+            // СЦЕНАРИЙ 1: ЦЕЛЕВОЙ СЛОТ ПУСТОЙ → ПРОСТО ПЕРЕМЕЩАЕМ
+            // ================================================================
+            if (targetItem.IsEmpty)
             {
-                // Стакание
-                if (targetItem.DataId.ToString() == itemId && targetItem.DataType.ToString() == "item")
+                targetSlots[targetSlot] = new SlotData
                 {
+                    SlotIndex = targetSlot,
+                    ContainerType = targetItem.ContainerType,
+                    DataId = sourceItem.DataId,
+                    DataType = sourceItem.DataType,
+                    Amount = sourceItem.Amount,
+                    EquipSlot = sourceItem.EquipSlot
+                };
+
+                sourceSlots[sourceSlot] = new SlotData
+                {
+                    SlotIndex = sourceSlot,
+                    ContainerType = sourceItem.ContainerType,
+                    DataId = "",
+                    DataType = "",
+                    Amount = 0,
+                    EquipSlot = ""
+                };
+
+                Debug.Log($"[ItemActions] Перенос {itemId} из слота {sourceSlot} в {targetSlot}");
+                return;
+            }
+
+            // ================================================================
+            // СЦЕНАРИЙ 2: ЦЕЛЕВОЙ СЛОТ ЗАНЯТ → ПРОВЕРЯЕМ СТАКАНИЕ ИЛИ СВОП
+            // ================================================================
+
+            // 2.1. Если это один и тот же предмет — стакание
+            if (targetItem.DataId.ToString() == itemId && targetItem.DataType.ToString() == "item")
+            {
+                int total = targetItem.Amount + amount;
+                
+                // Проверяем, не превышает ли лимит стака
+                var itemConfig = ItemsDatabase.GetItem(itemId);
+                int maxStack = itemConfig?.properties?.max_stack ?? 999;
+                
+                if (total <= maxStack)
+                {
+                    // Полностью помещается
                     targetSlots[targetSlot] = new SlotData
                     {
                         SlotIndex = targetSlot,
                         ContainerType = targetItem.ContainerType,
                         DataId = targetItem.DataId,
                         DataType = targetItem.DataType,
-                        Amount = targetItem.Amount + amount,
+                        Amount = total,
                         EquipSlot = targetItem.EquipSlot
                     };
 
@@ -69,45 +110,60 @@ namespace ProjectTowerRpg.ECS.Actions
                         EquipSlot = ""
                     };
 
-                    // ✅ Уведомляем UI
-                    UIEvents.TriggerInventoryChanged(sourceEntity, sourceSlot);
-                    UIEvents.TriggerInventoryChanged(targetEntity, targetSlot);
-
-                    Debug.Log($"[ItemActions] Стакание {itemId} x{amount} в слот {targetSlot}");
+                    Debug.Log($"[ItemActions] Стакание {itemId} x{amount} в слот {targetSlot}. Итого: {total}");
                     return;
                 }
+                else
+                {
+                    // Не помещается целиком — заполняем до максимума, остаток оставляем
+                    int canFit = maxStack - targetItem.Amount;
+                    if (canFit > 0)
+                    {
+                        targetSlots[targetSlot] = new SlotData
+                        {
+                            SlotIndex = targetSlot,
+                            ContainerType = targetItem.ContainerType,
+                            DataId = targetItem.DataId,
+                            DataType = targetItem.DataType,
+                            Amount = maxStack,
+                            EquipSlot = targetItem.EquipSlot
+                        };
 
-                Debug.Log($"[ItemActions] В слоте {targetSlot} уже есть предмет");
+                        sourceSlots[sourceSlot] = new SlotData
+                        {
+                            SlotIndex = sourceSlot,
+                            ContainerType = sourceItem.ContainerType,
+                            DataId = sourceItem.DataId,
+                            DataType = sourceItem.DataType,
+                            Amount = sourceItem.Amount - canFit,
+                            EquipSlot = sourceItem.EquipSlot
+                        };
+
+                        Debug.Log($"[ItemActions] Частичное стакание {itemId}: {canFit} поместилось, осталось {sourceItem.Amount - canFit}");
+                        return;
+                    }
+                }
+            }
+
+            // ================================================================
+            // СЦЕНАРИЙ 3: СВОП (меняем местами)
+            // ================================================================
+            
+            // Если это один и тот же инвентарь — просто меняем местами
+            if (sourceEntity == targetEntity)
+            {
+                sourceSlots[sourceSlot] = targetItem;
+                sourceSlots[targetSlot] = sourceItem;
+                
+                Debug.Log($"[ItemActions] Своп внутри одного инвентаря: {sourceSlot} ↔ {targetSlot}");
                 return;
             }
 
-            // Записываем в целевой слот
-            targetSlots[targetSlot] = new SlotData
-            {
-                SlotIndex = targetSlot,
-                ContainerType = targetItem.ContainerType,
-                DataId = sourceItem.DataId,
-                DataType = sourceItem.DataType,
-                Amount = sourceItem.Amount,
-                EquipSlot = sourceItem.EquipSlot
-            };
+            // Разные инвентари — меняем местами
+            sourceSlots[sourceSlot] = targetItem;
+            targetSlots[targetSlot] = sourceItem;
 
-            // Очищаем исходный слот
-            sourceSlots[sourceSlot] = new SlotData
-            {
-                SlotIndex = sourceSlot,
-                ContainerType = sourceItem.ContainerType,
-                DataId = "",
-                DataType = "",
-                Amount = 0,
-                EquipSlot = ""
-            };
-
-            // ✅ Уведомляем UI
-            UIEvents.TriggerInventoryChanged(sourceEntity, sourceSlot);
-            UIEvents.TriggerInventoryChanged(targetEntity, targetSlot);
-
-            Debug.Log($"[ItemActions] Перенос предмета {itemId} из слота {sourceSlot} в {targetSlot}");
+            Debug.Log($"[ItemActions] Своп между инвентарями: {sourceSlot} ↔ {targetSlot}");
         }
 
         public static void Drop(ref BufferLookup<SlotData> slotDataLookup, 

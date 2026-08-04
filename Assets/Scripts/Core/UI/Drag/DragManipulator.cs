@@ -14,21 +14,12 @@ namespace ProjectTowerRpg.Core.UI
         private DragMode _mode;
         private VisualElement _targetElement;      // Что двигаем (окно или слот)
         private VisualElement _dragElement;        // На чём висит драг (хедер)
-        private VisualElement _ghost;              // Призрак для Slot режима
-        private Label _amountLabel;                // Количество для Slot
         
         // Для UIElement режима
         private Vector2 _startPosition;
         private Vector3 _pointerStartPosition;
-        
-        // Для Slot режима
-        private object _dragData;
-        private string _sourceId;
-        private int _slotIndex;
-        private string _itemId;
-        private int _amount;
 
-        // Конструктор для UIElement режима
+        // Конструктор для UIElement режима (драг хедера)
         public DragManipulator(VisualElement dragElement, VisualElement targetElement, DragMode mode)
         {
             _dragElement = dragElement;
@@ -38,19 +29,12 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // Конструктор для Slot режима
-        public DragManipulator(VisualElement target, DragMode mode, 
-                               object dragData = null, string sourceId = null, 
-                               int slotIndex = -1, string itemId = null, int amount = 1)
+        public DragManipulator(VisualElement target, DragMode mode)
         {
             this.target = target;
             _dragElement = target;
             _targetElement = target;
             _mode = mode;
-            _dragData = dragData;
-            _sourceId = sourceId;
-            _slotIndex = slotIndex;
-            _itemId = itemId;
-            _amount = amount;
         }
 
         protected override void RegisterCallbacksOnTarget()
@@ -70,11 +54,12 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // ================================================================
-        // UIElement MODE
+        // UIElement MODE (полностью здесь)
         // ================================================================
         private void StartUIElementDrag(PointerDownEvent evt)
         {
-            _startPosition = _targetElement.transform.position;
+            var translate = _targetElement.resolvedStyle.translate;
+            _startPosition = new Vector2(translate.x, translate.y);
             _pointerStartPosition = evt.position;
             target.CapturePointer(evt.pointerId);
             evt.StopPropagation();
@@ -85,7 +70,11 @@ namespace ProjectTowerRpg.Core.UI
             if (target.HasPointerCapture(evt.pointerId))
             {
                 Vector3 delta = evt.position - _pointerStartPosition;
-                _targetElement.transform.position = _startPosition + (Vector2)delta;
+                _targetElement.style.translate = new Translate(
+                    _startPosition.x + delta.x,
+                    _startPosition.y + delta.y,
+                    0
+                );
                 evt.StopPropagation();
             }
         }
@@ -100,104 +89,18 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // ================================================================
-        // Slot MODE
+        // Slot MODE (только старт, остальное в DragManager)
         // ================================================================
         private void StartSlotDrag(PointerDownEvent evt)
         {
-            if (_dragData == null) return;
+            if (target is not IDragSource dragSource || !dragSource.CanDrag()) return;
 
-            CreateGhost();
-            
-            DragManager.Instance.StartDrag(
-                source: target,
-                slotIndex: _slotIndex,
-                itemId: _itemId,
-                amount: _amount,
-                icon: null,
-                sourceId: _sourceId,
-                gridType: "inventory"
-            );
+            var data = dragSource.GetDragData();
+            if (data == null) return;
+
+            DragManager.Instance.StartDrag(data);
 
             target.CapturePointer(evt.pointerId);
-            evt.StopPropagation();
-        }
-
-        private void CreateGhost()
-        {
-            var root = target.parent;
-            if (root == null) return;
-
-            _ghost = new VisualElement();
-            _ghost.style.position = Position.Absolute;
-            _ghost.style.width = 48;
-            _ghost.style.height = 48;
-            _ghost.style.backgroundColor = new Color(1, 1, 1, 0.9f);
-            _ghost.style.borderTopWidth = 2;
-            _ghost.style.borderBottomWidth = 2;
-            _ghost.style.borderLeftWidth = 2;
-            _ghost.style.borderRightWidth = 2;
-            _ghost.style.borderTopColor = Color.white;
-            _ghost.style.borderBottomColor = Color.white;
-            _ghost.style.borderLeftColor = Color.white;
-            _ghost.style.borderRightColor = Color.white;
-            _ghost.style.display = DisplayStyle.None;
-            _ghost.pickingMode = PickingMode.Ignore;
-
-            _amountLabel = new Label();
-            _amountLabel.style.position = Position.Absolute;
-            _amountLabel.style.bottom = 2;
-            _amountLabel.style.right = 4;
-            _amountLabel.style.fontSize = 14;
-            _amountLabel.style.color = Color.white;
-            _amountLabel.style.unityTextAlign = TextAnchor.MiddleRight;
-            _ghost.Add(_amountLabel);
-
-            root.Add(_ghost);
-        }
-
-        private void UpdateSlotDrag(PointerMoveEvent evt)
-        {
-            if (!target.HasPointerCapture(evt.pointerId) || _ghost == null) return;
-
-            Vector2 mousePos = evt.position;
-            _ghost.style.left = mousePos.x - 24;
-            _ghost.style.top = mousePos.y - 24;
-            _ghost.style.display = DisplayStyle.Flex;
-
-            evt.StopPropagation();
-        }
-
-        private void EndSlotDrag(PointerUpEvent evt)
-        {
-            if (!target.HasPointerCapture(evt.pointerId)) return;
-
-            target.ReleasePointer(evt.pointerId);
-            
-            if (_ghost != null)
-            {
-                _ghost.style.display = DisplayStyle.None;
-                _ghost.RemoveFromHierarchy();
-                _ghost = null;
-            }
-
-            if (DragManager.Instance.IsDragging)
-            {
-                var picked = target.panel.Pick(evt.position);
-                
-                if (picked != null)
-                {
-                    var provider = picked.GetFirstAncestorOfType<IDataSourceProvider>();
-                    if (provider != null)
-                    {
-                        DragManager.Instance.Finish(provider, -1);
-                        evt.StopPropagation();
-                        return;
-                    }
-                }
-                
-                DragManager.Instance.Finish(null, -1);
-            }
-
             evt.StopPropagation();
         }
 
@@ -226,7 +129,8 @@ namespace ProjectTowerRpg.Core.UI
                     UpdateUIElementDrag(evt);
                     break;
                 case DragMode.Slot:
-                    UpdateSlotDrag(evt);
+                    // Всё движение обрабатывает DragManager
+                    evt.StopPropagation();
                     break;
             }
         }
@@ -239,7 +143,12 @@ namespace ProjectTowerRpg.Core.UI
                     EndUIElementDrag(evt);
                     break;
                 case DragMode.Slot:
-                    EndSlotDrag(evt);
+                    // Освобождаем захват, завершение в DragManager
+                    if (target.HasPointerCapture(evt.pointerId))
+                    {
+                        target.ReleasePointer(evt.pointerId);
+                    }
+                    evt.StopPropagation();
                     break;
             }
         }
@@ -251,11 +160,9 @@ namespace ProjectTowerRpg.Core.UI
                 target.ReleasePointer(evt.pointerId);
             }
             
-            if (_mode == DragMode.Slot && _ghost != null)
+            if (_mode == DragMode.Slot)
             {
-                _ghost.style.display = DisplayStyle.None;
-                _ghost.RemoveFromHierarchy();
-                _ghost = null;
+                DragManager.Instance.CancelDrag();
             }
         }
     }

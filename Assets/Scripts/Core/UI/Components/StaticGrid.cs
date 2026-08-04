@@ -4,7 +4,6 @@ using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
-using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -55,9 +54,6 @@ namespace ProjectTowerRpg.Core.UI.Components
                 slot.style.marginLeft = 2;
                 slot.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
 
-                slot.RegisterCallback<PointerDownEvent>(OnSlotPointerDown);
-                slot.RegisterCallback<PointerUpEvent>(OnSlotPointerUp);
-
                 _slots.Add(slot);
                 Add(slot);
             }
@@ -103,58 +99,6 @@ namespace ProjectTowerRpg.Core.UI.Components
                 var config = !string.IsNullOrEmpty(itemId) ? ItemsDatabase.GetItem(itemId) : null;
                 _slots[i].SetData(itemId, config, _gridType, i);
             }
-        }
-
-        private void OnSlotPointerDown(PointerDownEvent evt)
-        {
-            var slot = evt.currentTarget as SlotElement;
-            if (slot == null) return;
-
-            if (evt.button == 1)
-            {
-                Debug.Log($"ПКМ по слоту {slot.SlotIndex}");
-                evt.StopPropagation();
-                return;
-            }
-
-            if (evt.button == 0)
-            {
-                string itemId = slot.GetItemId();
-                int amount = slot.GetAmount();
-                
-                Debug.Log($"[StaticGrid] OnSlotPointerDown: itemId={itemId}, amount={amount}");
-                
-                if (!string.IsNullOrEmpty(itemId))
-                {
-                    if (DragManager.Instance == null)
-                    {
-                        Debug.LogError("[StaticGrid] DragManager.Instance = null!");
-                        return;
-                    }
-                    
-                    DragManager.Instance.StartDrag(
-                        source: this,
-                        slotIndex: slot.SlotIndex,
-                        itemId: itemId,
-                        amount: amount,
-                        icon: null,
-                        sourceId: DataSourceId,
-                        gridType: _gridType
-                    );
-                    evt.StopPropagation();
-                }
-            }
-        }
-
-        private void OnSlotPointerUp(PointerUpEvent evt)
-        {
-            if (DragManager.Instance == null || !DragManager.Instance.IsDragging) return;
-
-            var slot = evt.currentTarget as SlotElement;
-            if (slot == null) return;
-
-            DragManager.Instance.Finish(this, slot.SlotIndex);
-            evt.StopPropagation();
         }
 
         string IDataSourceProvider.DataSourceId => DataSourceId;
