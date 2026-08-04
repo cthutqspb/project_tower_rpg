@@ -1,118 +1,106 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.UI.Components;
-using ProjectTowerRpg.Core.UI;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.UI.Windows
 {
-    public class CharacterWindow : MonoBehaviour
+    public class CharacterWindow : UIWindow
     {
-        [SerializeField] private VisualTreeAsset _windowUxml;
-        
-        private VisualElement _root;
         private HeaderComponent _header;
         private StaticGrid _inventoryGrid;
-        private PanelRenderer _panelRenderer;
 
-        private void Start()
+        // ================================================================
+        // ПОДПИСКА НА ХОТКЕИ
+        // ================================================================
+
+        private void OnEnable()
         {
-            _panelRenderer = FindAnyObjectByType<PanelRenderer>();
-            if (_panelRenderer == null)
-            {
-                Debug.LogError("[CharacterWindow]: PanelRenderer не найден!");
-                return;
-            }
-
-            _panelRenderer.RegisterUIReloadCallback(OnUIReloaded);
+            UIEvents.ToggleCharacterWindow += Toggle;
         }
 
-        private void OnUIReloaded(PanelRenderer renderer, VisualElement globalUiRoot, int version)
+        private void OnDisable()
         {
-            if (globalUiRoot == null || _root != null) return;
+            UIEvents.ToggleCharacterWindow -= Toggle;
+        }
 
-            _root = _windowUxml.CloneTree();
-            _root.pickingMode = PickingMode.Position;
-            globalUiRoot.Add(_root);
+        // ================================================================
+        // СБОРКА ОКНА
+        // ================================================================
 
-            var headerContainer = _root.Q<VisualElement>("header-container");
+        protected override void OnWindowBuilt(VisualElement root)
+        {
+            // Хедер
+            var headerContainer = root.Q<VisualElement>("header-container");
             if (headerContainer != null)
             {
                 _header = new HeaderComponent();
                 _header.Title = "РЮКЗАК ПЕРСОНАЖА";
-                _header.OnClose += CloseWindow;
+                _header.OnClose += Close;
                 headerContainer.Add(_header);
 
                 var dragManipulator = new DragManipulator(
                     dragElement: _header,
-                    targetElement: _root,
+                    targetElement: root,
                     mode: DragMode.UIElement
                 );
                 _header.AddManipulator(dragManipulator);
             }
 
-            var inventoryContainer = _root.Q<VisualElement>("inventory-container");
+            // Инвентарь
+            var inventoryContainer = root.Q<VisualElement>("inventory-container");
             if (inventoryContainer != null)
             {
                 _inventoryGrid = new StaticGrid(columns: 6, rows: 4, gridType: "inventory");
                 _inventoryGrid.DataSourceId = "unit_inventory";
                 inventoryContainer.Add(_inventoryGrid);
-
-                LinkAndInitializeInventory();
+                LinkInventory();
             }
 
-            var paperdollContainer = _root.Q<VisualElement>("paperdoll-container");
+            // Кукла
+            var paperdollContainer = root.Q<VisualElement>("paperdoll-container");
             if (paperdollContainer != null)
             {
                 // TODO: PaperdollComponent
             }
-
-            ShowWindow();
-            Debug.Log("🎯 [CharacterWindow]: Окно собрано из компонентов!");
         }
 
-        private void LinkAndInitializeInventory()
+        // ================================================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // ================================================================
+
+        private void LinkInventory()
         {
             if (World.DefaultGameObjectInjectionWorld == null) return;
 
-            var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             var inventoryEntity = EntityRegistry.Get("unit_inventory");
-
             if (inventoryEntity == Entity.Null)
             {
-                Debug.LogWarning("[CharacterWindow] Сущность инвентаря ещё не создана в ECS/реестре");
+                Debug.LogWarning("[CharacterWindow] Сущность инвентаря ещё не создана");
                 return;
             }
 
-            // ✅ НОВАЯ АРХИТЕКТУРА: BindToEntity регистрирует грид в UIRegistry
             _inventoryGrid.BindToEntity(inventoryEntity);
         }
 
-        private void ShowWindow()
+        // ================================================================
+        // КОЛЛБЭКИ
+        // ================================================================
+
+        protected override void OnWindowShown()
         {
-            if (_root == null) return;
-            _root.style.display = DisplayStyle.Flex;
+            //_inventoryGrid?.Refresh();
+            Debug.Log("[CharacterWindow] Показано");
         }
 
-        private void CloseWindow()
+        protected override void OnWindowClosed()
         {
-            if (_root == null) return;
-            _root.style.display = DisplayStyle.None;
-        }
-
-        private void OnDestroy()
-        {
-            if (_panelRenderer != null)
-            {
-                _panelRenderer.UnregisterUIReloadCallback(OnUIReloaded);
-            }
-
-            // ✅ Отписываемся от реестра при закрытии
             if (_inventoryGrid != null && _inventoryGrid.InventoryEntity != Entity.Null)
             {
                 UIRegistry.Unregister(_inventoryGrid.InventoryEntity, _inventoryGrid);
             }
+            Debug.Log("[CharacterWindow] Закрыто");
         }
     }
 }

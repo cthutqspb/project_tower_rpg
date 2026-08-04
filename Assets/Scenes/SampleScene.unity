@@ -580,6 +580,7 @@ GameObject:
   - component: {fileID: 1367445834}
   - component: {fileID: 1367445835}
   - component: {fileID: 1367445836}
+  - component: {fileID: 1367445837}
   m_Layer: 0
   m_Name: '[UI]'
   m_TagString: Untagged
@@ -722,6 +723,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b984b8935005e12ed8d0397d66ad1646, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.DragManager
+--- !u!114 &1367445837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1367445828}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3abdd265d4d14842a9b0b55ce1bd717d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.UIInputHandler
 --- !u!1001 &1401807447
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -5,6 +5,9 @@ using UnityEngine.InputSystem;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Systems;
 using ProjectTowerRpg.Core.UI.Components;
+using ProjectTowerRpg.ECS.Components;
+using Unity.Transforms;
+using ProjectTowerRpg.Core;
 
 namespace ProjectTowerRpg.Core.UI
 {
@@ -111,56 +114,63 @@ namespace ProjectTowerRpg.Core.UI
             }
         }
 
+        private float3 GetDropPosition(float3 playerPosition)
+        {
+            var camera = Camera.main;
+            if (camera == null) return playerPosition + new float3(1.5f, 0, 1.5f);
+            
+            var forward = camera.transform.forward;
+            forward.y = 0;
+            forward.Normalize();
+            
+            // Лёгкий рандом в сторону
+            var random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(1, 999999));
+            float sideAngle = random.NextFloat(-0.3f, 0.3f);
+            var direction = math.mul(quaternion.RotateY(sideAngle), forward);
+            
+            return playerPosition + direction * random.NextFloat(0.27f, 0.72f);
+        }
+
         private void HandleWorldDrop(Vector2 mousePosition)
         {
-            if (Camera.main == null)
+            if (!PlayerUtils.TryGetPosition(out float3 playerPosition))
             {
-                Debug.LogWarning("[DragManager] Основная камера не найдена. Дроп отменён.");
                 CancelDrag();
                 return;
             }
 
-            Ray ray = Camera.main.ScreenPointToRay(mousePosition);
+            // Смещение на 2 метра вперёд (по оси Z) и чуть вправо (по X)
+            float3 dropPosition = GetDropPosition(playerPosition);
 
-            if (Physics.Raycast(ray, out RaycastHit hit))
+            Entity sourceEntity = GetEntityFromComponent(_activeDrag.Source);
+
+            if (sourceEntity != Entity.Null)
             {
-                float3 worldDropPosition = hit.point;
+                ClearGhost();
 
-                Entity sourceEntity = GetEntityFromComponent(_activeDrag.Source);
-
-                if (sourceEntity != Entity.Null)
+                var actionEntity = _entityManager.CreateEntity();
+                _entityManager.AddComponentData(actionEntity, new ActionCommand
                 {
-                    ClearGhost();
+                    Type = "item_drop",
+                    SourceEntity = sourceEntity,
+                    SourceSlot = _activeDrag.SlotIndex,
+                    TargetEntity = Entity.Null,
+                    TargetSlot = -1,
+                    ItemId = _activeDrag.ItemId,
+                    Amount = _activeDrag.Amount,
+                    Position = dropPosition
+                });
 
-                    var actionEntity = _entityManager.CreateEntity();
-                    _entityManager.AddComponentData(actionEntity, new ActionCommand
-                    {
-                        Type = "item_drop",
-                        SourceEntity = sourceEntity,
-                        SourceSlot = _activeDrag.SlotIndex,
-                        TargetEntity = Entity.Null,
-                        TargetSlot = -1,
-                        ItemId = _activeDrag.ItemId,
-                        Amount = _activeDrag.Amount,
-                        Position = worldDropPosition
-                    });
-
-                    Debug.Log($"[DragManager]: Отправлена команда дропа {_activeDrag.ItemId} в мир. Позиция: {worldDropPosition}");
-                }
-                else
-                {
-                    Debug.LogWarning("[DragManager] Ошибка: Исходная ECS-сущность сетки не найдена");
-                    CancelDrag();
-                    return;
-                }
-
-                _activeDrag = null;
+                Debug.Log($"[DragManager]: Дроп {_activeDrag.ItemId} рядом с игроком: {dropPosition}");
             }
             else
             {
-                Debug.Log("[DragManager] Дроп отменён: луч не пересёк землю.");
+                Debug.LogWarning("[DragManager] Исходная ECS-сущность не найдена");
                 CancelDrag();
+                return;
             }
+
+            _activeDrag = null;
         }
 
         public void StartDrag(DragData data)

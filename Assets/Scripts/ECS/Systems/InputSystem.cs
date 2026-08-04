@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.UI;
+using Unity.Transforms;
+using ProjectTowerRpg.Core;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -50,17 +52,39 @@ namespace ProjectTowerRpg.ECS.Systems
  
             // ... (Твой стандартный блок OnUpdate с проверкой осей и UIManager.IsBlocked)
 
-            // ОБРАБОТКА КЛИКА В 3D МИРЕ — СТЕРИЛЬНЫЙ ВАРИАНТ
+                // ОБРАБОТКА КЛИКА В 3D МИРЕ — СТЕРИЛЬНЫЙ ВАРИАНТ
             if (!isUiBlocked && _interactOrLookAction.triggered)
             {
                 if (DragManager.Instance != null && !DragManager.Instance.IsDragging)
                 {
                     if (SystemAPI.TryGetSingleton<HoverState>(out var hover) && hover.HasTarget)
                     {
-                        // Просто вешаем сигнал клика на сущность из ховера. Всё!
-                        EntityManager.AddComponent<ClickIntent>(hover.CurrentEntity);
+                        // ================================================================
+                        // 🦾 ПРОВЕРКА ДИСТАНЦИИ ДЛЯ ЛУТА
+                        // ================================================================
+                        Entity targetEntity = hover.CurrentEntity;
                         
-                        Debug.Log($"[InputSystem] Послан сигнал клика на Entity ID: {hover.CurrentEntity.Index}");
+                        // Проверяем, есть ли у цели позиция
+                        if (SystemAPI.HasComponent<LocalTransform>(targetEntity))
+                        {
+                            var targetPos = SystemAPI.GetComponent<LocalTransform>(targetEntity).Position;
+                            var playerPos = PlayerUtils.GetPosition();
+                            
+                            float distance = math.distance(playerPos, targetPos);
+                            float maxLootDistance = 0.72f; // можно вынести в конфиг
+                            
+                            if (distance > maxLootDistance)
+                            {
+                                // Слишком далеко — не даём клик
+                                Debug.Log($"[InputSystem] Слишком далеко до цели ({distance:F1}м). Нужно подойти ближе.");
+                                // TODO: показать сообщение на HUD
+                                return;
+                            }
+                        }
+                        
+                        // Всё ок — отправляем клик
+                        EntityManager.AddComponent<ClickIntent>(targetEntity);
+                        Debug.Log($"[InputSystem] Послан сигнал клика на Entity ID: {targetEntity.Index}");
                     }
                 }
             }

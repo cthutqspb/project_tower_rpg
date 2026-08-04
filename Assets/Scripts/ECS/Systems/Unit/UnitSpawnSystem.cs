@@ -28,8 +28,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 Position = new float3(0, 0, 0)
             });
 
-            EntityManager.AddComponent<PlayerTag>(unitEntity);
-
             // ================================================================
             // 2. СОЗДАЁМ ИНВЕНТАРЬ
             // ================================================================
