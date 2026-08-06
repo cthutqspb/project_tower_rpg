@@ -11,15 +11,27 @@ namespace ProjectTowerRpg.ECS.Systems
     {
         private bool _spawned = false;
 
+        private const int INVENTORY_COLUMNS = 6;
+        private const int INVENTORY_ROWS = 12;
+        private const int INVENTORY_SLOTS = INVENTORY_COLUMNS * INVENTORY_ROWS;
+
+        private readonly EquipSlot[] PAPERDOLL_SLOTS = new EquipSlot[]
+        {
+            EquipSlot.HEAD, 
+            EquipSlot.CHEST,
+            EquipSlot.LEGS,
+            EquipSlot.MAIN_HAND,
+            EquipSlot.OFF_HAND
+        };
+
         protected override void OnUpdate()
         {
             if (_spawned) return;
 
             // ================================================================
-            // 1. СОЗДАЁМ ЮНИТА
+            // 1. ЮНИТ
             // ================================================================
             var unitEntity = EntityManager.CreateEntity();
-
             EntityManager.AddComponentData(unitEntity, new UnitComponent
             {
                 Uid = "player",
@@ -29,19 +41,19 @@ namespace ProjectTowerRpg.ECS.Systems
             });
 
             // ================================================================
-            // 2. СОЗДАЁМ ИНВЕНТАРЬ
+            // 2. ИНВЕНТАРЬ
             // ================================================================
             var inventoryEntity = EntityManager.CreateEntity();
 
-            EntityManager.AddComponentData(inventoryEntity, new StaticGridComponent
+            EntityManager.AddComponentData(inventoryEntity, new ContainerConfigComponent
             {
-                SlotCount = 24,
+                Columns = INVENTORY_COLUMNS,
+                Rows = INVENTORY_ROWS,
                 Owner = unitEntity
             });
-            EntityManager.AddComponent<InventoryTag>(inventoryEntity);
 
             var slots = EntityManager.AddBuffer<SlotData>(inventoryEntity);
-            for (int i = 0; i < 24; i++)
+            for (int i = 0; i < INVENTORY_SLOTS; i++)
             {
                 slots.Add(new SlotData
                 {
@@ -49,12 +61,12 @@ namespace ProjectTowerRpg.ECS.Systems
                     DataId = "",
                     DataType = "",
                     Amount = 0,
-                    EquipSlot = "",
-                    ContainerType = "inventory"
+                    EquipSlot = EquipSlot.NONE,             // ИСПРАВЛЕНО: enum вместо ""
+                    ContainerType = ContainerType.INVENTORY // ИСПРАВЛЕНО: enum вместо "inventory"
                 });
             }
 
-            // Заполняем тестовыми предметами (конвертируем строки в хэши)
+            // Тестовые предметы
             var testItems = new (string id, int amount)[]
             {
                 ("iron_sword", 1),
@@ -66,29 +78,52 @@ namespace ProjectTowerRpg.ECS.Systems
 
             for (int i = 0; i < testItems.Length && i < slots.Length; i++)
             {
-                // ✅ Конвертируем строку в хэш
-                int hash = testItems[i].id.GetHashCode();
-                
                 slots[i] = new SlotData
                 {
                     SlotIndex = i,
-                    DataId = testItems[i].id,   // ← "iron_sword"
+                    DataId = testItems[i].id,
                     DataType = "item",
                     Amount = testItems[i].amount,
-                    EquipSlot = "",
-                    ContainerType = "inventory"
+                    EquipSlot = EquipSlot.NONE,             // ИСПРАВЛЕНО: enum вместо ""
+                    ContainerType = ContainerType.INVENTORY // ИСПРАВЛЕНО: enum вместо "inventory"
                 };
             }
 
-            // ================================================================
-            // 3. РЕГИСТРИРУЕМ В ENTITYREGISTRY
-            // ================================================================
-            Debug.Log($"[UnitSpawnSystem] Регистрирую инвентарь: {inventoryEntity}");
             EntityRegistry.Register("unit_inventory", inventoryEntity);
 
-            Debug.Log($"[UnitSpawnSystem] Юнит создан. Инвентарь: {slots.Length} slots");
+            // ================================================================
+            // 3. КУКЛА (ПЕРЕВЕДЕНА НА SlotData)
+            // ================================================================
+            var paperdollEntity = EntityManager.CreateEntity();
+
+            EntityManager.AddComponentData(paperdollEntity, new ContainerConfigComponent
+            {
+                Owner = unitEntity,
+                Columns = PAPERDOLL_SLOTS.Length,
+                Rows = 1
+            });
+
+            // ИСПРАВЛЕНО: Добавляем буфер универсального SlotData вместо старого PaperdollSlot!
+            var paperdollSlots = EntityManager.AddBuffer<SlotData>(paperdollEntity);
+            for (int i = 0; i < PAPERDOLL_SLOTS.Length; i++)
+            {
+                paperdollSlots.Add(new SlotData
+                {
+                    SlotIndex = i, // Индекс ячейки куклы (0, 1, 2...)
+                    DataId = "",
+                    DataType = "",
+                    Amount = 0,
+                    EquipSlot = PAPERDOLL_SLOTS[i],          // Назначение слота (Head, Chest...)
+                    ContainerType = ContainerType.PAPERDOLL  // Указываем, что этот буфер — кукла
+                });
+            }
+
+            EntityRegistry.Register("unit_paperdoll", paperdollEntity);
+
+            Debug.Log($"[UnitSpawnSystem] Юнит создан. Инвентарь: {INVENTORY_SLOTS} slots. Кукла: {PAPERDOLL_SLOTS.Length} универсальных slots.");
 
             _spawned = true;
         }
     }
 }
+

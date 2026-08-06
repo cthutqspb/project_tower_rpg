@@ -6,8 +6,6 @@ using Unity.Entities;
 using ProjectTowerRpg.ECS.Systems;
 using ProjectTowerRpg.Core.UI.Components;
 using ProjectTowerRpg.ECS.Components;
-using Unity.Transforms;
-using ProjectTowerRpg.Core;
 
 namespace ProjectTowerRpg.Core.UI
 {
@@ -75,18 +73,24 @@ namespace ProjectTowerRpg.Core.UI
             Debug.Log("[DragManager]: Ghost создан");
         }
 
-        private void Update()
+                private void Update()
         {
-            if (_activeDrag == null || _ghost == null) return;
+            // Если ghost ещё не создался (reload UI), ничего не делаем
+            if (_ghost == null) return;
+
+            // Если в данный момент ничего не тащим — Update просто спит и ждёт вызова StartDrag из манипулятора
+            if (_activeDrag == null) return;
 
             var mouse = Mouse.current;
             if (mouse == null) return;
 
             Vector2 mousePos = mouse.position.ReadValue();
             
+            // Обновляем позицию визуального призрака за курсором
             _ghost.style.left = mousePos.x - 24;
             _ghost.style.top = Screen.height - mousePos.y - 24;
 
+            // Проверяем, отпустил ли игрок левую кнопку мыши
             if (!mouse.leftButton.isPressed)
             {
                 var localPos = new Vector2(mousePos.x, Screen.height - mousePos.y);
@@ -94,14 +98,21 @@ namespace ProjectTowerRpg.Core.UI
 
                 if (picked != null && picked != _root)
                 {
-                    var slot = picked.GetFirstAncestorOfType<IDragSource>();
-                    if (slot != null)
+                    // Ищем любой источник драга под курсором (инвентарь, кукла, экшнбар)
+                    IDragSource slot = null;
+                    if (picked is IDragSource ds)
+                        slot = ds;
+                    else
+                        slot = picked.GetFirstAncestorOfType<IDragSource>();
+                    
+                    if (slot != null && slot is SlotElement slotElement)
                     {
-                        int targetSlot = slot is SlotElement slotElement ? slotElement.SlotIndex : -1;
-                        Finish(slot, targetSlot);
+                        // Идеальный полиморфизм: передаем чистый int индекс слота
+                        Finish(slotElement, slotElement.SlotIndex);
                         return;
                     }
                     
+                    // Находим контейнер общего типа (если бросили просто на окно без конкретного слота)
                     var provider = picked.GetFirstAncestorOfType<IDataSourceProvider>();
                     if (provider != null)
                     {
@@ -110,9 +121,11 @@ namespace ProjectTowerRpg.Core.UI
                     }
                 }
                 
+                // Если отпустили мышь в пустом месте экрана — это дроп в мир
                 HandleWorldDrop(mousePos);
             }
         }
+
 
         private float3 GetDropPosition(float3 playerPosition)
         {
@@ -123,7 +136,6 @@ namespace ProjectTowerRpg.Core.UI
             forward.y = 0;
             forward.Normalize();
             
-            // Лёгкий рандом в сторону
             var random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(1, 999999));
             float sideAngle = random.NextFloat(-0.3f, 0.3f);
             var direction = math.mul(quaternion.RotateY(sideAngle), forward);
@@ -139,9 +151,7 @@ namespace ProjectTowerRpg.Core.UI
                 return;
             }
 
-            // Смещение на 2 метра вперёд (по оси Z) и чуть вправо (по X)
             float3 dropPosition = GetDropPosition(playerPosition);
-
             Entity sourceEntity = GetEntityFromComponent(_activeDrag.Source);
 
             if (sourceEntity != Entity.Null)
@@ -153,9 +163,9 @@ namespace ProjectTowerRpg.Core.UI
                 {
                     Type = "item_drop",
                     SourceEntity = sourceEntity,
-                    SourceSlot = _activeDrag.SlotIndex,
+                    SourceSlot = _activeDrag.SlotIndex, // Теперь это int!
                     TargetEntity = Entity.Null,
-                    TargetSlot = -1,
+                    TargetSlot = -1,                    // Теперь это int!
                     ItemId = _activeDrag.ItemId,
                     Amount = _activeDrag.Amount,
                     Position = dropPosition
@@ -181,7 +191,6 @@ namespace ProjectTowerRpg.Core.UI
             }
 
             _activeDrag = data;
-
             ClearGhost();
 
             _ghost.style.display = DisplayStyle.Flex;
@@ -200,12 +209,15 @@ namespace ProjectTowerRpg.Core.UI
         {
             if (_activeDrag == null) return;
 
+            Debug.Log($"[DragManager] Finish: target={targetComponent?.GetType().Name ?? "null"}, targetSlot={targetSlot}");
             ClearGhost();
 
-            if (targetComponent != null && targetSlot >= 0)
+            if (targetComponent != null && targetSlot != -1)
             {
                 Entity sourceEntity = GetEntityFromComponent(_activeDrag.Source);
                 Entity targetEntity = GetEntityFromComponent(targetComponent);
+
+                Debug.Log($"[DragManager] sourceEntity={sourceEntity}, targetEntity={targetEntity}");
 
                 if (sourceEntity != Entity.Null && targetEntity != Entity.Null)
                 {
@@ -214,14 +226,18 @@ namespace ProjectTowerRpg.Core.UI
                     {
                         Type = "item_transfer",
                         SourceEntity = sourceEntity,
-                        SourceSlot = _activeDrag.SlotIndex,
+                        SourceSlot = _activeDrag.SlotIndex, // Теперь это int!
                         TargetEntity = targetEntity,
-                        TargetSlot = targetSlot,
+                        TargetSlot = targetSlot,            // Теперь это int!
                         ItemId = _activeDrag.ItemId,
                         Amount = _activeDrag.Amount
                     });
 
-                    Debug.Log($"[DragManager]: Команда создана {_activeDrag.ItemId} -> {targetSlot}");
+                    Debug.Log($"[DragManager]: Команда создана {_activeDrag.ItemId} -> Слот #{targetSlot}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[DragManager] sourceEntity или targetEntity == Entity.Null");
                 }
             }
 
@@ -234,18 +250,18 @@ namespace ProjectTowerRpg.Core.UI
 
             if (component is SlotElement slotElement)
             {
-                return slotElement.InventoryEntity;
+                return slotElement.ContainerEntity;
             }
 
+            // ИСПРАВЛЕНО: Вместо устаревшего .InventoryEntity читаем универсальное .BoundEntity!
             if (component is StaticGrid grid)
             {
-                return grid.InventoryEntity;
+                return grid.BoundEntity;
             }
 
             if (component is IDataSourceProvider provider)
             {
-                var entity = EntityRegistry.Get(provider.DataSourceId);
-                if (entity != Entity.Null) return entity;
+                return EntityRegistry.Get(provider.DataSourceId);
             }
 
             return Entity.Null;
@@ -284,3 +300,4 @@ namespace ProjectTowerRpg.Core.UI
         }
     }
 }
+

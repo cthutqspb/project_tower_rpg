@@ -15,4 +15,5 @@ namespace ProjectTowerRpg.ECS.Components
     // Аурафрейм (баффы/дебаффы)
     public struct AuraFrameTag : IComponentData { }
 
+    public struct PaperdollTag : IComponentData { }
 }

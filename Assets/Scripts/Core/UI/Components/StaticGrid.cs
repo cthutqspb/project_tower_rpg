@@ -13,11 +13,29 @@ namespace ProjectTowerRpg.Core.UI.Components
         private int _columns;
         private int _rows;
         private List<SlotElement> _slots = new();
-        private Entity _inventoryEntity;
+        private string _dataSourceId;
 
-        public string DataSourceId { get; set; }
+        // ИСПРАВЛЕНО: Нейтральное имя сущности. Подходит для инвентаря, экшенбаров и аур.
+        private Entity _boundEntity;
+
+        // Явно обновляем DataSourceId у слотов при его изменении снаружи
+        public string DataSourceId 
+        { 
+            get => _dataSourceId; 
+            set 
+            {
+                _dataSourceId = value;
+                foreach (var slot in _slots)
+                {
+                    slot.DataSourceId = value;
+                }
+            }
+        }
+        
         public string GridType => _gridType;
-        public Entity InventoryEntity => _inventoryEntity;
+
+        // ИСПРАВЛЕНО: Реализация интерфейсного свойства. То, что будет читать базовое окно UIWindow!
+        public Entity BoundEntity => _boundEntity;
 
         public StaticGrid(int columns, int rows, string gridType)
         {
@@ -27,10 +45,11 @@ namespace ProjectTowerRpg.Core.UI.Components
             
             this.AddToClassList("static-grid-container");
             this.AddToClassList($"grid-{gridType}");
-            this.pickingMode = PickingMode.Position;
+            
+            // Сетка должна пропускать клики сквозь себя к слотам
+            this.pickingMode = PickingMode.Ignore; 
 
             this.style.width = columns * 48;
-            this.style.height = rows * 48;
             this.style.flexDirection = FlexDirection.Row;
             this.style.flexWrap = Wrap.Wrap;
             this.style.flexShrink = 0;
@@ -40,11 +59,9 @@ namespace ProjectTowerRpg.Core.UI.Components
             for (int i = 0; i < columns * rows; i++)
             {
                 var slot = new SlotElement();
-                slot.SlotIndex = i;
-                slot.DataSourceId = DataSourceId;
+                slot.SlotIndex = i; 
                 slot.GridType = _gridType;
-                slot.Source = this;
-                // slot.InventoryEntity будет задано позже в BindToEntity
+                slot.name = $"slot-{i}";
 
                 slot.style.width = 40;
                 slot.style.height = 40;
@@ -59,48 +76,51 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
 
-        public void BindToEntity(Entity inventoryEntity)
+        public void BindToEntity(Entity targetEntity)
         {
-            Debug.Log($"[StaticGrid] BindToEntity: {inventoryEntity}");
+            Debug.Log($"[StaticGrid] BindToEntity для сущности: {targetEntity}");
             
-            _inventoryEntity = inventoryEntity;
+            _boundEntity = targetEntity;
             
-            // Обновляем InventoryEntity у всех слотов
+            // Обновляем Entity у всех вложенных дочерних слотов
             foreach (var slot in _slots)
             {
-                slot.InventoryEntity = inventoryEntity;
+                slot.ContainerEntity = targetEntity;
             }
             
-            UIRegistry.Register(inventoryEntity, this);
-            
+            // ИСПРАВЛЕНО: Строка UIRegistry.Register ОТСЮДА УДАЛЕНА! 
+            // Теперь базовое окно UIWindow само регистрирует эту сетку при открытии.
+
             var world = World.DefaultGameObjectInjectionWorld;
             if (world == null) return;
             
             var em = world.EntityManager;
-            if (em.HasBuffer<SlotData>(inventoryEntity))
+            if (em.HasBuffer<SlotData>(targetEntity))
             {
-                var slots = em.GetBuffer<SlotData>(inventoryEntity);
+                var slots = em.GetBuffer<SlotData>(targetEntity);
                 UpdateFromBuffer(slots);
             }
             else
             {
-                Debug.LogWarning($"[StaticGrid] InventoryEntity {inventoryEntity} не имеет буфера SlotData");
+                Debug.LogWarning($"[StaticGrid] Сущность {targetEntity} не имеет универсального буфера SlotData");
             }
         }
 
         public void UpdateFromBuffer(DynamicBuffer<SlotData> slots)
         {
-            Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} слотов");
+            Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} универсальных слотов");
             
             for (int i = 0; i < slots.Length && i < _slots.Count; i++)
             {
-                var slot = slots[i];
-                var itemId = slot.DataId.ToString();
+                var slotData = slots[i];
+                var itemId = slotData.DataId.ToString();
                 var config = !string.IsNullOrEmpty(itemId) ? ItemsDatabase.GetItem(itemId) : null;
-                _slots[i].SetData(itemId, config, _gridType, i);
+                
+                _slots[i].SetData(itemId, config, _gridType, i, slotData.Amount);
             }
         }
 
         string IDataSourceProvider.DataSourceId => DataSourceId;
     }
 }
+

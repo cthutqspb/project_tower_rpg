@@ -3,176 +3,78 @@ using Unity.Mathematics;
 using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
-using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.ECS.Actions
 {
     public static class ItemActions
     {
-        public static void Transfer(ref BufferLookup<SlotData> slotDataLookup,
-                                    Entity sourceEntity, int sourceSlot,
-                                    Entity targetEntity, int targetSlot,
-                                    string itemId, int amount)
+        // ================================================================
+        // ОЧИСТКА СЛОТОВ
+        // ================================================================
+
+        public static void ClearSlot(DynamicBuffer<SlotData> slots, int index)
         {
-            if (!slotDataLookup.HasBuffer(sourceEntity) || !slotDataLookup.HasBuffer(targetEntity))
+            slots[index] = new SlotData
             {
-                Debug.LogWarning("[ItemActions] У источника или цели нет буфера SlotData");
-                return;
-            }
-
-            var sourceSlots = slotDataLookup[sourceEntity];
-            var targetSlots = slotDataLookup[targetEntity];
-
-            if (sourceSlot < 0 || sourceSlot >= sourceSlots.Length ||
-                targetSlot < 0 || targetSlot >= targetSlots.Length)
-            {
-                Debug.LogWarning($"[ItemActions] Неверный индекс слота");
-                return;
-            }
-
-            var sourceItem = sourceSlots[sourceSlot];
-            if (sourceItem.IsEmpty)
-            {
-                Debug.LogWarning($"[ItemActions] В слоте {sourceSlot} нет данных");
-                return;
-            }
-
-            if (sourceItem.DataType.ToString() != "item")
-            {
-                Debug.LogWarning($"[ItemActions] Слот содержит не предмет: {sourceItem.DataType}");
-                return;
-            }
-
-            var targetItem = targetSlots[targetSlot];
-
-            // ================================================================
-            // СЦЕНАРИЙ 1: ЦЕЛЕВОЙ СЛОТ ПУСТОЙ → ПРОСТО ПЕРЕМЕЩАЕМ
-            // ================================================================
-            if (targetItem.IsEmpty)
-            {
-                targetSlots[targetSlot] = new SlotData
-                {
-                    SlotIndex = targetSlot,
-                    ContainerType = targetItem.ContainerType,
-                    DataId = sourceItem.DataId,
-                    DataType = sourceItem.DataType,
-                    Amount = sourceItem.Amount,
-                    EquipSlot = sourceItem.EquipSlot
-                };
-
-                sourceSlots[sourceSlot] = new SlotData
-                {
-                    SlotIndex = sourceSlot,
-                    ContainerType = sourceItem.ContainerType,
-                    DataId = "",
-                    DataType = "",
-                    Amount = 0,
-                    EquipSlot = ""
-                };
-
-                Debug.Log($"[ItemActions] Перенос {itemId} из слота {sourceSlot} в {targetSlot}");
-                return;
-            }
-
-            // ================================================================
-            // СЦЕНАРИЙ 2: ЦЕЛЕВОЙ СЛОТ ЗАНЯТ → ПРОВЕРЯЕМ СТАКАНИЕ ИЛИ СВОП
-            // ================================================================
-
-            // 2.1. Если это один и тот же предмет — стакание
-            if (targetItem.DataId.ToString() == itemId && targetItem.DataType.ToString() == "item")
-            {
-                int total = targetItem.Amount + amount;
-                
-                // Проверяем, не превышает ли лимит стака
-                var itemConfig = ItemsDatabase.GetItem(itemId);
-                int maxStack = itemConfig?.properties?.max_stack ?? 999;
-                
-                if (total <= maxStack)
-                {
-                    // Полностью помещается
-                    targetSlots[targetSlot] = new SlotData
-                    {
-                        SlotIndex = targetSlot,
-                        ContainerType = targetItem.ContainerType,
-                        DataId = targetItem.DataId,
-                        DataType = targetItem.DataType,
-                        Amount = total,
-                        EquipSlot = targetItem.EquipSlot
-                    };
-
-                    sourceSlots[sourceSlot] = new SlotData
-                    {
-                        SlotIndex = sourceSlot,
-                        ContainerType = sourceItem.ContainerType,
-                        DataId = "",
-                        DataType = "",
-                        Amount = 0,
-                        EquipSlot = ""
-                    };
-
-                    Debug.Log($"[ItemActions] Стакание {itemId} x{amount} в слот {targetSlot}. Итого: {total}");
-                    return;
-                }
-                else
-                {
-                    // Не помещается целиком — заполняем до максимума, остаток оставляем
-                    int canFit = maxStack - targetItem.Amount;
-                    if (canFit > 0)
-                    {
-                        targetSlots[targetSlot] = new SlotData
-                        {
-                            SlotIndex = targetSlot,
-                            ContainerType = targetItem.ContainerType,
-                            DataId = targetItem.DataId,
-                            DataType = targetItem.DataType,
-                            Amount = maxStack,
-                            EquipSlot = targetItem.EquipSlot
-                        };
-
-                        sourceSlots[sourceSlot] = new SlotData
-                        {
-                            SlotIndex = sourceSlot,
-                            ContainerType = sourceItem.ContainerType,
-                            DataId = sourceItem.DataId,
-                            DataType = sourceItem.DataType,
-                            Amount = sourceItem.Amount - canFit,
-                            EquipSlot = sourceItem.EquipSlot
-                        };
-
-                        Debug.Log($"[ItemActions] Частичное стакание {itemId}: {canFit} поместилось, осталось {sourceItem.Amount - canFit}");
-                        return;
-                    }
-                }
-            }
-
-            // ================================================================
-            // СЦЕНАРИЙ 3: СВОП (меняем местами)
-            // ================================================================
-            
-            // Если это один и тот же инвентарь — просто меняем местами
-            if (sourceEntity == targetEntity)
-            {
-                sourceSlots[sourceSlot] = targetItem;
-                sourceSlots[targetSlot] = sourceItem;
-                
-                Debug.Log($"[ItemActions] Своп внутри одного инвентаря: {sourceSlot} ↔ {targetSlot}");
-                return;
-            }
-
-            // Разные инвентари — меняем местами
-            sourceSlots[sourceSlot] = targetItem;
-            targetSlots[targetSlot] = sourceItem;
-
-            Debug.Log($"[ItemActions] Своп между инвентарями: {sourceSlot} ↔ {targetSlot}");
+                SlotIndex = index,
+                ContainerType = slots[index].ContainerType, // Сохраняем тип контейнера (например, Inventory)
+                DataId = "",
+                DataType = "",
+                Amount = 0,
+                EquipSlot = EquipSlot.NONE // Используем универсальный enum
+            };
         }
 
-        public static void Drop(ref BufferLookup<SlotData> slotDataLookup, 
-                                EntityCommandBuffer ecb, 
-                                Entity containerEntity, 
-                                int slot, 
-                                string itemId, 
-                                int amount, 
-                                float3 position)
+        // ================================================================
+        // УНИВЕРСАЛЬНЫЙ ТРАНСФЕР (ПОЛИМОРФНЫЙ)
+        // ================================================================
+
+        public static void Transfer(ISlotContainer source, int sourceSlot, ISlotContainer target, int targetSlot)
+        {
+            // Проверяем, есть ли контент в источнике
+            if (!source.HasContent(sourceSlot))
+            {
+                Debug.LogWarning($"[ItemActions] В источнике нет контента в слоте #{sourceSlot}");
+                return;
+            }
+
+            var content = source.GetContent(sourceSlot);
+
+            // Проверка возможности размещения через полиморфный интерфейс целевого контейнера
+            if (!target.CanPlaceContent(targetSlot, content))
+            {
+                Debug.LogWarning($"[ItemActions] Нельзя поместить контент в слот #{targetSlot}");
+                return;
+            }
+
+            // Если целевой слот пустой → перемещаем
+            if (!target.HasContent(targetSlot))
+            {
+                target.SetContent(targetSlot, content);
+                source.ClearSlot(sourceSlot);
+                Debug.Log($"[ItemActions] Перенос из слота #{sourceSlot} в слот #{targetSlot}");
+                return;
+            }
+
+            // Если целевой слот занят → своп (меняем контент местами)
+            var targetContent = target.GetContent(targetSlot);
+            target.SetContent(targetSlot, content);
+            source.SetContent(sourceSlot, targetContent);
+            Debug.Log($"[ItemActions] Своп слотов #{sourceSlot} ↔ #{targetSlot}");
+        }
+
+        // ================================================================
+        // DROP
+        // ================================================================
+
+        public static void Drop(
+            ref BufferLookup<SlotData> slotDataLookup,
+            EntityCommandBuffer ecb,
+            Entity containerEntity,
+            int index,
+            string itemId,
+            int amount,
+            float3 position)
         {
             if (!slotDataLookup.HasBuffer(containerEntity))
             {
@@ -182,31 +84,21 @@ namespace ProjectTowerRpg.ECS.Actions
 
             var slots = slotDataLookup[containerEntity];
 
-            if (slot < 0 || slot >= slots.Length)
+            if (index < 0 || index >= slots.Length)
             {
-                Debug.LogWarning($"[ItemActions] Неверный индекс слота: {slot}");
+                Debug.LogWarning($"[ItemActions] Неверный index слота для дропа: {index}");
                 return;
             }
 
-            var item = slots[slot];
+            var item = slots[index];
             if (item.IsEmpty)
             {
-                Debug.LogWarning($"[ItemActions] В слоте {slot} нет данных");
+                Debug.LogWarning($"[ItemActions] В слоте {index} нет данных для дропа");
                 return;
             }
 
-            // Очищаем слот
-            slots[slot] = new SlotData
-            {
-                SlotIndex = slot,
-                ContainerType = item.ContainerType,
-                DataId = "",
-                DataType = "",
-                Amount = 0,
-                EquipSlot = ""
-            };
+            ClearSlot(slots, index);
 
-            // Создаём запрос на спавн предмета в мире
             Entity requestEntity = ecb.CreateEntity();
             ecb.AddComponent(requestEntity, new DropItemRequest
             {
@@ -218,10 +110,14 @@ namespace ProjectTowerRpg.ECS.Actions
             Debug.Log($"[ItemActions] Запрос на спавн предмета {itemId} x{amount} отправлен в ItemSpawnSystem");
         }
 
+        // ================================================================
+        // LOOT
+        // ================================================================
+
         public static void Loot(
-            ref BufferLookup<SlotData> slotDataLookup, 
-            EntityCommandBuffer ecb, 
-            Entity itemWorldEntity, 
+            ref BufferLookup<SlotData> slotDataLookup,
+            EntityCommandBuffer ecb,
+            Entity itemWorldEntity,
             Entity inventoryEntity)
         {
             if (!slotDataLookup.HasBuffer(inventoryEntity))
@@ -230,19 +126,10 @@ namespace ProjectTowerRpg.ECS.Actions
                 return;
             }
 
-            var em = Unity.Entities.World.DefaultGameObjectInjectionWorld.EntityManager;
-            foreach (var world in Unity.Entities.World.All)
-            {
-                if ((world.Flags & Unity.Entities.WorldFlags.Simulation) != 0)
-                {
-                    em = world.EntityManager;
-                    break;
-                }
-            }
-
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
             if (!em.HasComponent<ItemComponent>(itemWorldEntity))
             {
-                Debug.LogWarning($"[ItemActions.Loot] Предмет {itemWorldEntity.Index} больше не существует в ОЗУ или уже собран!");
+                Debug.LogWarning($"[ItemActions.Loot] Предмет {itemWorldEntity.Index} больше не существует или уже собран!");
                 return;
             }
 
@@ -252,7 +139,7 @@ namespace ProjectTowerRpg.ECS.Actions
             int targetSlotIndex = -1;
             for (int i = 0; i < inventoryBuffer.Length; i++)
             {
-                if (inventoryBuffer[i].DataId.IsEmpty)
+                if (inventoryBuffer[i].IsEmpty)
                 {
                     targetSlotIndex = i;
                     break;
@@ -267,12 +154,11 @@ namespace ProjectTowerRpg.ECS.Actions
                     DataId = itemData.ItemId,
                     DataType = "item",
                     Amount = itemData.Amount,
-                    EquipSlot = "",
-                    ContainerType = "inventory"
+                    EquipSlot = EquipSlot.NONE,
+                    ContainerType = ContainerType.INVENTORY
                 };
 
                 Debug.Log($"[ItemActions.Loot] Предмет {itemData.ItemId} перенесён в слот #{targetSlotIndex}");
-
                 ecb.DestroyEntity(itemWorldEntity);
             }
             else
@@ -281,7 +167,16 @@ namespace ProjectTowerRpg.ECS.Actions
             }
         }
 
-        public static void Use(ref BufferLookup<SlotData> slotDataLookup, Entity containerEntity, int slot, string itemId, Entity userEntity)
+        // ================================================================
+        // USE
+        // ================================================================
+
+        public static void Use(
+            ref BufferLookup<SlotData> slotDataLookup,
+            Entity containerEntity,
+            int index,
+            string itemId,
+            Entity casterEntity) // ИСПРАВЛЕНО: Геймдеверский нейминг casterEntity вместо веб-мусора
         {
             var config = ItemsDatabase.GetItem(itemId);
             if (config == null)
@@ -298,7 +193,7 @@ namespace ProjectTowerRpg.ECS.Actions
 
             foreach (var effect in config.use_effects)
             {
-                ApplyItemEffect(effect, userEntity, config);
+                ApplyItemEffect(effect, casterEntity, config); // Передаем кастера
             }
 
             if (config.properties.stackable && config.properties.max_stack > 0)
@@ -310,14 +205,15 @@ namespace ProjectTowerRpg.ECS.Actions
                 }
 
                 var slots = slotDataLookup[containerEntity];
-                if (slot < 0 || slot >= slots.Length) return;
 
-                var item = slots[slot];
+                if (index < 0 || index >= slots.Length) return;
+
+                var item = slots[index];
                 if (item.Amount > 1)
                 {
-                    slots[slot] = new SlotData
+                    slots[index] = new SlotData
                     {
-                        SlotIndex = slot,
+                        SlotIndex = index,
                         ContainerType = item.ContainerType,
                         DataId = item.DataId,
                         DataType = item.DataType,
@@ -327,62 +223,40 @@ namespace ProjectTowerRpg.ECS.Actions
                 }
                 else
                 {
-                    slots[slot] = new SlotData
-                    {
-                        SlotIndex = slot,
-                        ContainerType = item.ContainerType,
-                        DataId = "",
-                        DataType = "",
-                        Amount = 0,
-                        EquipSlot = ""
-                    };
+                    ClearSlot(slots, index);
                 }
-
             }
 
-            Debug.Log($"[ItemActions] Использован предмет {itemId} пользователем {userEntity}");
+            Debug.Log($"[ItemActions] Использован предмет {itemId} кастером {casterEntity}");
         }
 
-        public static void Equip(Entity containerEntity, int slot, string itemId, Entity userEntity)
-        {
-            var config = ItemsDatabase.GetItem(itemId);
-            if (config == null)
-            {
-                Debug.LogWarning($"[ItemActions] Предмет {itemId} не найден в базе");
-                return;
-            }
+        // ================================================================
+        // ПРИМЕНЕНИЕ ЭФФЕКТОВ
+        // ================================================================
 
-            if (string.IsNullOrEmpty(config.properties.equip_slot))
-            {
-                Debug.LogWarning($"[ItemActions] Предмет {itemId} нельзя экипировать");
-                return;
-            }
-
-            Debug.Log($"[ItemActions] Экипировка предмета {itemId} на слот {config.properties.equip_slot}");
-        }
-
-        private static void ApplyItemEffect(ItemUseEffect effect, Entity userEntity, ItemConfig config)
+        private static void ApplyItemEffect(ItemUseEffect effect, Entity casterEntity, ItemConfig config) // ИСПРАВЛЕНО: casterEntity
         {
             if (effect.ability_id == "heal")
             {
-                Debug.Log($"[ItemActions] Лечение {effect.value?.min}-{effect.value?.max} HP");
+                Debug.Log($"[ItemActions] Лечение {effect.value?.min}-{effect.value?.max} HP для {casterEntity}");
             }
             else if (effect.ability_id == "mana")
             {
-                Debug.Log($"[ItemActions] Восполнение маны {effect.value?.min}-{effect.value?.max}");
+                Debug.Log($"[ItemActions] Восполнение маны {effect.value?.min}-{effect.value?.max} для {casterEntity}");
             }
             else if (effect.ability_id == "buff")
             {
-                Debug.Log($"[ItemActions] Наложение аур");
+                Debug.Log($"[ItemActions] Наложение аур на {casterEntity}");
             }
             else if (effect.ability_id == "summon")
             {
-                Debug.Log($"[ItemActions] Призыв питомца");
+                Debug.Log($"[ItemActions] Призыв питомца для {casterEntity}");
             }
             else
             {
-                Debug.Log($"[ItemActions] Применение эффекта {effect.ability_id} к {userEntity}");
+                Debug.Log($"[ItemActions] Применение эффекта {effect.ability_id} к {casterEntity}");
             }
         }
     }
 }
+

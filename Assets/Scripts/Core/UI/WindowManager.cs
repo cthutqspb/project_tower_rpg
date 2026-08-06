@@ -28,17 +28,21 @@ namespace ProjectTowerRpg.Core.UI
         {
             if (_stack.Count == 0) return;
 
-            // ✅ Безопасно берём последний элемент
-            var top = _stack[_stack.Count - 1];
+            int lastIndex = _stack.Count - 1;
+            var top = _stack[lastIndex];
+
             if (top == null)
             {
-                _stack.RemoveAt(_stack.Count - 1);
+                _stack.RemoveAt(lastIndex);
                 return;
             }
 
-            // ✅ Закрываем и удаляем
+            // ИСПРАВЛЕНО: Сначала убираем окно из стека менеджера, чтобы top.Close() не смог удалить его повторно!
+            _stack.RemoveAt(lastIndex);
+
+            // Теперь безопасно закрываем. Если внутри .Close() вызовется WindowManager.Pop, 
+            // метод Pop просто увидит, что окна в стеке уже нет, и ничего не сделает.
             top.Close();
-            _stack.RemoveAt(_stack.Count - 1);
         }
 
         public static WindowContext GetTop()

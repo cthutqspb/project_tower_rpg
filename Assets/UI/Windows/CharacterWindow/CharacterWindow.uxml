@@ -1,11 +1,39 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <ui:Style src="project://database/Assets/UI/Windows/CharacterWindow/CharacterWindow.uss" />
 
+    <!-- Общий фон окна -->
     <ui:VisualElement class="character-window" name="window-root" picking-mode="Position">
+        
+        <!-- Хедер (общий для всего окна) -->
         <ui:VisualElement name="header-container" />
-        <ui:VisualElement name="content-container">
-            <ui:VisualElement name="paperdoll-container" />
-            <ui:VisualElement name="inventory-container" />
+        
+        <!-- Тело: три колонки -->
+        <ui:VisualElement class="window-body" name="content-container">
+            
+            <!-- Статы (левая колонка) -->
+            <ui:VisualElement class="stats-column" name="stats-container">
+                <ui:Label text="Сила: 10" />
+                <ui:Label text="Ловкость: 12" />
+                <ui:Label text="Интеллект: 14" />
+                <!-- TODO: динамические статы -->
+            </ui:VisualElement>
+            
+            <!-- Кукла (центр) -->
+            <ui:VisualElement class="paperdoll-column" name="paperdoll-container">
+                <!-- Слоты куклы создаются в коде -->
+            </ui:VisualElement>
+            
+            <!-- Инвентарь (правая колонка) -->
+            <ui:ScrollView
+              class="inventory-column"
+              name="inventory-container"
+              style="padding: 0;"
+              movement-type="Elastic"
+              elasticity="0.1">
+                <!-- Статик грид создаётся в коде -->
+            </ui:ScrollView>
+            
         </ui:VisualElement>
+        
     </ui:VisualElement>
 </ui:UXML>

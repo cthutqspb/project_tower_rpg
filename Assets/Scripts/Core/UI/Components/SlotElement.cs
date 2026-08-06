@@ -3,7 +3,6 @@ using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -14,13 +13,17 @@ namespace ProjectTowerRpg.Core.UI.Components
         private Label _bindLabel;
         private Label _amountLabel;
         private Label _durationLabel;
-        private string _itemId;
+        
+        // Слот кэширует свои данные только для Drag-and-Drop
+        private string _itemId = "";
+        private int _amount = 0;
 
         public int SlotIndex { get; set; }
-        public Entity InventoryEntity { get; set; }
+        public Entity ContainerEntity { get; set; }
         public string DataSourceId { get; set; }
-        public string GridType { get; set; }
-        public object Source { get; set; }
+        
+        // Оставляем строки в UI для USS-стилей, это нормально
+        public string GridType { get; set; } 
 
         public SlotElement()
         {
@@ -70,40 +73,39 @@ namespace ProjectTowerRpg.Core.UI.Components
         // IDragSource Implementation
         // ================================================================
         
-        public bool CanDrag()
-        {
-            return !string.IsNullOrEmpty(GetItemId());
-        }
+        public bool CanDrag() => !string.IsNullOrEmpty(_itemId) && _amount > 0;
 
         public DragData GetDragData()
         {
             return new DragData
             {
                 Source = this,
-                SlotIndex = SlotIndex,
-                ItemId = GetItemId(),
-                Amount = GetAmount(),
-                Icon = null, // TODO: Получить иконку из ItemConfig
+                SlotIndex = SlotIndex, // Передаем чистый int
+                ItemId = _itemId,
+                Amount = _amount,
+                Icon = null, // TODO: вытащить спрайт из конфигурации, если нужно
                 SourceId = DataSourceId,
                 GridType = GridType,
-                SourceEntity = InventoryEntity
+                SourceEntity = ContainerEntity
             };
         }
 
         // ================================================================
-        // Public Methods
+        // Public Methods (Слот теперь просто принимает готовые данные)
         // ================================================================
 
         public void SetData(string itemId, ItemConfig config, string gridType, int index, int amount = 1)
         {
             _itemId = itemId;
+            _amount = amount;
             GridType = gridType;
             SlotIndex = index;
+            
             ClearVisual();
 
-            if (config == null || string.IsNullOrEmpty(itemId))
+            if (config == null || string.IsNullOrEmpty(itemId) || amount <= 0)
             {
-                return;
+                return; // Если слот пустой, просто выходим (он уже очистился внутри ClearVisual)
             }
 
             _icon.style.display = DisplayStyle.Flex;
@@ -115,6 +117,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _bindLabel.text = GetBindKey(index);
             }
 
+            // Проверяем, что количество больше 1, чтобы отобразить счетчик стака
             if (amount > 1)
             {
                 _amountLabel.style.display = DisplayStyle.Flex;
@@ -122,76 +125,21 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
             else
             {
+                // Если 1 или меньше, скрываем лейбл количества
                 _amountLabel.style.display = DisplayStyle.None;
                 _amountLabel.text = "";
             }
+
         }
 
-        public void Refresh()
+        // Метод Refresh() больше не лезет в ECS! Сетка сама обновит слот, когда прилетит буфер.
+        public void Refresh() 
         {
-            var world = World.DefaultGameObjectInjectionWorld;
-            if (world == null || InventoryEntity == Entity.Null)
-            {
-                ClearVisual();
-                return;
-            }
-
-            var entityManager = world.EntityManager;
-            if (!entityManager.HasBuffer<SlotData>(InventoryEntity))
-            {
-                ClearVisual();
-                return;
-            }
-
-            var slots = entityManager.GetBuffer<SlotData>(InventoryEntity);
-            if (SlotIndex < 0 || SlotIndex >= slots.Length)
-            {
-                ClearVisual();
-                return;
-            }
-
-            var slot = slots[SlotIndex];
-            
-            if (string.IsNullOrEmpty(slot.DataId.ToString()) || slot.Amount <= 0)
-            {
-                ClearVisual();
-                return;
-            }
-
-            var itemId = slot.DataId.ToString();
-            var config = ItemsDatabase.GetItem(itemId);
-            
-            if (config == null)
-            {
-                _icon.style.display = DisplayStyle.Flex;
-                _icon.style.backgroundColor = Color.gray;
-                return;
-            }
-
-            _icon.style.display = DisplayStyle.Flex;
-            _icon.style.backgroundColor = GetQualityColor(config.identity.quality);
-
-            if (GridType == "action_bar")
-            {
-                _bindLabel.style.display = DisplayStyle.Flex;
-                _bindLabel.text = GetBindKey(SlotIndex);
-            }
-
-            if (slot.Amount > 1)
-            {
-                _amountLabel.style.display = DisplayStyle.Flex;
-                _amountLabel.text = slot.Amount.ToString();
-            }
-            else
-            {
-                _amountLabel.style.display = DisplayStyle.None;
-                _amountLabel.text = "";
-            }
+            // Метод можно оставить пустым или убрать, так как обновление идёт через SetData
         }
 
         public void ClearVisual()
         {
-            _itemId = "";
             _icon.style.display = DisplayStyle.None;
             _icon.style.backgroundColor = Color.clear;
             _bindLabel.text = "";
@@ -203,40 +151,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             _cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
             RemoveFromClassList("disabled");
         }
-
-        public string GetItemId()
-        {
-            if (!string.IsNullOrEmpty(_itemId)) return _itemId;
-            
-            var world = World.DefaultGameObjectInjectionWorld;
-            if (world == null || InventoryEntity == Entity.Null) return "";
-
-            var entityManager = world.EntityManager;
-            if (!entityManager.HasBuffer<SlotData>(InventoryEntity)) return "";
-
-            var slots = entityManager.GetBuffer<SlotData>(InventoryEntity);
-            if (SlotIndex < 0 || SlotIndex >= slots.Length) return "";
-
-            return slots[SlotIndex].DataId.ToString();
-        }
-
-        public int GetAmount()
-        {
-            var world = World.DefaultGameObjectInjectionWorld;
-            if (world == null || InventoryEntity == Entity.Null) return 0;
-
-            var entityManager = world.EntityManager;
-            if (!entityManager.HasBuffer<SlotData>(InventoryEntity)) return 0;
-
-            var slots = entityManager.GetBuffer<SlotData>(InventoryEntity);
-            if (SlotIndex < 0 || SlotIndex >= slots.Length) return 0;
-
-            return slots[SlotIndex].Amount;
-        }
-
-        // ================================================================
-        // Private Helpers
-        // ================================================================
 
         private Color GetQualityColor(string quality)
         {
@@ -260,3 +174,4 @@ namespace ProjectTowerRpg.Core.UI.Components
         }
     }
 }
+

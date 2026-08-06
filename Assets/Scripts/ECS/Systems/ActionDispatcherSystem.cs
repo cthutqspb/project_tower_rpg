@@ -15,7 +15,7 @@ namespace ProjectTowerRpg.ECS.Systems
         public int SourceSlot;
         public Entity TargetEntity;
         public int TargetSlot;
-        public FixedString64Bytes ItemId;  // ← СТРОКА
+        public FixedString64Bytes ItemId;
         public int Amount;
         public float3 Position;
     }
@@ -38,9 +38,6 @@ namespace ProjectTowerRpg.ECS.Systems
             var ecb = _ecbSystem.CreateCommandBuffer();
             _slotDataLookup.Update(ref CheckedStateRef);
 
-            // ================================================================
-            // 🚀 ПРЯМОЙ РОУТЕР КЛИКОВ
-            // ================================================================
             foreach (var (item, entity) in 
                      SystemAPI.Query<RefRO<ItemComponent>>().WithAll<ClickIntent>().WithEntityAccess())
             {
@@ -55,52 +52,23 @@ namespace ProjectTowerRpg.ECS.Systems
                 Debug.Log($"[ActionDispatcher] Клик по ПРЕДМЕТУ {entity.Index} направлен напрямую в ItemActions.Loot.");
             }
 
-            // ================================================================
-            // 🔄 ЦИКЛ ОБРАБОТКИ АСИНХРОННЫХ КОМАНД
-            // ================================================================
-            int commandCount = 0;
-
             foreach (var (cmd, entity) in 
                      SystemAPI.Query<RefRO<ActionCommand>>().WithEntityAccess())
             {
-                commandCount++;
-                Debug.Log($"[ActionDispatcher] Получена UI-команда #{commandCount}: Type={cmd.ValueRO.Type}");
                 var type = cmd.ValueRO.Type.ToString();
 
                 switch (type)
                 {
                     case "item_transfer":
-                        ItemActions.Transfer(
-                            ref _slotDataLookup,
-                            cmd.ValueRO.SourceEntity,
-                            cmd.ValueRO.SourceSlot,
-                            cmd.ValueRO.TargetEntity,
-                            cmd.ValueRO.TargetSlot,
-                            cmd.ValueRO.ItemId.ToString(),  // ← FixedString → string
-                            cmd.ValueRO.Amount
-                        );
+                        ExecuteItemTransfer(cmd.ValueRO);
                         break;
                     
                     case "item_drop":
-                        ItemActions.Drop(
-                            ref _slotDataLookup,
-                            ecb,
-                            cmd.ValueRO.SourceEntity,
-                            cmd.ValueRO.SourceSlot,
-                            cmd.ValueRO.ItemId.ToString(),  // ← FixedString → string
-                            cmd.ValueRO.Amount,
-                            cmd.ValueRO.Position
-                        );
+                        ExecuteItemDrop(cmd.ValueRO, ecb);
                         break;
 
                     case "item_use":
-                        ItemActions.Use(
-                            ref _slotDataLookup,
-                            cmd.ValueRO.SourceEntity,
-                            cmd.ValueRO.SourceSlot,
-                            cmd.ValueRO.ItemId.ToString(),  // ← FixedString → string
-                            cmd.ValueRO.TargetEntity
-                        );
+                        ExecuteItemUse(cmd.ValueRO);
                         break;
                     
                     default:
@@ -113,5 +81,61 @@ namespace ProjectTowerRpg.ECS.Systems
 
             _ecbSystem.AddJobHandleForProducer(Dependency);
         }
+
+        // ================================================================
+        // 🎯 ИСПОЛНИТЕЛИ КОМАНД
+        // ================================================================
+
+        private void ExecuteItemTransfer(ActionCommand cmd)
+        {
+            // Используем новый универсальный интерфейс ISlotContainer
+            ISlotContainer source = CreateContainer(cmd.SourceEntity);
+            ISlotContainer target = CreateContainer(cmd.TargetEntity);
+            
+            if (source == null || target == null)
+            {
+                Debug.LogWarning("[ActionDispatcher] Не удалось создать контейнер для трансфера");
+                return;
+            }
+            
+            ItemActions.Transfer(source, cmd.SourceSlot, target, cmd.TargetSlot);
+        }
+
+        private ISlotContainer CreateContainer(Entity entity)
+        {
+            // Идеальный полиморфизм: все окна теперь работают через один BufferSlotContainer
+            if (_slotDataLookup.HasBuffer(entity))
+            {
+                return new BufferSlotContainer(entity, _slotDataLookup);
+            }
+            
+            return null;
+        }
+
+        private void ExecuteItemDrop(ActionCommand cmd, EntityCommandBuffer ecb)
+        {
+            ItemActions.Drop(
+                ref _slotDataLookup,
+                ecb,
+                cmd.SourceEntity,
+                cmd.SourceSlot,
+                cmd.ItemId.ToString(),
+                cmd.Amount,
+                cmd.Position
+            );
+        }
+
+        private void ExecuteItemUse(ActionCommand cmd)
+        {
+            // Из инвентаря/слота предмет использует (кастует) сущность-владелец SourceEntity
+            ItemActions.Use(
+                ref _slotDataLookup,
+                cmd.SourceEntity,
+                cmd.SourceSlot,
+                cmd.ItemId.ToString(),
+                cmd.SourceEntity // Передаем кастера (кто нажал на предмет)
+            );
+        }
     }
 }
+

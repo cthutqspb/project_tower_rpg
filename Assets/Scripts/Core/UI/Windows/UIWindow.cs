@@ -1,12 +1,11 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using System.Collections.Generic;
+using Unity.Entities;
+using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.UI
 {
-    /// <summary>
-    /// Максимально абстрактный базовый класс для всех окон.
-    /// Никаких хедеров, боди, футеров — только регистрация в WindowManager.
-    /// </summary>
     public abstract class UIWindow : MonoBehaviour
     {
         [SerializeField] protected VisualTreeAsset _windowUxml;
@@ -15,7 +14,9 @@ namespace ProjectTowerRpg.Core.UI
         protected WindowContext _context;
         protected PanelRenderer _panelRenderer;
 
-        // Свойства для доступа извне
+        // Кэш для ECS-компонентов внутри этого окна, чтобы не сканировать дерево каждый кадр
+        private List<IEcsUiBufferReceiver<SlotData>> _cachedReceivers = new();
+
         public VisualElement Root => _root;
         public bool IsOpen => _context != null && _context.IsVisible;
 
@@ -33,20 +34,9 @@ namespace ProjectTowerRpg.Core.UI
 
         protected virtual void OnDestroy()
         {
-            if (_panelRenderer != null)
-            {
-                _panelRenderer.UnregisterUIReloadCallback(OnUIReloaded);
-            }
-
-            if (_context != null)
-            {
-                WindowManager.Pop(_context);
-            }
+            if (_panelRenderer != null) _panelRenderer.UnregisterUIReloadCallback(OnUIReloaded);
+            if (_context != null) WindowManager.Pop(_context);
         }
-
-        // ================================================================
-        // UI СБОРКА
-        // ================================================================
 
         private void OnUIReloaded(PanelRenderer renderer, VisualElement globalUiRoot, int version)
         {
@@ -56,74 +46,81 @@ namespace ProjectTowerRpg.Core.UI
             _root.pickingMode = PickingMode.Position;
             globalUiRoot.Add(_root);
 
-            // Создаём контекст для регистрации в WindowManager
             _context = new WindowContext(
                 _root,
-                onClose: OnWindowClosed,
-                onShow: OnWindowShown
+                onClose: OnInternalWindowClosed, // Подменяем на внутренний безопасный метод
+                onShow: OnInternalWindowShown    // Подменяем на внутренний безопасный метод
             );
 
-            // По умолчанию окно скрыто
             _root.style.display = DisplayStyle.None;
 
             OnWindowBuilt(_root);
 
-            Debug.Log($"[{GetType().Name}] Окно собрано");
+            // Сразу после сборки окна один раз сканируем его и находим все сетки/куклы на базе SlotData
+            _cachedReceivers.Clear();
+            _root.Query<VisualElement>().ForEach(element =>
+            {
+                if (element is IEcsUiBufferReceiver<SlotData> receiver)
+                {
+                    _cachedReceivers.Add(receiver);
+                }
+            });
+
+            Debug.Log($"[{GetType().Name}] Окно собрано. Авто-найдено ECS-приемников: {_cachedReceivers.Count}");
         }
 
         // ================================================================
-        // ПУБЛИЧНЫЕ МЕТОДЫ
+        // 🛡️ АВТОМАТИЧЕСКИЙ СИСТЕМНЫЙ СТЕК (Аналог твоего Lua-модуля M.init)
         // ================================================================
 
-        public virtual void Open()
+        private void OnInternalWindowShown()
         {
-            if (_context == null)
+            // Автоматически регистрируем в UIRegistry ВСЕ сетки, куклы и панели, которые есть в этом окне
+            foreach (var receiver in _cachedReceivers)
             {
-                Debug.LogWarning($"[{GetType().Name}] Окно ещё не инициализировано");
-                return;
+                if (receiver.BoundEntity != Entity.Null)
+                {
+                    UIRegistry.Register(receiver.BoundEntity, receiver);
+                    
+                    // Сразу форсируем чтение свежих данных из ECS при открытии
+                    var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+                    if (em.HasBuffer<SlotData>(receiver.BoundEntity))
+                    {
+                        receiver.UpdateFromBuffer(em.GetBuffer<SlotData>(receiver.BoundEntity));
+                    }
+                }
             }
 
-            _context.Show();
+            // Вызываем кастомный коллбэк дочернего класса, если он ему нужен
+            OnWindowShown();
         }
 
-        public virtual void Close()
+        private void OnInternalWindowClosed()
         {
-            if (_context == null) return;
-            _context.Close();
-        }
+            // Автоматически ВЫПИСЫВАЕМ из UIRegistry абсолютно все ECS-компоненты окна
+            foreach (var receiver in _cachedReceivers)
+            {
+                if (receiver.BoundEntity != Entity.Null)
+                {
+                    UIRegistry.Unregister(receiver.BoundEntity, receiver);
+                }
+            }
 
-        public virtual void Toggle()
-        {
-            if (_context == null) return;
-            _context.Toggle();
+            // Вызываем кастомный коллбэк дочернего класса
+            OnWindowClosed();
         }
 
         // ================================================================
-        // ВИРТУАЛЬНЫЕ МЕТОДЫ ДЛЯ ДОЧЕРНИХ КЛАССОВ
+        // ПУБЛИЧНЫЕ МЕТОДЫ И ВИРТУАЛЬНЫЕ КОЛЛБЭКИ
         // ================================================================
 
-        /// <summary>
-        /// Вызывается после сборки UI. Здесь дочерние классы добавляют свои компоненты.
-        /// </summary>
+        public virtual void Open() { if (_context != null) _context.Show(); }
+        public virtual void Close() { if (_context != null) _context.Close(); }
+        public virtual void Toggle() { if (_context != null) _context.Toggle(); }
+
         protected virtual void OnWindowBuilt(VisualElement root) { }
-
-        /// <summary>
-        /// Вызывается при показе окна.
-        /// </summary>
         protected virtual void OnWindowShown() { }
-
-        /// <summary>
-        /// Вызывается при закрытии окна.
-        /// </summary>
         protected virtual void OnWindowClosed() { }
-
-        // ================================================================
-        // ОБНОВЛЕНИЕ ДАННЫХ
-        // ================================================================
-
-        /// <summary>
-        /// Обновить содержимое окна. Дочерние классы переопределяют.
-        /// </summary>
-        public virtual void Refresh() { }
     }
 }
+

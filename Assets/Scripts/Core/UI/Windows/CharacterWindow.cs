@@ -8,12 +8,12 @@ namespace ProjectTowerRpg.Core.UI.Windows
 {
     public class CharacterWindow : UIWindow
     {
+        [Header("UI Components")]
+        [SerializeField] private VisualTreeAsset _paperdollUxml;
+
         private HeaderComponent _header;
         private StaticGrid _inventoryGrid;
-
-        // ================================================================
-        // ПОДПИСКА НА ХОТКЕИ
-        // ================================================================
+        private Paperdoll _paperdoll;
 
         private void OnEnable()
         {
@@ -25,10 +25,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
             UIEvents.ToggleCharacterWindow -= Toggle;
         }
 
-        // ================================================================
-        // СБОРКА ОКНА
-        // ================================================================
-
+        // ЗДЕСЬ МЫ СТРОИМ РАЗМЕТКУ И СРАЗУ СВЯЗЫВАЕМ ЕЁ С СУЩНОСТЯМИ
         protected override void OnWindowBuilt(VisualElement root)
         {
             // Хедер
@@ -50,57 +47,39 @@ namespace ProjectTowerRpg.Core.UI.Windows
 
             // Инвентарь
             var inventoryContainer = root.Q<VisualElement>("inventory-container");
-            if (inventoryContainer != null)
+            var inventoryEntity = EntityRegistry.Get("unit_inventory"); // ИСПРАВЛЕНО: Вынесли выше проверки
+            
+            if (inventoryContainer != null && inventoryEntity != Entity.Null)
             {
-                _inventoryGrid = new StaticGrid(columns: 6, rows: 4, gridType: "inventory");
-                _inventoryGrid.DataSourceId = "unit_inventory";
-                inventoryContainer.Add(_inventoryGrid);
-                LinkInventory();
+                var world = World.DefaultGameObjectInjectionWorld;
+                if (world != null)
+                {
+                    var inventoryComp = world.EntityManager.GetComponentData<ContainerConfigComponent>(inventoryEntity);
+                    _inventoryGrid = new StaticGrid(inventoryComp.Columns, inventoryComp.Rows, "inventory");
+                    _inventoryGrid.DataSourceId = "unit_inventory";
+                    
+                    // ЖЕЛЕЗНО ПРИВЯЗЫВАЕМ СУЩНОСТЬ: Теперь BoundEntity внутри сетки НЕ будет равен Entity.Null!
+                    _inventoryGrid.BindToEntity(inventoryEntity); 
+                    
+                    inventoryContainer.Add(_inventoryGrid);
+                }
             }
 
             // Кукла
             var paperdollContainer = root.Q<VisualElement>("paperdoll-container");
-            if (paperdollContainer != null)
+            var paperdollEntity = EntityRegistry.Get("unit_paperdoll"); // ИСПРАВЛЕНО: Вынесли выше проверки
+            
+            if (paperdollContainer != null && paperdollEntity != Entity.Null)
             {
-                // TODO: PaperdollComponent
+                _paperdoll = new Paperdoll(_paperdollUxml);
+                _paperdoll.DataSourceId = "unit_paperdoll";
+                
+                // ЖЕЛЕЗНО ПРИВЯЗЫВАЕМ СУЩНОСТЬ: Теперь BoundEntity внутри куклы НЕ будет равен Entity.Null!
+                _paperdoll.BindToEntity(paperdollEntity); 
+                
+                paperdollContainer.Add(_paperdoll);
             }
-        }
-
-        // ================================================================
-        // ИНИЦИАЛИЗАЦИЯ
-        // ================================================================
-
-        private void LinkInventory()
-        {
-            if (World.DefaultGameObjectInjectionWorld == null) return;
-
-            var inventoryEntity = EntityRegistry.Get("unit_inventory");
-            if (inventoryEntity == Entity.Null)
-            {
-                Debug.LogWarning("[CharacterWindow] Сущность инвентаря ещё не создана");
-                return;
-            }
-
-            _inventoryGrid.BindToEntity(inventoryEntity);
-        }
-
-        // ================================================================
-        // КОЛЛБЭКИ
-        // ================================================================
-
-        protected override void OnWindowShown()
-        {
-            //_inventoryGrid?.Refresh();
-            Debug.Log("[CharacterWindow] Показано");
-        }
-
-        protected override void OnWindowClosed()
-        {
-            if (_inventoryGrid != null && _inventoryGrid.InventoryEntity != Entity.Null)
-            {
-                UIRegistry.Unregister(_inventoryGrid.InventoryEntity, _inventoryGrid);
-            }
-            Debug.Log("[CharacterWindow] Закрыто");
         }
     }
 }
+

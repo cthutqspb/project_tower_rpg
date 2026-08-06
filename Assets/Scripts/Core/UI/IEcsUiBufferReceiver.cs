@@ -1,9 +1,11 @@
 using Unity.Entities;
 
-namespace ProjectTowerRpg.Core.UI
+public interface IEcsUiBufferReceiver<T> where T : unmanaged, IBufferElementData
 {
-    public interface IEcsUiBufferReceiver<T> where T : unmanaged, IBufferElementData
-    {
-        void UpdateFromBuffer(DynamicBuffer<T> buffer);
-    }
+    // Обязательное свойство сущности, к которой привязан этот UI-элемент
+    Entity BoundEntity { get; }
+    
+    void BindToEntity(Entity entity);
+    void UpdateFromBuffer(DynamicBuffer<T> buffer);
 }
+
