@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.UI;
 using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.UI.Components
@@ -65,8 +66,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             _durationLabel.style.display = DisplayStyle.None;
             Add(_durationLabel);
 
+            this.RegisterCallback<PointerOverEvent>(OnPointerOver);
+            this.RegisterCallback<PointerOutEvent>(OnPointerOut);
+
             var dragManipulator = new DragManipulator(this, DragMode.Slot);
             this.AddManipulator(dragManipulator);
+            this.RegisterCallback<ClickEvent>(OnSlotClicked);
         }
 
         // ================================================================
@@ -162,6 +167,30 @@ namespace ProjectTowerRpg.Core.UI.Components
             };
         }
 
+        private void OnSlotClicked(ClickEvent evt)
+        {
+            // Если слот пустой — кликать не по чему
+            if (string.IsNullOrEmpty(_itemId)) return;
+
+            // 🎯 СЦЕНАРИЙ 1: Системный двойной клик левой кнопкой мыши (ЛКМ)
+            if (evt.clickCount == 2 && evt.button == 0)
+            {   
+                // Слот просто сообщает наверх: "По мне кликнули дважды!"
+                UIEvents.TriggerSlotDoubleClick(this, SlotIndex, GridType, _itemId, _amount);
+                evt.StopPropagation();
+                return;
+            }
+
+            // 🎯 СЦЕНАРИЙ 2: Одиночный правый клик (ПКМ)
+            if (evt.clickCount == 1 && evt.button == 1)
+            {
+                // ИСПРАВЛЕНО: Заменили evt.mousePosition на родное evt.position
+                UIEvents.TriggerSlotRightClick(this, SlotIndex, GridType, _itemId, _amount, evt.position);
+                evt.StopPropagation();
+                return;
+            }
+        }
+
         private string GetBindKey(int index)
         {
             return index switch
@@ -172,6 +201,39 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _ => (index + 1).ToString()
             };
         }
+        
+               private void OnPointerOver(PointerOverEvent evt)
+        {
+            // ПРИНТ 1: Проверяем, реагирует ли вообще ячейка на мышь
+            Debug.Log($"[SlotElement] Мышь ХОВЕР на слоте #{SlotIndex}. Текущий ItemId: '{_itemId}', GridType: '{GridType}'");
+
+            if (string.IsNullOrEmpty(_itemId)) 
+            {
+                Debug.Log($"[SlotElement] Слот #{SlotIndex} пустой, сессия тултипа пропущена.");
+                return;
+            }
+
+            var config = ItemsDatabase.GetItem(_itemId);
+            if (config != null)
+            {
+                // ПРИНТ 2: База данных успешно нашла шмотку по ID
+                Debug.Log($"[SlotElement] УСПЕХ! База данных нашла конфиг для '{_itemId}'. Название из конфига: '{config.identity.name_key}'. Запускаем TooltipManager.");
+                
+                TooltipManager.Show(TooltipDomain.INTERFACE, TooltipKind.ITEM, config);
+            }
+            else
+            {
+                // ПРИНТ 3: Ошибка в базе данных
+                Debug.LogError($"[SlotElement] КРИТИЧЕСКАЯ ОШИБКА: Предмет '{_itemId}' прописан в слоте, но в ItemsDatabase его НЕТ!");
+            }
+        }
+
+        private void OnPointerOut(PointerOutEvent evt)
+        {
+            Debug.Log($"[SlotElement] Мышь УШЛА со слота #{SlotIndex}. Гасим тултип.");
+            TooltipManager.HideGuiTooltips();
+        }
+
     }
 }
 

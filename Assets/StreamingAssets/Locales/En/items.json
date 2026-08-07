@@ -1,0 +1,30 @@
+{
+  "_comment_items": "",
+  "item_iron_sword_name": "Iron Sword",
+  "item_iron_sword_desc": "A simple steel blade. Good for training.",
+  "item_crystal_sword_name": "Crystal Sword",
+  "item_crystal_sword_desc": "Everything looks funnier through it. Who even thought of making a sword out of glass?.",
+
+  "item_leather_helmet_name": "Leather helmet",
+  "item_leather_helmet_desc": "A simple leather helmet",
+
+  "item_clown_hat_name": "Clown hat",
+  "item_clown_hat_desk": "One of the most important attributes of every self-respecting buffoon.",
+
+  "item_lesser_mana_potion_name": "Lesser mana potion",
+  "item_lesser_mana_potion_desk": "This potion restores some mana.",
+
+  "item_potion_name": "Health Potion",
+
+  "_comment_items_containers": "",
+  "container_chest_common_name": "Common chest",
+  "container_wooden_barrel_name": "Wooden barrel",
+  "container_status_empty": "Empty",
+
+  "_comment_item_effects": "",
+  "effect_restore_mana": "",
+  "effect_increase_max_health": "",
+  "effect_chance_to_critical_hit": "",
+  "effect_mana_leach_on_hit": ""
+}
+

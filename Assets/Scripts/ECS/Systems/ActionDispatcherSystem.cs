@@ -88,7 +88,6 @@ namespace ProjectTowerRpg.ECS.Systems
 
         private void ExecuteItemTransfer(ActionCommand cmd)
         {
-            // Используем новый универсальный интерфейс ISlotContainer
             ISlotContainer source = CreateContainer(cmd.SourceEntity);
             ISlotContainer target = CreateContainer(cmd.TargetEntity);
             
@@ -97,9 +96,49 @@ namespace ProjectTowerRpg.ECS.Systems
                 Debug.LogWarning("[ActionDispatcher] Не удалось создать контейнер для трансфера");
                 return;
             }
+
+            int finalTargetSlot = cmd.TargetSlot;
+
+            // 🎯 Если TargetSlot == -1, значит это ДАБЛКЛИК (быстрый перенос), ищем слот автоматически
+            if (finalTargetSlot == -1)
+            {
+                var targetSlotsBuffer = _slotDataLookup[cmd.TargetEntity];
+                
+                // Создаём фейковую структуру данных нашего входящего предмета для проверки правил CanPlaceContent
+                var incomingContent = new SlotData 
+                { 
+                    DataId = cmd.ItemId, 
+                    DataType = "item",
+                    Amount = cmd.Amount
+                };
+
+                // Перебираем все слоты целевого контейнера (куклы или инвентаря)
+                for (int i = 0; i < targetSlotsBuffer.Length; i++)
+                {
+                    // 1. Проверяем, подходит ли предмет в этот слот по правилам контейнера (например, по типу EquipSlot на кукле)
+                    if (target.CanPlaceContent(i, incomingContent))
+                    {
+                        // 2. Дополнительно проверяем, что слот сейчас пустой (чтобы не перезаписать надетую вещь)
+                        if (targetSlotsBuffer[i].IsEmpty)
+                        {
+                            finalTargetSlot = i;
+                            break;
+                        }
+                    }
+                }
+
+                // Если подходящего пустого слота не нашлось (например, сумка полна или на кукле уже занят нужный слот)
+                if (finalTargetSlot == -1)
+                {
+                    Debug.LogWarning($"[ActionDispatcher] Нет свободного или подходящего слота в контейнере для {cmd.ItemId}");
+                    return;
+                }
+            }
             
-            ItemActions.Transfer(source, cmd.SourceSlot, target, cmd.TargetSlot);
+            // Выполняем наш стандартный, проверенный трансфер!
+            ItemActions.Transfer(source, cmd.SourceSlot, target, finalTargetSlot);
         }
+
 
         private ISlotContainer CreateContainer(Entity entity)
         {

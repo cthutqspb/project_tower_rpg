@@ -1,0 +1,81 @@
+{
+  "_comment_gui": "",
+  "inventory_title": "Inventory",
+  "character_window": "Character window",
+  "character_journal": "Journal",
+  "character_talents": "Talents",
+
+  "_comment_Character": "",
+  "race_human": "Human",
+  "race_elf": "Elf",
+  "race_dwarf": "Dwarf",
+  "class_warrior": "Warrior",
+  "class_mage": "Mage",
+  "class_rogue": "Rogue",
+
+  "level": "Level",
+
+  "stat_strength": "Strength",
+  "stat_agility": "Aglitity",
+  "stat_intellect": "Intellect",
+  "stat_stamina": "Stamina",
+
+  "_comment_Container_window": "",
+  "btn_take_all": "Take all",
+
+  "_comment_Menu": "",
+  "btn_main_menu": "Main menu",
+  "btn_new_game": "New game",
+  "btn_continue_game": "Continie game",
+  "btn_save_game": "Save game",
+  "btn_load_game": "Load game",
+  "btn_exit_game": "Exit game",
+
+  "_comment_Cotext_menu_Default": "",
+  "menu_examine": "Examine",
+
+  "_comment_Inventory_item": "",
+  "menu_use": "Use",
+  "menu_equip": "Equip",
+  "menu_unequip": "Unequip",
+  "menu_repair": "Repair",
+  "menu_sharpen": "Sharpen",
+  "menu_learn": "Learn",
+  "menu_split": "Split",
+  "menu_drop": "Drop",
+
+  "_comment_specific_for_action_type_container_iten_in_world": "",
+  "menu_open": "Открыть",
+  "menu_lockpick": "Взломать",
+  "menu_disarm": "Обезвредить",
+  "menu_take_container": "Подобрать",
+
+  "_comment_World_loot_item": "",
+  "menu_pickup": "Pickup",
+
+  "_comment_Items": "",
+  "weight": "Weight",
+  "price": "Price",
+
+  "effects_on_equip": "Effects on equip",
+  "use_effects": "Effects on use",
+  "cooldown": "Cooldown",
+
+  "type": "Type",
+  "quality": "Quality",
+  "common": "Commnon",
+  "uncommon": "Uncommon",
+  "rare": "Rare",
+  "weapon_type": "Weapon type",
+  "armor_type": "Armor type",
+  "armor_rating": "Armor rating",
+  "required": "Required",
+  "resource": "Resource",
+  "damage": "Damage",
+  "bonus_damage": "Bonus damage",
+  "resists": "Resists",
+
+  "_comment_Nameplates": "",
+  "unit_dead_suffix": "dead"
+}
+

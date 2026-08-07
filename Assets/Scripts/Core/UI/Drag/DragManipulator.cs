@@ -3,10 +3,12 @@ using UnityEngine.UIElements;
 
 namespace ProjectTowerRpg.Core.UI
 {
+    // Если enum DragMode объявлен в другом файле в этом же namespace, эту строку можно удалить.
+    // Если он в другом namespace — добавьте нужный using наверху.
     public enum DragMode
     {
-        UIElement,   // Перемещение любого UI-элемента (окно, панель, хпбар)
-        Slot         // Драг из слота (предмет, способность)
+        UIElement,   
+        Slot         
     }
 
     public class DragManipulator : PointerManipulator
@@ -15,9 +17,8 @@ namespace ProjectTowerRpg.Core.UI
         private VisualElement _targetElement;      // Что двигаем (окно или слот)
         private VisualElement _dragElement;        // На чём висит драг (хедер)
         
-        // Для UIElement режима
-        private Vector2 _startPosition;
-        private Vector3 _pointerStartPosition;
+        // Храним точку хвата относительно левого верхнего угла элемента
+        private Vector2 _pointerOffset;
 
         // Конструктор для UIElement режима (драг хедера)
         public DragManipulator(VisualElement dragElement, VisualElement targetElement, DragMode mode)
@@ -54,13 +55,22 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // ================================================================
-        // UIElement MODE (полностью здесь)
+        // UIElement MODE (Исправлено под ресайз и Hyprland)
         // ================================================================
         private void StartUIElementDrag(PointerDownEvent evt)
         {
-            var translate = _targetElement.resolvedStyle.translate;
-            _startPosition = new Vector2(translate.x, translate.y);
-            _pointerStartPosition = evt.position;
+            // Переключаем в абсолют при клике, чтобы Flexbox не блокировал оси при Maximize окна
+            if (_targetElement.style.position != Position.Absolute)
+            {
+                _targetElement.style.position = Position.Absolute;
+                _targetElement.style.left = _targetElement.layout.x;
+                _targetElement.style.top = _targetElement.layout.y;
+                _targetElement.style.translate = StyleKeyword.Null; // Сбрасываем старый транслейт
+            }
+
+            // Запоминаем смещение курсора внутри окна
+            _pointerOffset = _targetElement.WorldToLocal(evt.position);
+            
             target.CapturePointer(evt.pointerId);
             evt.StopPropagation();
         }
@@ -69,12 +79,16 @@ namespace ProjectTowerRpg.Core.UI
         {
             if (target.HasPointerCapture(evt.pointerId))
             {
-                Vector3 delta = evt.position - _pointerStartPosition;
-                _targetElement.style.translate = new Translate(
-                    _startPosition.x + delta.x,
-                    _startPosition.y + delta.y,
-                    0
-                );
+                VisualElement root = _targetElement.panel.visualTree;
+
+                // evt.position — это экранные координаты. Считаем левый верхний угол окна
+                float targetX = evt.position.x - _pointerOffset.x;
+                float targetY = evt.position.y - _pointerOffset.y;
+
+                // Клэмпим по живым актуальным размерам root экрана
+                _targetElement.style.left = Mathf.Clamp(targetX, 0f, root.layout.width - _targetElement.layout.width);
+                _targetElement.style.top = Mathf.Clamp(targetY, 0f, root.layout.height - _targetElement.layout.height);
+
                 evt.StopPropagation();
             }
         }
@@ -89,7 +103,7 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // ================================================================
-        // Slot MODE (только старт, остальное в DragManager)
+        // Slot MODE (Оставляем без изменений, как в вашем исходнике)
         // ================================================================
         private void StartSlotDrag(PointerDownEvent evt)
         {
@@ -129,7 +143,6 @@ namespace ProjectTowerRpg.Core.UI
                     UpdateUIElementDrag(evt);
                     break;
                 case DragMode.Slot:
-                    // Всё движение обрабатывает DragManager
                     evt.StopPropagation();
                     break;
             }
@@ -143,7 +156,6 @@ namespace ProjectTowerRpg.Core.UI
                     EndUIElementDrag(evt);
                     break;
                 case DragMode.Slot:
-                    // Освобождаем захват, завершение в DragManager
                     if (target.HasPointerCapture(evt.pointerId))
                     {
                         target.ReleasePointer(evt.pointerId);
@@ -167,3 +179,4 @@ namespace ProjectTowerRpg.Core.UI
         }
     }
 }
+

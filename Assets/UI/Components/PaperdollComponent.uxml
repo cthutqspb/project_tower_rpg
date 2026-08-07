@@ -1,0 +1,38 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="project://database/Assets/UI/Components/Paperdoll.uss" />
+
+    <ui:VisualElement class="paperdoll-grid" name="paperdoll-root">
+        
+        <!-- Верхняя часть: левая и правая колонки -->
+        <ui:VisualElement class="paperdoll-top">
+            
+            <!-- Левая колонка: голова, шея, тело, кольцо -->
+            <ui:VisualElement class="paperdoll-column-left" name="left-column">
+                <!-- Слоты будут добавлены в коде -->
+            </ui:VisualElement>
+            
+            <!-- Правая колонка: перчатки, штаны, сапоги, кольцо2 -->
+            <ui:VisualElement class="paperdoll-column-right" name="right-column">
+                <!-- Слоты будут добавлены в коде -->
+            </ui:VisualElement>
+            
+        </ui:VisualElement>
+        
+        <!-- Нижняя часть: оружие (левая колонка) и дальнее (правая колонка) -->
+        <ui:VisualElement class="paperdoll-bottom">
+            
+            <!-- Левая колонка: оружие + оффхенд -->
+            <ui:VisualElement class="paperdoll-bottom-left" name="bottom-left">
+                <!-- Слоты будут добавлены в коде -->
+            </ui:VisualElement>
+            
+            <!-- Правая колонка: дальнее оружие -->
+            <ui:VisualElement class="paperdoll-bottom-right" name="bottom-right">
+                <!-- Слоты будут добавлены в коде -->
+            </ui:VisualElement>
+            
+        </ui:VisualElement>
+        
+    </ui:VisualElement>
+    </ui:UXML>
+

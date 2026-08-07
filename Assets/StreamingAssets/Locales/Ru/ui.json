@@ -1,0 +1,91 @@
+{
+  "_comment_gui_windows": "",
+  "inventory_title": "Инвентарь",
+  "character_window": "Окно персонажа",
+  "character_journal": "Журнал",
+  "character_talents": "Таланты",
+  
+  "_comment_Character": "",
+  "race_human": "Человек",
+  "race_elf": "Эльф",
+  "race_dwarf": "Дворф",
+  "class_warrior": "Воин",
+  "class_mage": "Маг",
+  "class_rogue": "Разбойник",
+
+  "level": "Уровень",
+
+  "stat_strength": "Сила",
+  "stat_agility": "Ловкость",
+  "stat_intellect": "Интеллект",
+  "stat_stamina": "Выносливость",
+
+  "_comment_Container_window": "",
+  "btn_take_all": "Взять всё",
+
+  "_comment_Menu": "",
+  "btn_main_menu": "Главное меню",
+  "btn_new_game": "Новая игра",
+  "btn_continue_game": "Продолжить игру",
+  "btn_save_game": "Сохранить игру",
+  "btn_load_game": "Загрузить игру",
+  "btn_exit_game": "Выйти из игры",
+
+  "_comment_ContextMenu_Default": "",
+  "menu_examine": "Осмотреть",
+
+  "_comment_Inventory_item": "",
+  "menu_use": "Использовать",
+  "menu_equip": "Надеть",
+  "menu_unequip": "Снять",
+  "menu_repair": "Починить",
+  "menu_sharpen": "Заточить",
+  "menu_learn": "Изучить",
+  "menu_split": "Разделить",
+  "menu_drop": "Выбросить",
+
+  "_comment_Specific_container_item_in_world": "",
+  "menu_open": "Открыть",
+  "menu_lockpick": "Взломать",
+  "menu_disarm": "Обезвредить",
+  "menu_take_container": "Подобрать",
+
+  "_comment_World_loot_item": "",
+  "menu_pickup": "Подобрать",
+
+  "_comment_Items": "",
+  "weight": "Вес",
+  "price": "Цена",
+
+  "effects_on_equip": "Эффект при надевании",
+  "use_effects": "Эффект при использовании",
+  "cooldown": "Время восстановления",
+
+  "type": "Тип",
+  "quality": "Качество",
+  "common": "Обычное",
+  "uncommon": "Необычное",
+  "rare": "Редкое",
+  "weapon_type": "Тип оружия",
+  "armor_type": "Тип брони",
+  "armor_rating": "Рейтинг брони",
+  "required": "Требования",
+  "resource": "Ресурс",
+  "damage": "Урон",
+  "bonus_damage": "Дополнительный урон",
+  "resist": "Сопротивления",
+
+  "_comment_Slot_types": "",
+  "MAIN_HAND": "Основная рука",
+  "HEAD": "Голова",
+
+  "_comment_Item_types": "",
+  "one_hand_sword": "Одноручный меч",
+  "leather": "Кожа",
+
+  "potion": "Зелье",
+
+  "_comment_Nameplates": "",
+  "unit_dead_suffix": "мертв"
+}
+
