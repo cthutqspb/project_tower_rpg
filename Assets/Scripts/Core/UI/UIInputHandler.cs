@@ -85,38 +85,86 @@ namespace ProjectTowerRpg.Core.UI
         // ================================================================
         private void HandleSlotDoubleClick(SlotElement slot, int index, string gridType, string itemId, int amount)
         {
-            var actionEntity = _entityManager.CreateEntity();
+            if (slot.ContainerEntity == Entity.Null) return;
 
+            var em = _entityManager;
+            var actionEntity = em.CreateEntity();
+
+            // 🪐 КАНOНИЧНЫЙ БEЗРEEСТРOВЫЙ ПОИСК В ОЗУ:
+            // 1. Смотрим, какому Юниту (хозяину) принадлежит этот контейнер
+            var currentConfig = em.GetComponentData<ContainerConfigComponent>(slot.ContainerEntity);
+            Entity unitOwner = currentConfig.Owner;
+
+            Entity targetContainerEntity = Entity.Null;
+
+            // 2. Ищем парный контейнер ЭТОГО ЖЕ САМОГО ЮНИТА прямо в памяти ECS
+            var containerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<ContainerConfigComponent>());
+            var allContainers = containerQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
+
+            foreach (var container in allContainers)
+            {
+                var cfg = em.GetComponentData<ContainerConfigComponent>(container);
+                if (cfg.Owner == unitOwner)
+                {
+                    // Если кликнули в рюкзаке (inventory), нам нужна его же КУКЛА (Rows == 1)
+                    if (gridType == "inventory" && cfg.Rows == 1)
+                    {
+                        targetContainerEntity = container;
+                        break;
+                    }
+                    // Если кликнули в кукле, нам нужен его же РЮКЗАК (Rows > 1)
+                    if (gridType == "paperdoll" && cfg.Rows > 1)
+                    {
+                        targetContainerEntity = container;
+                        break;
+                    }
+                }
+            }
+            allContainers.Dispose();
+
+            // Если парный контейнер не нашелся (например, у NPC нет куклы), стопаем
+            if (targetContainerEntity == Entity.Null)
+            {
+                Debug.LogWarning($"[UIInputHandler] Не найден парный контейнер для юнита {unitOwner}!");
+                return;
+            }
+
+            // 3. ПУШИМ КОМАНДУ ТРАНСФЕРА С ЧЕСТНЫМИ СУЩНОСТЯМИ ИЗ ОЗУ
             if (gridType == "inventory")
             {
-                // Передаем честный Amount из слота, чтобы заградительная проверка IsEmpty на бэке пропустила вещь!
-                _entityManager.AddComponentData(actionEntity, new ActionCommand
+                // ================================================================
+                // TODO: Твой каноничный тернарник / switch на будущее для кейсов Торговли и Сундуков
+                // var finalTarget = InteractionManager.HasActiveTarget() ? ... : targetContainerEntity;
+                // ================================================================
+
+                em.AddComponentData(actionEntity, new ActionCommand
                 {
                     Type = "item_transfer",
-                    SourceEntity = slot.ContainerEntity,
+                    SourceEntity = slot.ContainerEntity, // Наш рюкзак
                     SourceSlot = index,
-                    TargetEntity = EntityRegistry.Get("unit_paperdoll"), // Цель — кукла
-                    TargetSlot = -1, // Бэкэнд сам найдет нужный анатомический слот
+                    TargetEntity = targetContainerEntity, // Наша кукла, вычисленная из ОЗУ!
+                    TargetSlot = -1, 
                     ItemId = itemId,
                     Amount = amount 
                 });
-                Debug.Log($"[UIInputHandler] Двойной клик: запрос экипировки {itemId} отправлен в ECS.");
+                Debug.Log($"[UIInputHandler] Даблклик: запрос экипировки {itemId} отправлен в ECS.");
             }
             else if (gridType == "paperdoll")
             {
-                _entityManager.AddComponentData(actionEntity, new ActionCommand
+                em.AddComponentData(actionEntity, new ActionCommand
                 {
                     Type = "item_transfer",
-                    SourceEntity = slot.ContainerEntity,
+                    SourceEntity = slot.ContainerEntity, // Наша кукла
                     SourceSlot = index,
-                    TargetEntity = EntityRegistry.Get("unit_inventory"), // Цель — рюкзак
-                    TargetSlot = -1, // Бэкэнд сам найдет первую пустую ячейку
+                    TargetEntity = targetContainerEntity, // Наш рюкзак, вычисленный из ОЗУ!
+                    TargetSlot = -1, 
                     ItemId = itemId,
                     Amount = amount
                 });
-                Debug.Log($"[UIInputHandler] Двойной клик: запрос снятия {itemId} отправлен в ECS.");
+                Debug.Log($"[UIInputHandler] Даблклик: запрос снятия {itemId} отправлен в ECS.");
             }
         }
+
 
         // ================================================================
         // 🔮 КAСКAД ПКМ (ТВОЙ РОДНОЙ ФИРМЕННЫЙ СТЕК ИЗ DEFOLD)

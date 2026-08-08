@@ -1,0 +1,99 @@
+{
+  "skeleton_warrior": {
+    "identity": {
+      "name_key": "unit_skeleton_warrior_name",
+      "race": "elf",
+      "faction": "undead",
+      "type": "skeleton",
+      "default_rank": "common",
+      "unit_class": ["warrior"],
+      "loot_table_id": "empty"
+    },
+    "attributes": {
+      "strength": 14,
+      "agility": 12,
+      "intellect": 10,
+      "stamina": 15
+    },
+    "parameters": {
+      "base_health": 40,
+      "base_speed": 2.7,
+      "hitbox_radius": 32.0
+    },
+    "progression": {
+      "health_growth": 1.12,
+      "damage_growth": 1.06
+    },
+    "resource": {
+      "type": "rage",
+      "current": 0,
+      "max": 100
+    },
+    "visuals": {
+      "animation": "skeleton_warrior",
+      "texture": "project_utumno"
+    },
+    "ai": {
+      "profile": "aggressive_patrol",
+      "base_aggro_radius": 450.0,
+      "is_ranged": false,
+      "flee_range": 0.0,
+      "tag_weights": {
+        "damage": 1.5,
+        "control": 0.5,
+        "melee_attack": 2.0,
+        "ranged_attack": 0.0
+      }
+    },
+    "abilities": ["melee_attack"]
+  },
+  "skeleton_mage": {
+    "identity": {
+      "name_key": "unit_skeleton_mage_name",
+      "race": "human",
+      "faction": "undead",
+      "type": "skeleton",
+      "default_rank": "common",
+      "unit_class": ["mage"],
+      "loot_table_id": "empty"
+    },
+    "attributes": {
+      "strength": 8,
+      "agility": 8,
+      "intellect": 23,
+      "stamina": 15
+    },
+    "parameters": {
+      "base_health": 40,
+      "base_speed": 2.4,
+      "hitbox_radius": 32.0
+    },
+    "progression": {
+      "health_growth": 1.12,
+      "damage_growth": 1.06
+    },
+    "resource": {
+      "type": "mana",
+      "current": 100,
+      "max": 100
+    },
+    "visuals": {
+      "animation": "skeleton_mage",
+      "texture": "project_utumno"
+    },
+    "ai": {
+      "profile": "aggressive_patrol",
+      "base_aggro_radius": 450.0,
+      "is_ranged": true,
+      "flee_range": 140.0,
+      "tag_weights": {
+        "damage": 1.5,
+        "control": 1.0,
+        "melee_attack": 0.5,
+        "ranged_attack": 1.0
+      }
+    },
+    "abilities": ["melee_attack", "lightning_bolt"]
+  }
+}
+

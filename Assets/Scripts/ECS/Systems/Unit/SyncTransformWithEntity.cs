@@ -1,73 +1,60 @@
 using UnityEngine;
 using Unity.Entities;
 using Unity.Transforms;
-using Unity.Mathematics; // Обязательно для математики векторов
+using Unity.Mathematics;
+using ProjectTowerRpg.ECS.Components;
 
 public class SyncTransformWithEntity : MonoBehaviour
 {
     private EntityManager _entityManager;
-    private EntityQuery _playerQuery;
-    private Entity _playerEntity;
-    private Animator _animator; // Ссылка на наш визуальный аниматор
+    private Entity _boundEntity = Entity.Null; // Наша жестко привязаная ECS-душа
+    private Animator _animator; 
     private bool _isInitialized = false;
 
-    void Start()
+    // Стерильный инициализатор. Вызывается извне универсальной системой связывания
+    public void Initialize(Entity entity)
     {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-        
-        // Находим аниматор, который висит на этом же GameObject (Amy)
         _animator = GetComponent<Animator>();
-
-        _playerQuery = _entityManager.CreateEntityQuery(new ComponentType[] 
-        { 
-            ComponentType.ReadOnly<LocalTransform>() 
-        });
+        _boundEntity = entity;
+        _isInitialized = true;
     }
 
     void LateUpdate()
     {
-        if (!_isInitialized)
+        // Если связь еще не установлена — стоим в покое, не дергаем сцену
+        if (!_isInitialized || _boundEntity == Entity.Null) return;
+
+        // 🪐 СИСТЕМA ЧAНКOВ (Душа улетела — тело исчезло):
+        // Если ECS-сущность была уничтожена на бэкенде (выгрузился чанк),
+        // 3D-марионетка мгновенно стирает себя со сцены, очищая оперативку!
+        if (!_entityManager.Exists(_boundEntity))
         {
-            if (!_playerQuery.IsEmpty)
-            {
-                var entities = _playerQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
-                _playerEntity = entities[0]; // <-- ФИКС ЗДЕСЬ
-                entities.Dispose();
-                _isInitialized = true;
-            }
+            Destroy(gameObject);
             return;
         }
 
-        if (_entityManager.Exists(_playerEntity))
+        // Вытаскиваем координаты и вращение конкретно НАШЕЙ ECS-сущности из ОЗУ
+        var localTransform = _entityManager.GetComponentData<LocalTransform>(_boundEntity);
+        
+        // Перемещаем и поворачиваем визуальное тело на Meadows-карте вслед за ECS
+        transform.position = localTransform.Position;
+        transform.rotation = localTransform.Rotation;
+
+        // 🧬 СИНХРОНИЗАЦИЯ BLEND TREE АНИМАЦИЙ С ECS:
+        if (_entityManager.HasComponent<MovementComponent>(_boundEntity))
         {
-            var localTransform = _entityManager.GetComponentData<LocalTransform>(_playerEntity);
+            var moveData = _entityManager.GetComponentData<MovementComponent>(_boundEntity);
             
-            // Синхронизируем положение в пространстве (твой рабочий код)
-            transform.position = localTransform.Position;
-            transform.rotation = localTransform.Rotation;
-
-            // 🧬 СИНХРОНИЗАЦИЯ 2D-АНИМАЦИИ С ECS:
-            if (_entityManager.HasComponent<ProjectTowerRpg.ECS.Components.MovementComponent>(_playerEntity))
+            if (_animator != null)
             {
-                var moveData = _entityManager.GetComponentData<ProjectTowerRpg.ECS.Components.MovementComponent>(_playerEntity);
-                
-                // В Unity 6.6 и чистом C# мы берем вектор направления ввода (W,A,S,D) 
-                // и скармливаем его компоненты напрямую в параметры нашего Blend Tree!
-                if (_animator != null)
-                {
-                    // moveData.direction.x — это горизонтальная ось (A/D, влево/вправо)
-                    _animator.SetFloat("VelocityX", moveData.direction.x);
-                    
-                    // moveData.direction.z — это вертикальная ось (W/S, вперед/назад)
-                    _animator.SetFloat("VelocityZ", moveData.direction.z);
-
-                    _animator.SetBool("IsGrounded", moveData.isGrounded);
-                    _animator.SetFloat("VelocityY", moveData.direction.y);
-                }
+                // Скармливаем компоненты направления (ввода или патруля ИИ) напрямую в твое Blend Tree!
+                _animator.SetFloat("VelocityX", moveData.direction.x);
+                _animator.SetFloat("VelocityZ", moveData.direction.z);
+                _animator.SetFloat("VelocityY", moveData.direction.y);
+                _animator.SetBool("IsGrounded", moveData.isGrounded);
             }
         }
-     
     }
 }
-
 

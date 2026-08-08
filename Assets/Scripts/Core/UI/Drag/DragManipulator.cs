@@ -3,12 +3,10 @@ using UnityEngine.UIElements;
 
 namespace ProjectTowerRpg.Core.UI
 {
-    // Если enum DragMode объявлен в другом файле в этом же namespace, эту строку можно удалить.
-    // Если он в другом namespace — добавьте нужный using наверху.
     public enum DragMode
     {
-        UIElement,   
-        Slot         
+        UIElement,   // Перемещение любого UI-элемента (окно, панель, хпбар)
+        Slot         // Драг из слота (предмет, способность)
     }
 
     public class DragManipulator : PointerManipulator
@@ -17,7 +15,7 @@ namespace ProjectTowerRpg.Core.UI
         private VisualElement _targetElement;      // Что двигаем (окно или слот)
         private VisualElement _dragElement;        // На чём висит драг (хедер)
         
-        // Храним точку хвата относительно левого верхнего угла элемента
+        // Для UIElement режима: храним смещение курсора относительно ЛОКАЛЬНЫХ координат target-элемента
         private Vector2 _pointerOffset;
 
         // Конструктор для UIElement режима (драг хедера)
@@ -55,22 +53,28 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // ================================================================
-        // UIElement MODE (Исправлено под ресайз и Hyprland)
+        // UIElement MODE (полностью здесь)
         // ================================================================
         private void StartUIElementDrag(PointerDownEvent evt)
         {
-            // Переключаем в абсолют при клике, чтобы Flexbox не блокировал оси при Maximize окна
+            // 1. Переводим элемент на абсолютное позиционирование, чтобы верстка (Flexbox) его не держала
             if (_targetElement.style.position != Position.Absolute)
             {
+                // Запоминаем текущее положение на экране перед переключением
+                float currentLeft = _targetElement.layout.x;
+                float currentTop = _targetElement.layout.y;
+
                 _targetElement.style.position = Position.Absolute;
-                _targetElement.style.left = _targetElement.layout.x;
-                _targetElement.style.top = _targetElement.layout.y;
-                _targetElement.style.translate = StyleKeyword.Null; // Сбрасываем старый транслейт
+                _targetElement.style.left = currentLeft;
+                _targetElement.style.top = currentTop;
+                
+                // Сбрасываем translate, так как теперь управляем через left/top
+                _targetElement.style.translate = StyleKeyword.Null; 
             }
 
-            // Запоминаем смещение курсора внутри окна
+            // 2. Запоминаем точку хвата курсора относительно самого элемента
             _pointerOffset = _targetElement.WorldToLocal(evt.position);
-            
+
             target.CapturePointer(evt.pointerId);
             evt.StopPropagation();
         }
@@ -80,15 +84,35 @@ namespace ProjectTowerRpg.Core.UI
             if (target.HasPointerCapture(evt.pointerId))
             {
                 VisualElement root = _targetElement.panel.visualTree;
+                VisualElement parent = _targetElement.parent ?? root;
 
-                // evt.position — это экранные координаты. Считаем левый верхний угол окна
-                float targetX = evt.position.x - _pointerOffset.x;
-                float targetY = evt.position.y - _pointerOffset.y;
+                // 1. Актуальные размеры в текущий кадр
+                float screenWidth = root.layout.width;
+                float screenHeight = root.layout.height;
+                float elementWidth = _targetElement.layout.width;
+                float elementHeight = _targetElement.layout.height;
 
-                // Клэмпим по живым актуальным размерам root экрана
-                _targetElement.style.left = Mathf.Clamp(targetX, 0f, root.layout.width - _targetElement.layout.width);
-                _targetElement.style.top = Mathf.Clamp(targetY, 0f, root.layout.height - _targetElement.layout.height);
+                // 2. Позиция мыши в пространстве родителя
+                Vector2 mouseInParentSpace = parent.WorldToLocal(evt.position);
 
+                // 3. Желаемая позиция левого верхнего угла элемента
+                float targetX = mouseInParentSpace.x - _pointerOffset.x;
+                float targetY = mouseInParentSpace.y - _pointerOffset.y;
+
+                // 4. Перевод в мировые координаты для честного Clamp по границам экрана
+                Vector2 targetInWorld = parent.LocalToWorld(new Vector2(targetX, targetY));
+
+                // 5. Ограничиваем строго рамками экрана (от 0 до краев)
+                float clampedWorldX = Mathf.Clamp(targetInWorld.x, 0f, screenWidth - elementWidth);
+                float clampedWorldY = Mathf.Clamp(targetInWorld.y, 0f, screenHeight - elementHeight);
+
+                // 6. Возвращаем ограниченные координаты обратно в родительский контейнер
+                Vector2 finalLocalPos = parent.WorldToLocal(new Vector2(clampedWorldX, clampedWorldY));
+
+                // 7. Напрямую задаем left и top. Никакие флексы, леяуты и ресайзы больше не заблокируют ось X!
+                _targetElement.style.left = finalLocalPos.x;
+                _targetElement.style.top = finalLocalPos.y;
+                
                 evt.StopPropagation();
             }
         }
@@ -103,7 +127,7 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // ================================================================
-        // Slot MODE (Оставляем без изменений, как в вашем исходнике)
+        // Slot MODE (только старт, остальное в DragManager)
         // ================================================================
         private void StartSlotDrag(PointerDownEvent evt)
         {

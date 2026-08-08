@@ -88,6 +88,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
         private void ExecuteItemTransfer(ActionCommand cmd)
         {
+            Debug.Log($"[ActionDispatcher DEBUG]: SourceEntity Index = {cmd.SourceEntity.Index}, TargetEntity Index = {cmd.TargetEntity.Index}");
             ISlotContainer source = CreateContainer(cmd.SourceEntity);
             ISlotContainer target = CreateContainer(cmd.TargetEntity);
             
