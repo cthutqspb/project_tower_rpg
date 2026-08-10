@@ -25,7 +25,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
             UIEvents.ToggleCharacterWindow -= Toggle;
         }
 
-                 protected override void OnWindowBuilt(VisualElement root)
+        protected override void OnWindowBuilt(VisualElement root)
         {
             // Хедер
             var headerContainer = root.Q<VisualElement>("header-container");
@@ -36,94 +36,41 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 _header.OnClose += Close;
                 headerContainer.Add(_header);
 
-                var dragManipulator = new DragManipulator(
-                    dragElement: _header,
-                    targetElement: root,
-                    mode: DragMode.UIElement
-                );
+                var dragManipulator = new DragManipulator(dragElement: _header, targetElement: root, mode: DragMode.UIElement);
                 _header.AddManipulator(dragManipulator);
             }
 
-            var world = World.DefaultGameObjectInjectionWorld;
-            if (world == null)
-            {
-                Debug.LogError("🚨 UI ДЕБАГ: Мир ECS равен null!");
-                return;
-            }
-            var em = world.EntityManager;
-
-            // Находим сущность самого Игрока по тегу PlayerTag
-            var playerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<PlayerTag>());
-            if (playerQuery.IsEmpty)
-            {
-                Debug.LogError("🚨 UI ДЕБАГ: Сущность с PlayerTag не найдена в ECS!");
-                return;
-            }
-            var playerEntity = playerQuery.GetSingletonEntity();
-            Debug.Log($"🎯 UI ДЕБАГ: Найдена сущность игрока: {playerEntity}");
-
-            // Стерильно заявляем пустые сущности под контейнеры игрока
-            Entity inventoryEntity = Entity.Null;
-            Entity paperdollEntity = Entity.Null;
-
-            // Сканируем все контейнеры в мире
-            var containerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<ContainerConfigComponent>());
-            var containers = containerQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
-            
-            Debug.Log($"📦 UI ДЕБАГ: Всего контейнеров в ECS-памяти: {containers.Length}");
-
-            foreach (var container in containers)
-            {
-                var config = em.GetComponentData<ContainerConfigComponent>(container);
-                Debug.Log($"🔍 UI ДЕБАГ: Проверяем контейнер {container}. Владелец в конфиге: {config.Owner}. Наш игрок: {playerEntity}");
-                
-                if (config.Owner == playerEntity)
-                {
-                    if (config.Rows == 1)
-                    {
-                        paperdollEntity = container;
-                    }
-                    else
-                    {
-                        inventoryEntity = container;
-                    }
-                }
-            }
-            containers.Dispose();
-
-            Debug.Log($"📊 UI ДЕБАГ: Финальные сущности -> Инвентарь: {inventoryEntity}, Кукла: {paperdollEntity}");
-
-            // ================================================================
-            // 🎒 ИНВЕНТАРЬ
-            // ================================================================
+            // Инвентарь
             var inventoryContainer = root.Q<VisualElement>("inventory-container");
-            if (inventoryContainer == null) Debug.LogError("🚨 UI ДЕБАГ: inventory-container НЕ НАЙДЕН в UXML-разметке!");
+            var inventoryEntity = EntityRegistry.Get("player_inventory"); // Твой ключ!
             
             if (inventoryContainer != null && inventoryEntity != Entity.Null)
             {
-                var inventoryComp = em.GetComponentData<ContainerConfigComponent>(inventoryEntity);
-                _inventoryGrid = new StaticGrid(inventoryComp.Columns, inventoryComp.Rows, "inventory");
-                _inventoryGrid.DataSourceId = "player_inventory";
-                _inventoryGrid.BindToEntity(inventoryEntity); 
-                inventoryContainer.Add(_inventoryGrid);
-                Debug.Log("✅ UI ДЕБАГ: Сетка инвентаря УСПЕШНО добавлена на экран!");
+                var world = World.DefaultGameObjectInjectionWorld;
+                if (world != null)
+                {
+                    var inventoryComp = world.EntityManager.GetComponentData<ContainerConfigComponent>(inventoryEntity);
+                    _inventoryGrid = new StaticGrid(inventoryComp.Columns, inventoryComp.Rows, "inventory");
+                    _inventoryGrid.DataSourceId = "player_inventory";
+                    
+                    _inventoryGrid.BindToEntity(inventoryEntity); 
+                    inventoryContainer.Add(_inventoryGrid);
+                }
             }
 
-            // ================================================================
-            // 👕 КУКЛА ШМОТА
-            // ================================================================
+            // Кукла
             var paperdollContainer = root.Q<VisualElement>("paperdoll-container");
-            if (paperdollContainer == null) Debug.LogError("🚨 UI ДЕБАГ: paperdoll-container НЕ НАЙДЕН в UXML-разметке!");
+            var paperdollEntity = EntityRegistry.Get("player_paperdoll"); // Твой ключ!
             
             if (paperdollContainer != null && paperdollEntity != Entity.Null)
             {
                 _paperdoll = new Paperdoll(_paperdollUxml);
                 _paperdoll.DataSourceId = "player_paperdoll";
+                
                 _paperdoll.BindToEntity(paperdollEntity); 
                 paperdollContainer.Add(_paperdoll);
-                Debug.Log("✅ UI ДЕБАГ: Кукла шмота УСПЕШНО добавлена на экран!");
             }
         }
-   }
+    }
 }
 

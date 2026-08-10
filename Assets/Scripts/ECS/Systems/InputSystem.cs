@@ -23,7 +23,10 @@ namespace ProjectTowerRpg.ECS.Systems
 
         protected override void OnUpdate()
         {
-            if (_moveAction == null)
+            // 🎯 ИСПРАВЛЕНО НАМЕРТВО (АСИНХРОННЫЙ ГВАРД ВВОДА):
+            // Проверяем ВСЕ экшены сразу. Если хоть один равен null — 
+            // мы покадрово опрашиваем менеджер ввода, пока все ссылки не пропишутся в RAM!
+            if (_moveAction == null || _jumpAction == null || _interactOrLookAction == null || _actionOrOrbitAction == null)
             {
                 var globalActions = UnityEngine.InputSystem.InputSystem.actions;
                 if (globalActions == null) return;
@@ -33,7 +36,11 @@ namespace ProjectTowerRpg.ECS.Systems
                 _interactOrLookAction = globalActions.FindAction("Player/InteractOrLook");
                 _actionOrOrbitAction = globalActions.FindAction("Player/ActionOrOrbit");
 
-                if (_moveAction == null) return;
+                // Замок: выходим только если сборка экшенов не завершена
+                if (_moveAction == null || _jumpAction == null || _interactOrLookAction == null || _actionOrOrbitAction == null) 
+                    return;
+
+                Debug.Log("⌨️ [InputSystem]: Все ААА-карты ввода шёлково засинхронизированы с ОЗУ!");
             }
 
             Vector2 moveInput = _moveAction.ReadValue<Vector2>();
@@ -94,12 +101,58 @@ namespace ProjectTowerRpg.ECS.Systems
                 movement.ValueRW.direction.x = inputDirection.x;
                 movement.ValueRW.direction.z = inputDirection.z;
 
+                // Ваши флаги мыши
                 movement.ValueRW.isLookAroundMode = isLmbPressed && !isRmbPressed;
                 movement.ValueRW.isRmbOrMmbPressed = isRmbPressed;
+
+                if (Camera.main != null)
+                {
+                    // 🌟 ИСПРАВЛЕНИЕ ДЛЯ ЛКМ:
+                    // Если игрок зажал ЛКМ (LookAround), мы ЗАМОРАЖИВАЕМ угол движения.
+                    // Персонаж будет бежать по тому углу, который был в момент нажатия кнопки, 
+                    // пока мышь свободно крутит камеру вокруг него!
+                    if (!movement.ValueRW.isLookAroundMode)
+                    {
+                        float cameraRotationYInRadians = Camera.main.transform.eulerAngles.y * math.TORADIANS;
+                        movement.ValueRW.cameraAngle = cameraRotationYInRadians;
+                    }
+                }
 
                 if (_jumpAction.triggered)
                 {
                     movement.ValueRW.jumpRequested = true;
+                }
+            }
+
+
+                        // =========================================================================
+            // 🎛️ ДИНАМИЧЕСКИЙ КОНТРОЛЬ И СКОРОСТЬ КАМЕРЫ CINEMACHINE V3 (UNITY 6.6)
+            // =========================================================================
+            // Проверяем: зажата ли ЛКМ или ПКМ прямо сейчас
+            bool isCameraRotatingNow = !isUiBlocked && (isLmbPressed || isRmbPressed);
+
+            // Находим контроллер осей Cinemachine на сцене в главном потоке
+            var axisController = UnityEngine.Object.FindAnyObjectByType<Unity.Cinemachine.CinemachineInputAxisController>();
+
+            if (axisController != null)
+            {
+                // В будущем эти две константы вы пропишете в конфиг или SettingsManager:
+                float baseSensitivity = 27f; 
+                
+                foreach (var controller in axisController.Controllers)
+                {
+                    // Вращение ВЛЕВО-ВПРАВО (Ось X)
+                    if (controller.Name == "Look Orbit X")
+                    {
+                        controller.Input.Gain = isCameraRotatingNow ? baseSensitivity : 0f;
+                    }
+                    // Наклон ВВЕРХ-ВНИЗ (Ось Y)
+                    else if (controller.Name == "Look Orbit Y")
+                    {
+                        // 🌟 ИНВЕРСИЯ ПО КАНОНУ WoW: Ставим знак минус перед чувствительностью.
+                        // Тянем мышь вниз — камера плавно опускается к земле, открывая топ-даун вид.
+                        controller.Input.Gain = isCameraRotatingNow ? -baseSensitivity : 0f;
+                    }
                 }
             }
         }

@@ -1,183 +1,267 @@
 using Unity.Entities;
+using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.UI;
+using Unity.Transforms;
+using ProjectTowerRpg.Core.Units;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
-    [UpdateInGroup(typeof(InitializationSystemGroup))]
+    [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial class UnitSpawnSystem : SystemBase
     {
+        private readonly EquipSlot[] PAPERDOLL_SLOTS = new EquipSlot[]
+        {
+            EquipSlot.HEAD, EquipSlot.CHEST, EquipSlot.LEGS, EquipSlot.MAIN_HAND, EquipSlot.OFF_HAND
+        };
+
         protected override void OnUpdate()
         {
             var em = EntityManager;
 
-            // 🎯 УЛЬТИМАТИВНЫЙ КОНВЕЙЕР РЕГИСТРАЦИИ ИНТЕРФЕЙСОВ ВСЕХ ЮНИТОВ
-            // Сканируем вообще все запечённые контейнеры (инвентари/куклы) на сцене
-            var query = em.CreateEntityQuery(ComponentType.ReadOnly<ContainerConfigComponent>());
-            var containers = query.ToEntityArray(Unity.Collections.Allocator.Temp);
+            if (!UnitsDatabase.IsLoaded)
+            {
+                UnitsDatabase.Load();
+                return;
+            }
 
+            // ================================================================
+            // ЭТАП 1: РЕГИСТРАЦИЯ СУМОК ИГРОКА В REEСТР UI
+            // ================================================================
+            var containerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<ContainerConfigComponent>());
+            var containers = containerQuery.ToEntityArray(Allocator.Temp);
+
+            bool playerRegistered = false;
             foreach (var containerEntity in containers)
             {
                 var config = em.GetComponentData<ContainerConfigComponent>(containerEntity);
                 
-                // Проверяем, существует ли хозяин этого мешка/куклы в ECS-мире
-                if (em.Exists(config.Owner) && em.HasComponent<UnitComponent>(config.Owner))
+                if (em.Exists(config.Owner) && em.HasComponent<PlayerTag>(config.Owner))
                 {
-                    // Вытаскиваем паспорт хозяина, чтобы узнать его уникальный строковый Uid
-                    var unit = em.GetComponentData<UnitComponent>(config.Owner);
-                    string unitUid = unit.Uid.ToString().ToLower();
-
-                    // Регистрируем контейнеры в UI-реестр под уникальными именами юнитов
-                    // Например: "player_inventory", "player_paperdoll" или "c_15_15_inventory"
                     if (config.Rows == 1)
                     {
-                        string registryKey = $"{unitUid}_paperdoll";
-                        // Убрали IsRegistered, пишем напрямую. Если ключ уже был, он шёлково обновится
-                        EntityRegistry.Register(registryKey, containerEntity);
+                        EntityRegistry.Register("player_paperdoll", containerEntity);
                     }
                     else
                     {
-                        string registryKey = $"{unitUid}_inventory";
-                        EntityRegistry.Register(registryKey, containerEntity);
+                        EntityRegistry.Register("player_inventory", containerEntity);
                     }
+                    playerRegistered = true;
                 }
             }
             containers.Dispose();
 
-            // Обесточиваем систему, она отработала один раз при старте сцены
-            this.Enabled = false;
+            // ================================================================
+            // ЭТАП 2: ОБРАБОТКА МАРКЕРОВ СПАВНА
+            // ================================================================
+            var markerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<UnitSpawnMarkerComponent>());
+            
+            if (markerQuery.IsEmpty)
+            {
+                if (playerRegistered)
+                {
+                    Debug.Log("✅ [UnitSpawnSystem]: Фабрика успешно завершила работу. Все сущности созданы.");
+                    this.Enabled = false;
+                }
+                return;
+            }
+
+            var markers = markerQuery.ToEntityArray(Allocator.Temp);
+
+            foreach (var markerEntity in markers)
+            {
+                var markerData = em.GetComponentData<UnitSpawnMarkerComponent>(markerEntity);
+                string uId = markerData.UnitId.ToString().ToLower().Trim();
+                float3 spawnPos = markerData.SpawnPosition;
+
+                var dbCfg = UnitsDatabase.GetUnit(uId);
+                if (dbCfg == null)
+                {
+                    Debug.LogError($"🚨 ФАБРИКА: Юнит [{uId}] не найден в JSON-базе! Пропускаю.");
+                    em.DestroyEntity(markerEntity);
+                    continue;
+                }
+
+                // Вытаскиваем параметры из JSON-базы данных
+                float baseSpeed = dbCfg.parameters.base_speed;
+                float hitboxRadius = dbCfg.parameters.hitbox_radius;
+
+                float levelModifier = math.pow(dbCfg.progression.health_growth, markerData.Level - 1);
+                int maxHealth = Mathf.FloorToInt(dbCfg.parameters.base_health * levelModifier);
+
+                string rankStr = markerData.Rank.ToString().ToLower();
+                float rankMultiplier = 1.0f;
+                if (rankStr == "rare") rankMultiplier = 1.5f;
+                else if (rankStr == "elite") rankMultiplier = 3.0f;
+                else if (rankStr == "boss") rankMultiplier = 5.0f;
+
+                maxHealth = Mathf.FloorToInt(maxHealth * rankMultiplier);
+
+                string generatedUid = $"c_{Mathf.FloorToInt(spawnPos.x + 0.5f)}_{Mathf.FloorToInt(spawnPos.z + 0.5f)}";
+
+                // 🏗️ 1. РОЖДАЕМ КРИСТАЛЬНО ЧИСТУЮ ECS-СУЩНОСТЬ ДУШИ С НУЛЯ (Без участия префабов!)
+                Entity unitEntity = em.CreateEntity();
+
+                em.AddComponentData(unitEntity, new UnitComponent
+                {
+                    Uid = markerData.IsPlayer ? "player" : generatedUid,
+                    UnitId = uId,
+                    Level = markerData.Level,
+                    Position = spawnPos
+                });
+
+                em.AddComponentData(unitEntity, new LocalTransform
+                {
+                    Position = spawnPos,
+                    Rotation = quaternion.identity,
+                    Scale = 1.0f
+                });
+
+                em.AddComponentData(unitEntity, new MovementComponent
+                {
+                    speed = baseSpeed,
+                    direction = float3.zero,
+                    isGrounded = true,
+                    jumpRequested = false
+                });
+
+                em.AddComponentData(unitEntity, new CombatStateComponent
+                {
+                    IsDead = false, IsInCombat = false, CurrentHp = maxHealth, MaxHp = maxHealth,
+                    BaseSpeed = baseSpeed, CurrentSpeed = baseSpeed, HitboxRadius = hitboxRadius
+                });
+
+                bool isPlayer = markerData.IsPlayer;
+
+                em.AddComponentData(unitEntity, new AiComponent
+                {
+                    IsFromFactory = !isPlayer, 
+                    StartPoint = spawnPos, 
+                    PatrolRadius = isPlayer ? 0f : 4.0f,
+                    CurrentTarget = spawnPos, 
+                    NextActionTime = 0f, 
+                    HasTarget = false, 
+                    IsPatrolling = false
+                });
+
+                if (isPlayer)
+                {
+                    em.AddComponent<PlayerTag>(unitEntity);
+                    var playerAi = em.GetComponentData<AiComponent>(unitEntity);
+                    playerAi.IsFromFactory = false;
+                    playerAi.PatrolRadius = 0f;
+                    em.SetComponentData(unitEntity, playerAi);
+                }
+                else
+                {
+                    em.AddComponent<MonsterTag>(unitEntity);
+                }
+
+                // 🏗️ 2. СТРОИМ БАЗОВЫЙ ИНВЕНТАРЬ (72 слота для всех под будущее расширение)
+                var inventoryEntity = em.CreateEntity();
+                em.AddComponentData(inventoryEntity, new ContainerConfigComponent { Owner = unitEntity, Columns = 6, Rows = 12 });
+                var slotsBuffer = em.AddBuffer<SlotData>(inventoryEntity);
+                for (int i = 0; i < 72; i++)
+                {
+                    slotsBuffer.Add(new SlotData { SlotIndex = i, DataId = "", DataType = "", Amount = 0, EquipSlot = EquipSlot.NONE, ContainerType = ContainerType.INVENTORY });
+                }
+
+                // 🏗️ 3. СТРОИМ КУКЛУ ШМОТА
+                var paperdollEntity = em.CreateEntity();
+                em.AddComponentData(paperdollEntity, new ContainerConfigComponent { Owner = unitEntity, Columns = PAPERDOLL_SLOTS.Length, Rows = 1 });
+                var paperdollBuffer = em.AddBuffer<SlotData>(paperdollEntity);
+                for (int j = 0; j < PAPERDOLL_SLOTS.Length; j++)
+                {
+                    paperdollBuffer.Add(new SlotData { SlotIndex = j, DataId = "", DataType = "", Amount = 0, EquipSlot = PAPERDOLL_SLOTS[j], ContainerType = ContainerType.PAPERDOLL });
+                }
+
+                // 🎒 НАКЫДЫВАНИЕ ТЕСТОВОГО ШМОТА В ИНВЕНТАРЬ ИГРОКА (ПЕРЕНЕСЕНО ПОД ОБЪЯВЛЕНИЕ ПЕРЕМЕННОЙ)
+if (isPlayer)
+{
+    var testItems = new (string id, int amount)[]
+    {
+        ("iron_sword", 1),
+        ("crystal_sword", 1),
+        ("leather_helmet", 1),
+        ("clown_hat", 1),
+        ("lesser_mana_potion", 5)
+    };
+
+    var playerSlotsBuffer = em.GetBuffer<SlotData>(inventoryEntity);
+
+    for (int idx = 0; idx < testItems.Length; idx++)
+    {
+        playerSlotsBuffer[idx] = new SlotData
+        {
+            SlotIndex = idx,
+            DataId = testItems[idx].id,
+            DataType = "item",
+            Amount = testItems[idx].amount,
+            EquipSlot = EquipSlot.NONE,
+            ContainerType = ContainerType.INVENTORY
+        };
+    }
+    
+    Debug.Log("🎒 [ФАБРИКА]: Тестовый шмот успешно упакован в инвентарь игрока!");
+}
+
+
+                // Регистрируем мешки в UI телефонную книгу по его уникальному UID чанка
+                string registryUid = isPlayer ? "player" : generatedUid;
+                EntityRegistry.Register($"{registryUid}_inventory", inventoryEntity);
+                EntityRegistry.Register($"{registryUid}_paperdoll", paperdollEntity);
+
+                // =========================================================================
+                // 🏗️ 4. ДИНАМИЧЕСКИЙ СПАВН 3D-ВИЗУАЛА ИЗ ПАПКИ RESOURCES/UNITS/
+                // =========================================================================
+                var visualPrefab = Resources.Load<GameObject>($"Units/{uId}");
+                if (visualPrefab != null)
+                {
+                    var spawnedModel = Object.Instantiate(visualPrefab, spawnPos, Quaternion.identity);
+                    spawnedModel.name = $"{uId}_{(isPlayer ? "player" : generatedUid)}";
+
+                    // Инициализируем скрипт синхронизации (Оживляем LateUpdate и анимации Эми!)
+                    var syncScript = spawnedModel.GetComponent<SyncTransformWithEntity>();
+                    if (syncScript != null)
+                    {
+                        syncScript.Initialize(unitEntity);
+                    }
+
+                    // Настраиваем паспорт UnitView
+                    var viewScript = spawnedModel.GetComponent<UnitView>();
+                    if (viewScript != null)
+                    {
+                        viewScript.uid = isPlayer ? "player" : generatedUid;
+                        viewScript.unitId = uId;
+                        viewScript.IsLinked = true;
+                    }
+
+                    // 🎥 Авто-привязка камеры Cinemachine для управляемого Игрока
+                    if (isPlayer)
+                    {
+                        var orbitCam = Object.FindAnyObjectByType<Unity.Cinemachine.CinemachineCamera>();
+                        if (orbitCam != null)
+                        {
+                            orbitCam.Follow = spawnedModel.transform;
+                            orbitCam.LookAt = spawnedModel.transform;
+                            Debug.Log("🎥 [ФАБРИКА]: Камера Cinemachine успешно захватила цель!");
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"🚨 ФАБРИКА: Не удалось найти 3D-префаб по пути Assets/Prefabs/Resources/Units/{uId}.prefab!");
+                }
+
+                // Уничтожаем сущность кубика-метки
+                em.DestroyEntity(markerEntity);
+
+            }
+
+            markers.Dispose();
         }
     }
 }
 
-
-// using Unity.Entities;
-// using Unity.Mathematics;
-// using UnityEngine;
-// using ProjectTowerRpg.ECS.Components;
-// using ProjectTowerRpg.Core.UI;
-//
-// namespace ProjectTowerRpg.ECS.Systems
-// {
-//     [UpdateInGroup(typeof(InitializationSystemGroup))]
-//     public partial class UnitSpawnSystem : SystemBase
-//     {
-//         private bool _spawned = false;
-//
-//         private const int INVENTORY_COLUMNS = 6;
-//         private const int INVENTORY_ROWS = 12;
-//         private const int INVENTORY_SLOTS = INVENTORY_COLUMNS * INVENTORY_ROWS;
-//
-//         private readonly EquipSlot[] PAPERDOLL_SLOTS = new EquipSlot[]
-//         {
-//             EquipSlot.HEAD, 
-//             EquipSlot.CHEST,
-//             EquipSlot.LEGS,
-//             EquipSlot.MAIN_HAND,
-//             EquipSlot.OFF_HAND
-//         };
-//
-//         protected override void OnUpdate()
-//         {
-//             if (_spawned) return;
-//
-//             // ================================================================
-//             // 1. ЮНИТ
-//             // ================================================================
-//             var unitEntity = EntityManager.CreateEntity();
-//             EntityManager.AddComponentData(unitEntity, new UnitComponent
-//             {
-//                 Uid = "player",
-//                 UnitId = "player_mage",
-//                 Level = 1,
-//                 Position = new float3(0, 0, 0)
-//             });
-//
-//             // ================================================================
-//             // 2. ИНВЕНТАРЬ
-//             // ================================================================
-//             var inventoryEntity = EntityManager.CreateEntity();
-//
-//             EntityManager.AddComponentData(inventoryEntity, new ContainerConfigComponent
-//             {
-//                 Columns = INVENTORY_COLUMNS,
-//                 Rows = INVENTORY_ROWS,
-//                 Owner = unitEntity
-//             });
-//
-//             var slots = EntityManager.AddBuffer<SlotData>(inventoryEntity);
-//             for (int i = 0; i < INVENTORY_SLOTS; i++)
-//             {
-//                 slots.Add(new SlotData
-//                 {
-//                     SlotIndex = i,
-//                     DataId = "",
-//                     DataType = "",
-//                     Amount = 0,
-//                     EquipSlot = EquipSlot.NONE,             // ИСПРАВЛЕНО: enum вместо ""
-//                     ContainerType = ContainerType.INVENTORY // ИСПРАВЛЕНО: enum вместо "inventory"
-//                 });
-//             }
-//
-//             // Тестовые предметы
-//             var testItems = new (string id, int amount)[]
-//             {
-//                 ("iron_sword", 1),
-//                 ("crystal_sword", 1),
-//                 ("leather_helmet", 1),
-//                 ("clown_hat", 1),
-//                 ("lesser_mana_potion", 5)
-//             };
-//
-//             for (int i = 0; i < testItems.Length && i < slots.Length; i++)
-//             {
-//                 slots[i] = new SlotData
-//                 {
-//                     SlotIndex = i,
-//                     DataId = testItems[i].id,
-//                     DataType = "item",
-//                     Amount = testItems[i].amount,
-//                     EquipSlot = EquipSlot.NONE,             // ИСПРАВЛЕНО: enum вместо ""
-//                     ContainerType = ContainerType.INVENTORY // ИСПРАВЛЕНО: enum вместо "inventory"
-//                 };
-//             }
-//
-//             EntityRegistry.Register("unit_inventory", inventoryEntity);
-//
-//             // ================================================================
-//             // 3. КУКЛА (ПЕРЕВЕДЕНА НА SlotData)
-//             // ================================================================
-//             var paperdollEntity = EntityManager.CreateEntity();
-//
-//             EntityManager.AddComponentData(paperdollEntity, new ContainerConfigComponent
-//             {
-//                 Owner = unitEntity,
-//                 Columns = PAPERDOLL_SLOTS.Length,
-//                 Rows = 1
-//             });
-//
-//             // ИСПРАВЛЕНО: Добавляем буфер универсального SlotData вместо старого PaperdollSlot!
-//             var paperdollSlots = EntityManager.AddBuffer<SlotData>(paperdollEntity);
-//             for (int i = 0; i < PAPERDOLL_SLOTS.Length; i++)
-//             {
-//                 paperdollSlots.Add(new SlotData
-//                 {
-//                     SlotIndex = i, // Индекс ячейки куклы (0, 1, 2...)
-//                     DataId = "",
-//                     DataType = "",
-//                     Amount = 0,
-//                     EquipSlot = PAPERDOLL_SLOTS[i],          // Назначение слота (Head, Chest...)
-//                     ContainerType = ContainerType.PAPERDOLL  // Указываем, что этот буфер — кукла
-//                 });
-//             }
-//
-//             EntityRegistry.Register("unit_paperdoll", paperdollEntity);
-//
-//             Debug.Log($"[UnitSpawnSystem] Юнит создан. Инвентарь: {INVENTORY_SLOTS} slots. Кукла: {PAPERDOLL_SLOTS.Length} универсальных slots.");
-//
-//             _spawned = true;
-//         }
-//     }
-// }
-//

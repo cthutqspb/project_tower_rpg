@@ -2,21 +2,18 @@ using UnityEngine;
 using Unity.Entities;
 using Unity.Mathematics;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.Units; // Твой реальный домен, где лежат все базы!
+using ProjectTowerRpg.Core.Units; // Твоя база данных JSON
 
 namespace ProjectTowerRpg.ECS.Authoring
 {
     public class UnitAuthoring : MonoBehaviour
     {
-        [Header("Defold go.property Аналоги")]
-        public string uid; 
+        [Header("Идентификатор типа юнита в JSON-базе")]
         public string unitId = "skeleton_warrior";
+        
+        [Header("Стартовые параметры (если нет в JSON)")]
         public int unitLevel = 1;
         public string unitRank = "common"; 
-        public string lootTableId = "empty";
-        
-        [Header("Flags")]
-        public bool isPlayer = false;
     }
 
     public class UnitBaker : Baker<UnitAuthoring>
@@ -34,63 +31,44 @@ namespace ProjectTowerRpg.ECS.Authoring
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
             
-            // ИСПРАВЛЕНО: Честно берем позицию из GameObject-авторинга в Unity
-            float3 spawnPosition = authoring.transform.position;
-
-            // 🎯 1. ЧЕСТНОЕ ОКРУГЛЕНИЕ UID ПО КООРДИНАТАМ (Твой оригинальный Lua-алгоритм)
-            string stringUid = authoring.uid;
-            if (string.IsNullOrEmpty(stringUid))
-            {
-                stringUid = $"c_{Mathf.FloorToInt(spawnPosition.x + 0.5f)}_{Mathf.FloorToInt(spawnPosition.z + 0.5f)}";
-            }
-
-            float baseSpeed = 5.0f; // Честные 5 м/с для игрока по дефолту
-            float hitboxRadius = 0.5f; // Честные 0.5 метра
+            // Базовые дефолты
+            float baseSpeed = 5.0f; 
+            float hitboxRadius = 0.5f; 
             int calculatedMaxHealth = 100;
 
-            if (!authoring.isPlayer)
+            // Стучимся в JSON-базу данных за параметрами
+            var dbCfg = UnitsDatabase.GetUnit(authoring.unitId);
+            if (dbCfg != null)
             {
-                var dbCfg = UnitsDatabase.GetUnit(authoring.unitId);
-                if (dbCfg != null)
-                {
-                    // ИСПРАВЛЕНО: Никакой лапши с делениями! Берем чистые метры прямо из файла!
-                    baseSpeed = dbCfg.parameters.base_speed;
-                    hitboxRadius = dbCfg.parameters.hitbox_radius;
+                baseSpeed = dbCfg.parameters.base_speed;
+                hitboxRadius = dbCfg.parameters.hitbox_radius;
 
-                    // Расчёт ХП по уровню и рангу оставляем без изменений
-                    float levelModifier = Mathf.Pow(dbCfg.progression.health_growth, authoring.unitLevel - 1);
-                    calculatedMaxHealth = Mathf.FloorToInt(dbCfg.parameters.base_health * levelModifier);
+                float levelModifier = Mathf.Pow(dbCfg.progression.health_growth, authoring.unitLevel - 1);
+                calculatedMaxHealth = Mathf.FloorToInt(dbCfg.parameters.base_health * levelModifier);
 
-                    float rankMultiplier = 1.0f;
-                    if (authoring.unitRank == "rare") rankMultiplier = 1.5f;
-                    else if (authoring.unitRank == "elite") rankMultiplier = 3.0f;
-                    else if (authoring.unitRank == "boss") rankMultiplier = 5.0f;
+                float rankMultiplier = 1.0f;
+                string rankStr = authoring.unitRank.ToLower();
+                if (rankStr == "rare") rankMultiplier = 1.5f;
+                else if (rankStr == "elite") rankMultiplier = 3.0f;
+                else if (rankStr == "boss") rankMultiplier = 5.0f;
 
-                    calculatedMaxHealth = Mathf.FloorToInt(calculatedMaxHealth * rankMultiplier);
-                }
-            }
-            else
-            {
-                // Игрок со сцены получает эталонный 3D-базис
-                baseSpeed = 5.0f; 
-                hitboxRadius = 0.5f;
-                calculatedMaxHealth = 100;
+                calculatedMaxHealth = Mathf.FloorToInt(calculatedMaxHealth * rankMultiplier);
             }
 
             // ================================================================
-            // 🧱 3. ЗАПЕКАНИЕ КОМПОНЕНТОВ ДУШИ В СИ-ПАМЯТЬ
+            // 🧱 ЗАПЕКАНИЕ БАЗОВЫХ КОМПОНЕНТОВ ДУШИ
             // ================================================================
             
-            // Всаживаем универсальный паспорт
+            // Паспорт сущности (UID сгенерирует фабрика при спавне на сцене!)
             AddComponent(entity, new UnitComponent
             {
-                Uid = stringUid,
+                Uid = "", 
                 UnitId = authoring.unitId,
                 Level = authoring.unitLevel,
-                Position = spawnPosition
+                Position = float3.zero 
             });
 
-            // Накатываем твой MovementComponent с физикой прыжков
+            // Компонент движения и физики
             AddComponent(entity, new MovementComponent
             {
                 speed = baseSpeed,
@@ -99,7 +77,7 @@ namespace ProjectTowerRpg.ECS.Authoring
                 jumpRequested = false
             });
 
-            // Накатываем мутабельный боевой паспорт здоровья
+            // Боевой паспорт здоровья
             AddComponent(entity, new CombatStateComponent
             {
                 IsDead = false,
@@ -111,87 +89,47 @@ namespace ProjectTowerRpg.ECS.Authoring
                 HitboxRadius = hitboxRadius
             });
 
-            // Накатываем память пассивного ИИ-автомата патруля
+            // Память ИИ (по умолчанию включен, фабрика выключит его, если это Игрок)
             AddComponent(entity, new AiComponent
             {   
-                IsFromFactory = !authoring.isPlayer, 
-                StartPoint = spawnPosition,
-                PatrolRadius = 70f,
-                CurrentTarget = spawnPosition,
+                IsFromFactory = true, 
+                StartPoint = float3.zero,
+                PatrolRadius = 4.0f,
+                CurrentTarget = float3.zero,
                 NextActionTime = 0f,
                 HasTarget = false,
                 IsPatrolling = false
             });
 
             // ================================================================
-            // 🏷️ МАРКЕРЫ ФРАКЦИЙ И РАЗДЕЛЕНИЯ РАЗУМА ВСЕЛЕННОЙ
+            // 🎒 ИНВЕНТАРЬ (Запекаем базовую сетку под размер будущего игрока)
             // ================================================================
-            if (authoring.isPlayer)
-            {
-                AddComponent<PlayerTag>(entity);
-            }
-            else
-            {
-                // ИСПРАВЛЕНО НАМЕРТВО: Никаких дубликатов! Накатываем чистый маркер монстра
-                AddComponent<MonsterTag>(entity);
-            }
-
-
-            // ================================================================
-            // 🎒 4. ИНВЕНТАРЬ (Запекается на лету Си-буфером для ВСЕХ юнитов!)
-            // ================================================================
-            int inventorySlotsCount = authoring.isPlayer ? 49 : 24;
+            // Делаем базовые 72 слота (6х12) для основы. В будущем под BG3-систему
+            // этот буфер сможет динамически расширяться прямо в рантайме.
+            int inventorySlotsCount = 72;
 
             var inventoryEntity = CreateAdditionalEntity(TransformUsageFlags.None);
             AddComponent(inventoryEntity, new ContainerConfigComponent
             {
                 Owner = entity,
-                Columns = authoring.isPlayer ? 6 : 4,
-                Rows = authoring.isPlayer ? 12 : 6
+                Columns = 6,
+                Rows = 12
             });
 
-            // Кристально чистый вызов буфера для рюкзака
             var slotsBuffer = AddBuffer<SlotData>(inventoryEntity);
-            
-            // Массив стартового лута игрока из твоего UnitSpawnSystem
-            var testItems = new (string id, int amount)[]
-            {
-                ("iron_sword", 1),
-                ("crystal_sword", 1),
-                ("leather_helmet", 1),
-                ("clown_hat", 1),
-                ("lesser_mana_potion", 5)
-            };
-
             for (int idx = 0; idx < inventorySlotsCount; idx++)
             {
-                // По умолчанию ячейка пустая
-                string itemId = "";
-                string dataType = "";
-                int itemAmount = 0;
-
-                // Если это Игрок, первые 5 слотов забиваем тестовым шмотом
-                if (authoring.isPlayer && idx < testItems.Length)
-                {
-                    itemId = testItems[idx].id;
-                    dataType = "item";
-                    itemAmount = testItems[idx].amount;
-                }
-
                 slotsBuffer.Add(new SlotData
                 {
                     SlotIndex = idx,
-                    DataId = itemId,
-                    DataType = dataType,
-                    Amount = itemAmount,
+                    DataId = "",
+                    DataType = "",
+                    Amount = 0,
                     EquipSlot = EquipSlot.NONE,
                     ContainerType = ContainerType.INVENTORY
                 });
             }
 
-            // ================================================================
-            // 👕 5. КУКЛА ШМОТА (Запекается на лету Си-буфером для ВСЕХ юнитов!)
-            // ================================================================
             var paperdollEntity = CreateAdditionalEntity(TransformUsageFlags.None);
             AddComponent(paperdollEntity, new ContainerConfigComponent
             {

@@ -232,56 +232,136 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1001558190
-GameObject:
+--- !u!1001 &704357010
+PrefabInstance:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1001558191}
-  - component: {fileID: 1001558192}
-  m_Layer: 0
-  m_Name: Player_ECS_Logic
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1001558191
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1001558190}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1001558192
-MonoBehaviour:
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.03
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4046426236658813666, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_Name
+      value: UnitSpawnMarker (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 7179209991427039871, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: unitId
+      value: amy
+      objectReference: {fileID: 0}
+    - target: {fileID: 7179209991427039871, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: isPlayer
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7179209991427039871, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: unitPrefab
+      value: 
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+--- !u!1001 &1450684369
+PrefabInstance:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1001558190}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ee24e366b7c78e728ca432eac9103d2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.ECS.Authoring.UnitAuthoring
-  uid: player
-  unitId: player_mage
-  unitLevel: 1
-  unitRank: common
-  lootTableId: empty
-  isPlayer: 1
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.9882834
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.505474
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4046426236658813666, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_Name
+      value: UnitSpawnMarker
+      objectReference: {fileID: 0}
+    - target: {fileID: 7179209991427039871, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: unitPrefab
+      value: 
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
 --- !u!1 &2049638090
 GameObject:
   m_ObjectHideFlags: 0
@@ -326,16 +406,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ee24e366b7c78e728ca432eac9103d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.ECS.Authoring.UnitAuthoring
-  uid: skeleton_01
   unitId: skeleton_warrior
   unitLevel: 1
   unitRank: common
-  lootTableId: empty
-  isPlayer: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 284474434}
-  - {fileID: 1001558191}
   - {fileID: 2049638091}
+  - {fileID: 1450684369}
+  - {fileID: 704357010}

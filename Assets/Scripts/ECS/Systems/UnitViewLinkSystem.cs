@@ -14,8 +14,8 @@ namespace ProjectTowerRpg.ECS.Systems
             var em = EntityManager;
 
             // 🎯 1. НАХОДИМ ВСЕ СВОБОДНЫЕ 3D-МОДЕЛЬКИ НА СЦЕНЕ
-            // (Ищем на сцене все объекты со скриптом UnitView, которые еще не привязаны к ECS)
-            var viewsOnScene = Object.FindObjectsByType<UnitView>(FindObjectsSortMode.None);
+            // 🌟 ИСПРАВЛЕНО ДЛЯ UNITY 6: Убран FindObjectsSortMode, используем новый чистый метод
+            var viewsOnScene = Object.FindObjectsByType<UnitView>(FindObjectsInactive.Exclude);
             if (viewsOnScene.Length == 0) return; // Если все модельки уже привязаны — выходим
 
             // 🎯 2. ДЕЛАЕМ ЗАПРОС В ECS: Нам нужны все новые живые души юнитов

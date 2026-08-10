@@ -1,85 +1,103 @@
 using Unity.Entities;
-using Unity.Transforms;
 using Unity.Mathematics;
+using Unity.Transforms;
 using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
-    public partial struct MovementSystem : ISystem
+    public partial class MovementSystem : SystemBase
     {
-        private const float Gravity = -21.7f; 
-        private const float JumpForce = 4.9f; 
-
-        public void OnUpdate(ref SystemState state)
+        protected override void OnUpdate()
         {
-            float dt = SystemAPI.Time.DeltaTime;
+            float deltaTime = SystemAPI.Time.DeltaTime;
 
-            foreach (var (transform, movement) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<MovementComponent>>())
+            // 🌍 Кверим вообще всех (игрока и скелетов)
+            foreach (var (transform, movement, entity) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<MovementComponent>>().WithEntityAccess())
             {
-                // 1. ГРАВИТАЦИЯ (Пишем напрямую в Y нашего монолитного вектора)
-                if (!movement.ValueRO.isGrounded)
+                float3 inputDir = movement.ValueRO.direction;
+                bool isPlayer = SystemAPI.HasComponent<PlayerTag>(entity);
+
+                if (isPlayer)
                 {
-                    movement.ValueRW.direction.y += Gravity * dt;
-                }
+                    // Высчитываем базовые направления взгляда камеры на землю
+                    float3 cameraForward = new float3(math.sin(movement.ValueRO.cameraAngle), 0f, math.cos(movement.ValueRO.cameraAngle));
+                    float3 cameraRight = new float3(cameraForward.z, 0f, -cameraForward.x); 
 
-                // 2. ИМПУЛЬС ПРЫЖКА
-                if (movement.ValueRO.jumpRequested && movement.ValueRO.isGrounded)
-                {
-                    movement.ValueRW.direction.y = JumpForce;
-                    movement.ValueRW.isGrounded = false;
-                    movement.ValueRW.jumpRequested = false; 
-                }
+                    float3 worldMoveVector = float3.zero;
+                    float finalSpeed = movement.ValueRO.speed;
 
-                // 3. ПРОВЕРКА КНОПОК (Берем только горизонтальные X и Z)
-                float3 horizontalDir = new float3(movement.ValueRO.direction.x, 0f, movement.ValueRO.direction.z);
-                bool isMovingHorizontally = math.lengthsq(horizontalDir) > 0f;
-
-                // 4. ПОВОРОТ КОРПУСА (Строго на земле)
-                if (movement.ValueRO.isGrounded)
-                {
-                    bool copyCameraRotation = !movement.ValueRO.isLookAroundMode && 
-                                             (isMovingHorizontally || movement.ValueRO.isRmbOrMmbPressed);
-
-                    if (copyCameraRotation)
+                    // =========================================================================
+                    // 1. WoW-МАТЕМАТИКА ДВИЖЕНИЯ И ВРАЩЕНИЯ (ЧИСТЫЙ КАНОН С YOUTUBE)
+                    // =========================================================================
+                    
+                    // 🔹 СИТУАЦИЯ А: Зажата ПКМ — персонаж жестко приклеен спиной к камере
+                    if (movement.ValueRO.isRmbOrMmbPressed)
                     {
-                        float targetRotationAngle = movement.ValueRO.cameraAngle - math.PI;
-                        transform.ValueRW.Rotation = quaternion.AxisAngle(math.up(), targetRotationAngle);
+                        quaternion cameraRotation = quaternion.AxisAngle(math.up(), movement.ValueRO.cameraAngle);
+                        transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, cameraRotation, deltaTime * 18f);
+
+                        worldMoveVector = (cameraForward * inputDir.z) + (cameraRight * inputDir.x);
+                        if (inputDir.z < 0f) finalSpeed *= 0.5f; // штраф на бег задом при ПКМ
                     }
-                }
-
-                // 5. РАСЧЕТ ДВИЖЕНИЯ ОТНОСИТЕЛЬНО КАМЕРЫ
-                float3 finalMoveVector = float3.zero;
-
-                if (isMovingHorizontally)
-                {
-                    quaternion movementBaseRotation;
-
-                    if (movement.ValueRO.isLookAroundMode)
-                    {
-                        movementBaseRotation = transform.ValueRO.Rotation;
-                        float3 rotatedDirection = math.mul(movementBaseRotation, horizontalDir);
-                        finalMoveVector = math.normalize(rotatedDirection) * movement.ValueRO.speed;
-                    }
+                    
+                    // 🔹 СИТУАЦИЯ Б: Мышь отпущена ИЛИ зажата ЛКМ (Истинный WoW-контроль клавиатурой)
                     else
                     {
-                        quaternion cameraRot = quaternion.AxisAngle(math.up(), movement.ValueRO.cameraAngle);
-                        float3 rotatedDirection = -math.mul(cameraRot, horizontalDir);
-                        finalMoveVector = math.normalize(rotatedDirection) * movement.ValueRO.speed;
+                        // 🌟 ЕСЛИ НАЖАТА КНОПКА «НАЗАД» (S / S+A / S+D)
+                        if (inputDir.z < 0f)
+                        {
+                            // 1. Корпус МГНОВЕННО разворачивается ЛИЦОМ ВГЛУБЬ ЭКРАНА (спиной к камере!)
+                            quaternion lookAwayRotation = quaternion.AxisAngle(math.up(), movement.ValueRO.cameraAngle);
+                            transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookAwayRotation, deltaTime * 14f);
+
+                            // 2. Вектор движения принудительно направляем НА КАМЕРУ (к нижнему краю экрана, на тебя!)
+                            // При этом подмешиваем стрейфы A/D, если они зажаты вместе с S
+                            worldMoveVector = (-cameraForward) + (cameraRight * inputDir.x);
+                            
+                            // 3. Режем скорость в 2 раза, так как персонаж пятится спиной к камере
+                            finalSpeed *= 0.5f;
+                        }
+                        // 🌟 ЕСЛИ ИГРОК БЕЖИТ ВПЕРЕД ИЛИ СТРЕЙФИТ (W, W+A, W+D, чистые A/D)
+                        else
+                        {
+                            // Вектор идет по направлению камеры
+                            worldMoveVector = (cameraForward * inputDir.z) + (cameraRight * inputDir.x);
+
+                            if (math.lengthsq(worldMoveVector) > 0f)
+                            {
+                                // Персонаж плавно поворачивается лицом КУДА БЕЖИТ (вглубь или в бока)
+                                quaternion lookRotation = quaternion.LookRotation(math.normalize(worldMoveVector), math.up());
+                                transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookRotation, deltaTime * 12f);
+                            }
+                        }
+                    }
+
+                    // Применяем итоговое перемещение к игроку в ECS
+                    if (math.lengthsq(worldMoveVector) > 0f)
+                    {
+                        transform.ValueRW.Position += math.normalize(worldMoveVector) * finalSpeed * deltaTime;
+                    }
+                }
+                else
+                {
+                    // 💀 СКЕЛЕТЫ / МОНСТРЫ: Бегут плавно по вектору ИИ патруля (живые и рабочие)
+                    float3 worldMoveVector = inputDir;
+                    if (math.lengthsq(worldMoveVector) > 0f)
+                    {
+                        worldMoveVector = math.normalize(worldMoveVector);
+                        transform.ValueRW.Position += worldMoveVector * movement.ValueRO.speed * deltaTime;
+
+                        quaternion lookRotation = quaternion.LookRotation(worldMoveVector, math.up());
+                        transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookRotation, deltaTime * 8f);
                     }
                 }
 
-                // Вшиваем вертикальную скорость прыжка/падения из нашей координаты Y
-                finalMoveVector.y = movement.ValueRO.direction.y;
-
-                // 6. ФИЗИЧЕСКИ СМЕЩАЕМ СУЩНОСТЬ В ОЗУ
-                transform.ValueRW.Position += finalMoveVector * dt;
-
-                // 7. КОЛЛИЖЕН ЗЕМЛИ (Фикс высоты через новый float3)
-                if (transform.ValueRO.Position.y <= 0f)
+                // =========================================================================
+                // 3. ОБРАБОТКА ПРЫЖКА
+                // =========================================================================
+                if (movement.ValueRO.jumpRequested && movement.ValueRO.isGrounded)
                 {
-                    transform.ValueRW.Position = new float3(transform.ValueRO.Position.x, 0f, transform.ValueRO.Position.z);
-                    movement.ValueRW.direction.y = 0f; // Обнуляем координату прыжка
-                    movement.ValueRW.isGrounded = true;    
+                    movement.ValueRW.jumpRequested = false;
                 }
             }
         }

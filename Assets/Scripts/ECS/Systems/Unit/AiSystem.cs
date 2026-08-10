@@ -30,7 +30,6 @@ namespace ProjectTowerRpg.ECS.Systems
              foreach (var (ai, move, combat, transform) in 
                      SystemAPI.Query<RefRW<AiComponent>, RefRW<MovementComponent>, RefRW<CombatStateComponent>, RefRW<LocalTransform>>())
             {
-                Debug.Log($"[AiSystem]: Вижу сущность {transform.ValueRO.Position}. Флаг IsFromFactory = {ai.ValueRO.IsFromFactory}, HasTarget = {ai.ValueRO.HasTarget}");
                 // 🛡️ WOW-КАНОН ОПТИМИЗАЦИИ (Твой оригинальный Lua-гвард):
                 // Если этот юнит не из фабрики (например, игрок или редакторный призрак) —
                 // мы мгновенно прерываем апдейт. Ему запрещено покадрово думать и патрулировать!

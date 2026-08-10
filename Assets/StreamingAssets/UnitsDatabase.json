@@ -1,4 +1,32 @@
 {
+  "amy": {
+    "identity": {
+      "name_key": "unit_amy_name",
+      "race": "human",
+      "faction": "player_party",
+      "type": "companion",
+      "default_rank": "common",
+      "unit_class": ["mage"],
+      "loot_table_id": "empty"
+    },
+    "attributes": { "strength": 10, "agility": 15, "intellect": 20, "stamina": 12 },
+    "parameters": {
+      "base_health": 100,
+      "base_speed": 5.0,
+      "hitbox_radius": 0.5
+    },
+    "progression": { "health_growth": 1.10, "damage_growth": 1.10 },
+    "resource": { "type": "mana", "current": 100, "max": 100 },
+    "visuals": { "prefab_name": "amy" },
+    "ai": {
+      "profile": "companion",
+      "base_aggro_radius": 0.0,
+      "is_ranged": true,
+      "flee_range": 0.0,
+      "tag_weights": {}
+    },
+    "abilities": []
+  },
   "skeleton_warrior": {
     "identity": {
       "name_key": "unit_skeleton_warrior_name",
@@ -30,8 +58,7 @@
       "max": 100
     },
     "visuals": {
-      "animation": "skeleton_warrior",
-      "texture": "project_utumno"
+      "visuals": { "prefab_name": "Skeleton_Warrior_Prefab" }
     },
     "ai": {
       "profile": "aggressive_patrol",
