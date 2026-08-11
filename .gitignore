@@ -31,3 +31,14 @@ editor_layout.wlt
 
 # Настройки VS Code (если вдруг прилетит)
 .vscode/
+
+# Дополнительный скрытый мусор Unity 6
+/[Pp]roject[Ss]ettings/[Cc]onfig/[Aa]sset[Cc]hange*.bin
+/[Pp]roject[Ss]ettings/ProjectVersion.txt.bak
+/[Pp]roject[Ss]ettings/probuilder-changes.txt
+/UserState/
+/MemoryCaptures/
+/AssetBackups/
+
+*.tif
+*.tiff

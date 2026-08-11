@@ -1,103 +1,174 @@
 using Unity.Entities;
-using Unity.Mathematics;
 using Unity.Transforms;
+using Unity.Mathematics;
+using UnityEngine; // Для Physics.Raycast
 using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
-    public partial class MovementSystem : SystemBase
+    public partial struct MovementSystem : ISystem
     {
-        protected override void OnUpdate()
-        {
-            float deltaTime = SystemAPI.Time.DeltaTime;
+        private const float Gravity = -21.7f; 
+        private const float JumpForce = 4.9f; 
 
-            // 🌍 Кверим вообще всех (игрока и скелетов)
+        public void OnUpdate(ref SystemState state)
+        {
+            float dt = SystemAPI.Time.DeltaTime;
+
+            // 🌍 Кверим вообще всех юнитов (и игрока, и скелетов)
             foreach (var (transform, movement, entity) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<MovementComponent>>().WithEntityAccess())
             {
                 float3 inputDir = movement.ValueRO.direction;
                 bool isPlayer = SystemAPI.HasComponent<PlayerTag>(entity);
 
+                // =========================================================================
+                // 1. ДИНАМИЧЕСКИЙ РЕЙКАСТ ЗЕМЛИ (RAYCAST ВНИЗ С УЧЕТОМ УКЛОНА)
+                // =========================================================================
+                Vector3 rayStart = new Vector3(transform.ValueRO.Position.x, transform.ValueRO.Position.y + 1.0f, transform.ValueRO.Position.z);
+                
+                float groundY = 0f;       
+                bool hitGround = false;   
+
+                if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 50f))
+                {
+                    groundY = hit.point.y; 
+                    hitGround = true;
+                }
+
+                // 🌟 СГЛАЖИВАНИЕ СПУСКА (GROUND SNAPPING):
+                // Если мы НЕ прыгали сами (jumpRequested == false), НЕ летим вверх от старого импульса (direction.y <= 0.1f),
+                // но из-за уклона пологих холмов оказались чуть выше земли в воздухе (в пределах 0.3 метра)
+                float distanceToGround = transform.ValueRO.Position.y - groundY;
+                bool isDescendingHill = hitGround && !movement.ValueRO.jumpRequested && 
+                                        (movement.ValueRO.direction.y <= 0.1f) && 
+                                        (distanceToGround > 0f && distanceToGround <= 0.3f);
+
+                if (isDescendingHill)
+                {
+                    // Нагло и принудительно прижимаем подошвы к холму ДО расчета гравитации и флагов!
+                    transform.ValueRW.Position.y = groundY;
+                }
+
+                // Флаг приземления проверяется строго после того, как мы сгладили спуск по склону.
+                // Допуск на стыки расширен до 0.1м для исключения покадровых иканий.
+                bool structurallyGrounded = hitGround && 
+                                           (transform.ValueRO.Position.y <= groundY + 0.1f) && 
+                                           (movement.ValueRO.direction.y <= 0.1f);
+
+                // =========================================================================
+                // 2. ТВОЯ РОДНАЯ ФИЗИКА: ГРАВИТАЦИЯ И ИМПУЛЬС ПРЫЖКА
+                // =========================================================================
+                if (!structurallyGrounded)
+                {
+                    movement.ValueRW.direction.y += Gravity * dt;
+                    movement.ValueRW.isGrounded = false;
+                }
+                else
+                {
+                    // На земле вертикальная скорость мертво стоит в нуле
+                    movement.ValueRW.direction.y = 0f;
+                    movement.ValueRW.isGrounded = true;
+                }
+
+                if (movement.ValueRO.jumpRequested && movement.ValueRO.isGrounded)
+                {
+                    movement.ValueRW.direction.y = JumpForce;
+                    movement.ValueRW.isGrounded = false;
+                    movement.ValueRW.jumpRequested = false; 
+                }
+
+                float3 horizontalDir = new float3(inputDir.x, 0f, inputDir.z);
+                bool isMovingHorizontally = math.lengthsq(horizontalDir) > 0f;
+
+                float3 flatMoveVector = float3.zero;
+
+                // =========================================================================
+                // 3. WoW-МАТЕМАТИКА ДВИЖЕНИЯ И ВРАЩЕНИЯ ИГРОКА (ОТНОСИТЕЛЬНО КАМЕРЫ)
+                // =========================================================================
                 if (isPlayer)
                 {
-                    // Высчитываем базовые направления взгляда камеры на землю
                     float3 cameraForward = new float3(math.sin(movement.ValueRO.cameraAngle), 0f, math.cos(movement.ValueRO.cameraAngle));
                     float3 cameraRight = new float3(cameraForward.z, 0f, -cameraForward.x); 
 
-                    float3 worldMoveVector = float3.zero;
                     float finalSpeed = movement.ValueRO.speed;
 
-                    // =========================================================================
-                    // 1. WoW-МАТЕМАТИКА ДВИЖЕНИЯ И ВРАЩЕНИЯ (ЧИСТЫЙ КАНОН С YOUTUBE)
-                    // =========================================================================
-                    
-                    // 🔹 СИТУАЦИЯ А: Зажата ПКМ — персонаж жестко приклеен спиной к камере
                     if (movement.ValueRO.isRmbOrMmbPressed)
                     {
                         quaternion cameraRotation = quaternion.AxisAngle(math.up(), movement.ValueRO.cameraAngle);
-                        transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, cameraRotation, deltaTime * 18f);
+                        transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, cameraRotation, dt * 18f);
 
-                        worldMoveVector = (cameraForward * inputDir.z) + (cameraRight * inputDir.x);
-                        if (inputDir.z < 0f) finalSpeed *= 0.5f; // штраф на бег задом при ПКМ
+                        flatMoveVector = (cameraForward * inputDir.z) + (cameraRight * inputDir.x);
+                        if (inputDir.z < 0f) finalSpeed *= 0.5f; 
                     }
-                    
-                    // 🔹 СИТУАЦИЯ Б: Мышь отпущена ИЛИ зажата ЛКМ (Истинный WoW-контроль клавиатурой)
                     else
                     {
-                        // 🌟 ЕСЛИ НАЖАТА КНОПКА «НАЗАД» (S / S+A / S+D)
                         if (inputDir.z < 0f)
                         {
-                            // 1. Корпус МГНОВЕННО разворачивается ЛИЦОМ ВГЛУБЬ ЭКРАНА (спиной к камере!)
                             quaternion lookAwayRotation = quaternion.AxisAngle(math.up(), movement.ValueRO.cameraAngle);
-                            transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookAwayRotation, deltaTime * 14f);
+                            transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookAwayRotation, dt * 14f);
 
-                            // 2. Вектор движения принудительно направляем НА КАМЕРУ (к нижнему краю экрана, на тебя!)
-                            // При этом подмешиваем стрейфы A/D, если они зажаты вместе с S
-                            worldMoveVector = (-cameraForward) + (cameraRight * inputDir.x);
-                            
-                            // 3. Режем скорость в 2 раза, так как персонаж пятится спиной к камере
-                            finalSpeed *= 0.5f;
+                            flatMoveVector = (-cameraForward) + (cameraRight * inputDir.x);
+                            finalSpeed *= 0.5f; 
                         }
-                        // 🌟 ЕСЛИ ИГРОК БЕЖИТ ВПЕРЕД ИЛИ СТРЕЙФИТ (W, W+A, W+D, чистые A/D)
                         else
                         {
-                            // Вектор идет по направлению камеры
-                            worldMoveVector = (cameraForward * inputDir.z) + (cameraRight * inputDir.x);
+                            flatMoveVector = (cameraForward * inputDir.z) + (cameraRight * inputDir.x);
 
-                            if (math.lengthsq(worldMoveVector) > 0f)
+                            if (math.lengthsq(flatMoveVector) > 0f)
                             {
-                                // Персонаж плавно поворачивается лицом КУДА БЕЖИТ (вглубь или в бока)
-                                quaternion lookRotation = quaternion.LookRotation(math.normalize(worldMoveVector), math.up());
-                                transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookRotation, deltaTime * 12f);
+                                quaternion lookRotation = quaternion.LookRotation(math.normalize(flatMoveVector), math.up());
+                                transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookRotation, dt * 12f);
                             }
                         }
                     }
 
-                    // Применяем итоговое перемещение к игроку в ECS
-                    if (math.lengthsq(worldMoveVector) > 0f)
+                    if (math.lengthsq(flatMoveVector) > 0f)
                     {
-                        transform.ValueRW.Position += math.normalize(worldMoveVector) * finalSpeed * deltaTime;
+                        flatMoveVector = math.normalize(flatMoveVector) * finalSpeed;
                     }
                 }
                 else
                 {
-                    // 💀 СКЕЛЕТЫ / МОНСТРЫ: Бегут плавно по вектору ИИ патруля (живые и рабочие)
-                    float3 worldMoveVector = inputDir;
-                    if (math.lengthsq(worldMoveVector) > 0f)
+                    // 💀 СКЕЛЕТЫ / МОНСТРЫ
+                    if (isMovingHorizontally)
                     {
-                        worldMoveVector = math.normalize(worldMoveVector);
-                        transform.ValueRW.Position += worldMoveVector * movement.ValueRO.speed * deltaTime;
+                        flatMoveVector = math.normalize(horizontalDir) * movement.ValueRO.speed;
 
-                        quaternion lookRotation = quaternion.LookRotation(worldMoveVector, math.up());
-                        transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookRotation, deltaTime * 8f);
+                        quaternion lookRotation = quaternion.LookRotation(math.normalize(horizontalDir), math.up());
+                        transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookRotation, dt * 8f);
                     }
                 }
 
                 // =========================================================================
-                // 3. ОБРАБОТКА ПРЫЖКА
+                // 4. ПРОВЕРКА ПРЕПЯТСТВИЙ ПЕРЕД НАМИ (АНТИ-ПРИЗРАК)
                 // =========================================================================
-                if (movement.ValueRO.jumpRequested && movement.ValueRO.isGrounded)
+                if (math.lengthsq(flatMoveVector) > 0f)
                 {
-                    movement.ValueRW.jumpRequested = false;
+                    Vector3 wallRayStart = new Vector3(transform.ValueRO.Position.x, transform.ValueRO.Position.y + 0.5f, transform.ValueRO.Position.z);
+                    Vector3 moveDirection = math.normalize(flatMoveVector);
+
+                    if (Physics.Raycast(wallRayStart, moveDirection, out RaycastHit wallHit, 0.5f))
+                    {
+                        if (wallHit.collider != null && wallHit.collider.gameObject.name != "Terrain")
+                        {
+                            flatMoveVector = float3.zero;
+                        }
+                    }
+                }
+
+                // =========================================================================
+                // 5. СБОРКА ВЕКТОРА И КОЛЛИЖЕН С ЛАНДШАФТОМ
+                // =========================================================================
+                float3 finalMoveVector = new float3(flatMoveVector.x, movement.ValueRO.direction.y, flatMoveVector.z);
+
+                transform.ValueRW.Position += finalMoveVector * dt;
+
+                // Финальная жесткая страховка (если провалились под холм на высокой скорости)
+                if (hitGround && transform.ValueRO.Position.y <= groundY && movement.ValueRO.direction.y <= 0.1f)
+                {
+                    transform.ValueRW.Position = new float3(transform.ValueRO.Position.x, groundY, transform.ValueRO.Position.z);
+                    movement.ValueRW.direction.y = 0f; 
+                    movement.ValueRW.isGrounded = true;    
                 }
             }
         }
