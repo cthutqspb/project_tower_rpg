@@ -38,18 +38,45 @@ namespace ProjectTowerRpg.ECS.Systems
             var ecb = _ecbSystem.CreateCommandBuffer();
             _slotDataLookup.Update(ref CheckedStateRef);
 
-            foreach (var (item, entity) in 
-                     SystemAPI.Query<RefRO<ItemComponent>>().WithAll<ClickIntent>().WithEntityAccess())
+            // 🎯 СТЕРИЛЬНЫЙ И БЫСТРЫЙ ДИСПЕТЧЕР ЛУТА (БЕЗ СПАГЕТТИ):
+            foreach (var (item, intent, entity) in 
+                     SystemAPI.Query<RefRO<ItemComponent>, RefRO<ClickIntent>>().WithEntityAccess())
             {
-                ItemActions.Loot(
-                    ref _slotDataLookup,
-                    ecb,
-                    entity,
-                    EntityRegistry.Get("unit_inventory")
-                );
+                Entity actorEntity = intent.ValueRO.Actor;
+                Entity targetInventory = Entity.Null;
+
+                // Если лутает живой Игрок — берем его глобальную сумку из твоего реестра
+                if (SystemAPI.HasComponent<PlayerTag>(actorEntity))
+                {
+                    targetInventory = EntityRegistry.Get("player_inventory");
+                }
+                else
+                {
+                    // Для NPC-спутников и монстров вытаскиваем инвентарь по их динамическому UID чанка,
+                    // который твой Бэйкер честно регистрирует при их рождении!
+                    if (SystemAPI.TryGetComponent<UnitComponent>(actorEntity, out var unitComp))
+                    {
+                        targetInventory = EntityRegistry.Get($"{unitComp.Uid}_inventory");
+                    }
+                }
+
+                if (targetInventory != Entity.Null)
+                {
+                    // Твой родной, кристально чистый вызов экшена лута без нарушения многопоточности!
+                    ItemActions.Loot(
+                        ref _slotDataLookup,
+                        ecb,
+                        entity, // Сущность шмотки на земле
+                        targetInventory // Сущность рюкзака, куда летит предмет
+                    );
+                }
+                else
+                {
+                    Debug.LogError($"[ActionDispatcher КРИТ]: Не удалось найти инвентарь в реестре для актера {actorEntity.Index}!");
+                }
 
                 ecb.RemoveComponent<ClickIntent>(entity);
-                Debug.Log($"[ActionDispatcher] Клик по ПРЕДМЕТУ {entity.Index} направлен напрямую в ItemActions.Loot.");
+                Debug.Log($"[ActionDispatcher] Клик по ПРЕДМЕТУ {entity.Index} от Актера {actorEntity.Index} направлен напрямую в ItemActions.Loot.");
             }
 
             foreach (var (cmd, entity) in 

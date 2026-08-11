@@ -59,16 +59,13 @@ namespace ProjectTowerRpg.ECS.Systems
  
             // ... (Твой стандартный блок OnUpdate с проверкой осей и UIManager.IsBlocked)
 
-                // ОБРАБОТКА КЛИКА В 3D МИРЕ — СТЕРИЛЬНЫЙ ВАРИАНТ
+            // ОБРАБОТКА КЛИКА В 3D МИРЕ — СТЕРИЛЬНЫЙ ВАРИАНТ
             if (!isUiBlocked && _interactOrLookAction.triggered)
             {
                 if (DragManager.Instance != null && !DragManager.Instance.IsDragging)
                 {
                     if (SystemAPI.TryGetSingleton<HoverState>(out var hover) && hover.HasTarget)
                     {
-                        // ================================================================
-                        // 🦾 ПРОВЕРКА ДИСТАНЦИИ ДЛЯ ЛУТА
-                        // ================================================================
                         Entity targetEntity = hover.CurrentEntity;
                         
                         // Проверяем, есть ли у цели позиция
@@ -78,20 +75,30 @@ namespace ProjectTowerRpg.ECS.Systems
                             var playerPos = PlayerUtils.GetPosition();
                             
                             float distance = math.distance(playerPos, targetPos);
-                            float maxLootDistance = 0.72f; // можно вынести в конфиг
+                            float maxLootDistance = 0.72f; 
                             
                             if (distance > maxLootDistance)
                             {
-                                // Слишком далеко — не даём клик
                                 Debug.Log($"[InputSystem] Слишком далеко до цели ({distance:F1}м). Нужно подойти ближе.");
-                                // TODO: показать сообщение на HUD
                                 return;
                             }
                         }
                         
-                        // Всё ок — отправляем клик
-                        EntityManager.AddComponent<ClickIntent>(targetEntity);
-                        Debug.Log($"[InputSystem] Послан сигнал клика на Entity ID: {targetEntity.Index}");
+                        if (SystemAPI.TryGetSingletonEntity<PlayerTag>(out var playerEntity))
+                        {
+                            // Забираем синглтон фабрики буферов конца симуляции
+                            var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+                            
+                            // ИСПРАВЛЕНО: Передаем World.Unmanaged вместо несуществующего state!
+                            var ecb = ecbSingleton.CreateCommandBuffer(World.Unmanaged);
+
+                            ecb.AddComponent(targetEntity, new ClickIntent 
+                            { 
+                                Actor = playerEntity 
+                            });
+
+                            Debug.Log($"[InputSystem] Послан сигнал клика на Предмет ID: {targetEntity.Index} от Лидера: {playerEntity.Index}");
+                        }
                     }
                 }
             }

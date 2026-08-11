@@ -3,6 +3,7 @@ using Unity.Transforms;
 using Unity.Mathematics;
 using UnityEngine; // Для Physics.Raycast
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -24,16 +25,9 @@ namespace ProjectTowerRpg.ECS.Systems
                 // =========================================================================
                 // 1. ДИНАМИЧЕСКИЙ РЕЙКАСТ ЗЕМЛИ (RAYCAST ВНИЗ С УЧЕТОМ УКЛОНА)
                 // =========================================================================
-                Vector3 rayStart = new Vector3(transform.ValueRO.Position.x, transform.ValueRO.Position.y + 1.0f, transform.ValueRO.Position.z);
+                float groundY = PhysicsUtils.GetGroundHeight(transform.ValueRO.Position);
+                bool hitGround = true;          
                 
-                float groundY = 0f;       
-                bool hitGround = false;   
-
-                if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 50f))
-                {
-                    groundY = hit.point.y; 
-                    hitGround = true;
-                }
 
                 // 🌟 СГЛАЖИВАНИЕ СПУСКА (GROUND SNAPPING):
                 // Если мы НЕ прыгали сами (jumpRequested == false), НЕ летим вверх от старого импульса (direction.y <= 0.1f),

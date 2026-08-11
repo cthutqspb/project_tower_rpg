@@ -1,8 +1,9 @@
 using Unity.Entities;
 using Unity.Transforms;
-using Unity.Collections;    // ← ДОБАВИТЬ для FixedString
-using UnityEngine;
+using Unity.Mathematics;
+using UnityEngine; // 🌟 Обязательно добавляем для Physics.Raycast
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -26,24 +27,36 @@ namespace ProjectTowerRpg.ECS.Systems
             {
                 Entity worldItemEntity = ecb.CreateEntity();
 
-                // ✅ Используем строку напрямую
                 string itemId = request.ValueRO.ItemId.ToString();
+                
+                // 🌟 МАТЕМАТИКА ПРИЖАТИЯ ПРЕДМЕТА К ТЕРРЕЙНУ:
+                // Берем позицию дропа (обычно это координаты игрока)
+                // Берём позицию из запроса дропа
+                float3 spawnPosition = request.ValueRO.Position;
+
+                // 🌟 Вызываем нашу утилиту в один клик!
+                spawnPosition.y = PhysicsUtils.GetGroundHeight(spawnPosition);
+
+                // Всё! Дальше твой чистый ECS код спавна компонента и LocalTransform
+                ecb.AddComponent(worldItemEntity, LocalTransform.FromPosition(spawnPosition));
 
                 ecb.AddComponent(worldItemEntity, new ItemComponent
                 {
-                    Uid = $"i_{(int)request.ValueRO.Position.x}_{(int)request.ValueRO.Position.z}".GetHashCode(),
-                    ItemId = itemId,  // ← строка
+                    Uid = $"i_{(int)spawnPosition.x}_{(int)spawnPosition.z}".GetHashCode(),
+                    ItemId = itemId,  
                     Amount = request.ValueRO.Amount,
                     LootTableId = "empty",
                     IsLooted = false
                 });
 
-                ecb.AddComponent(worldItemEntity, LocalTransform.FromPosition(request.ValueRO.Position));
+                // Спавним ECS-сущность предмета с уже ИСПРАВЛЕННОЙ высотой Y на земле!
+                ecb.AddComponent(worldItemEntity, LocalTransform.FromPosition(spawnPosition));
 
-                Debug.Log($"[ItemSpawnSystem] Сущность создана. ItemId={itemId}");
+                Debug.Log($"[ItemSpawnSystem] Предмет успешно приземлен на холм. ItemId={itemId}, Y={spawnPosition.y}");
 
                 ecb.DestroyEntity(requestEntity);
             }
         }
     }
 }
+
