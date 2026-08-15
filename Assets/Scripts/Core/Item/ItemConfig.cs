@@ -43,8 +43,8 @@ namespace ProjectTowerRpg.Core.Items
         public bool triggers_gcd;
         
         // Поля для сундуков/мешков (nullable типы, могут быть null, чтобы экономить RAM)
-        public int? columns; 
-        public int? rows;
+        [System.NonSerialized] public int? columns; 
+        [System.NonSerialized] public int? rows;
     }
 
     [Serializable]
@@ -87,7 +87,7 @@ namespace ProjectTowerRpg.Core.Items
         public ItemAttributes attributes;
         public DamageConfig damage;
         public List<DamageConfig> bonus_damage; // Массив доп. урона
-        public Dictionary<string, int> resists; // Карта резистов
+        [System.NonSerialized] public Dictionary<string, int> resists; 
         public int armor_rating;
     }
 
@@ -96,7 +96,7 @@ namespace ProjectTowerRpg.Core.Items
     {
         public string aura_id;
         public float value;
-        public int? chance;
+        [System.NonSerialized] public int? chance;
     }
 
     [Serializable]

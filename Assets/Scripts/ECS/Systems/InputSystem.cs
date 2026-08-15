@@ -103,6 +103,35 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
+                        // =========================================================================
+            // 🦾 ТЕСТ-ХАК ТРАТЫ МАНЫ ЧЕРЕЗ СТЕРИЛЬНЫЙ ECB (Конец симуляции)
+            // =========================================================================
+            if (!isUiBlocked && _jumpAction != null && _jumpAction.triggered)
+            {
+                if (SystemAPI.TryGetSingletonEntity<PlayerTag>(out var playerEntity))
+                {
+                    if (SystemAPI.HasComponent<ResourceComponent>(playerEntity))
+                    {
+                        var resource = SystemAPI.GetComponent<ResourceComponent>(playerEntity);
+
+                        // Скручиваем ману на 10 единиц
+                        resource.Current = math.max(0f, resource.Current - 10f);
+
+                        // 🌟 ЗАПИСЬ ЧЕРЕЗ СИСТЕМНЫЙ БУФЕР КОМАНД (Фикс DidChange для Презентации)
+                        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+                        var ecb = ecbSingleton.CreateCommandBuffer(World.Unmanaged);
+
+                        // Отправляем команду перезаписи компонента через барьер конца симуляции.
+                        // На стыке кадров ECB зальет данные, намертво сдвинет версию чанка,
+                        // и твоя UIPullSystem в PresentationSystemGroup шёлково поймает DidChange!
+                        ecb.SetComponent(playerEntity, resource);
+
+                        Debug.Log($"[ECS InputSystem]: Записали трату маны через ECB! Осталось: {resource.Current}/{resource.Max}");
+                    }
+                }
+            }
+
+
             foreach (var movement in SystemAPI.Query<RefRW<MovementComponent>>().WithAll<PlayerTag>())
             {
                 movement.ValueRW.direction.x = inputDirection.x;

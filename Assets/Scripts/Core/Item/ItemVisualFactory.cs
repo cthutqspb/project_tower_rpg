@@ -7,7 +7,7 @@ using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.Core.Items
 {
-    public class ItemVisualizer : MonoBehaviour
+    public class ItemVisualFactory : MonoBehaviour
     {
         [SerializeField] private GameObject _itemPrefab; 
 
@@ -69,7 +69,7 @@ namespace ProjectTowerRpg.Core.Items
                             EntityRegistry.RegisterItemVisual(currentEntity, visualCube);
                             _spawnedEntities.Add(currentEntity);
 
-                            Debug.Log($"[ItemVisualizer] Графика куба успешно создана в Главной Сцене для Entity {currentEntity.Index} на {targetPosition}");
+                            Debug.Log($"[ItemVisualFactory] Графика куба успешно создана в Главной Сцене для Entity {currentEntity.Index} на {targetPosition}");
                         }
                     }
 

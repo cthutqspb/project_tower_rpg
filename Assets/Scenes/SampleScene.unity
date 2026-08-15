@@ -372,7 +372,6 @@ GameObject:
   - component: {fileID: 204697937}
   - component: {fileID: 204697936}
   - component: {fileID: 204697935}
-  - component: {fileID: 204697939}
   - component: {fileID: 204697940}
   m_Layer: 5
   m_Name: Main Camera
@@ -499,18 +498,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &204697939
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 204697934}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: af3a6dfe3ff7ae4e39e4a55ab2a1d29c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EcsTopDownCamera
 --- !u!114 &204697940
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -704,6 +691,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 738699063}
+  - component: {fileID: 738699064}
   m_Layer: 0
   m_Name: '[HUD]'
   m_TagString: Untagged
@@ -726,6 +714,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1367445829}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &738699064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 738699062}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 380407ba0c46023088bccbbeb32fa00d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.HUDManager
+  _hudUxml: {fileID: 9197481963319205126, guid: 94769f402cb45380bb28e898910c9dc6, type: 3}
+  _playerFrame:
+    _frameUxml: {fileID: 9197481963319205126, guid: 5f163d188fc27a53d8a98e5c2b17f3e1, type: 3}
+    _progressBarUxml: {fileID: 9197481963319205126, guid: 2e5709dea21d265dd9629eb57af791be, type: 3}
+  _targetFrame:
+    _frameUxml: {fileID: 9197481963319205126, guid: 5f163d188fc27a53d8a98e5c2b17f3e1, type: 3}
+    _progressBarUxml: {fileID: 9197481963319205126, guid: 2e5709dea21d265dd9629eb57af791be, type: 3}
 --- !u!1001 &763322064
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2862,8 +2869,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1367445829}
   - component: {fileID: 1367445830}
-  - component: {fileID: 1367445832}
-  - component: {fileID: 1367445833}
   - component: {fileID: 1367445834}
   - component: {fileID: 1367445835}
   - component: {fileID: 1367445836}
@@ -2950,30 +2955,6 @@ PanelRenderer:
   m_PivotReferenceSize: 0
   m_Pivot: 0
   m_Position: 0
---- !u!114 &1367445832
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1367445828}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8a410b213209442fb15a69799f0240a5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UIElements.PanelEventHandler
---- !u!114 &1367445833
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1367445828}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7a79c4e23d4d4b64bfa5fa9e6671a460, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UIElements.PanelRaycaster
 --- !u!114 &1367445834
 MonoBehaviour:
   m_ObjectHideFlags: 0

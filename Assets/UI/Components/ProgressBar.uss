@@ -1,0 +1,25 @@
+/* Стили рамки полоски */
+.progress-bar-container {
+    width: 240px; /* Твоя дефолтная ширина из Defold max_width */
+    height: 18px;
+    background-color: rgba(30, 30, 30, 0.8); /* Темная подложка */
+    border-width: 1px;
+    border-color: #333333;
+    border-radius: 4px;
+    overflow: hidden; /* Чтобы заливка не вылезала за скругленные края */
+}
+
+/* Стили внутренней заливки */
+.progress-bar-fill {
+    width: 100%; /* По умолчанию полная полоса */
+    height: 100%;
+    background-color: #00ff00; /* Дефолтный зеленый */
+    
+    /* 🦾 ВСТРОЕННАЯ СИ-АНИМАЦИЯ UNITY 7 (Замена gui.animate из Defold):
+       Любое изменение ширины (width) или цвета (background-color) 
+       автоматически сгладится движком за 0.3 секунды с мягким затуханием OutSine! */
+    transition-property: width, background-color;
+    transition-duration: 0.3s, 0.3s;
+    transition-timing-function: ease-out-sine, ease-out-sine;
+}
+

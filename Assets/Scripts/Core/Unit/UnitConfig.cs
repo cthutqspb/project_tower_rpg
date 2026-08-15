@@ -66,7 +66,7 @@ namespace ProjectTowerRpg.Core.Units
         public float flee_range;
         
         // Твоя Lua-таблица весов ["damage"] = 1.5 намертво ложится в C# Dictionary!
-        public Dictionary<string, float> tag_weights;
+        [System.NonSerialized] public Dictionary<string, float> tag_weights;
     }
 
     // 👑 ПОЛНЫЙ СТАТИЧЕСКИЙ ПАСПОРТ МОНСТРА (Симметрично твоему ItemConfig):

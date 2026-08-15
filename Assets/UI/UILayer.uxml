@@ -3,5 +3,7 @@
     <Style src="project://database/Assets/UI/Components/HeaderComponent.uss?fileID=7433441132597879392&amp;guid=7a76694d1381deb5f90bf3f33fd834a6&amp;type=3#HeaderComponent"/>
     <Style src="project://database/Assets/UI/Components/StaticGrid.uss?fileID=7433441132597879392&amp;guid=ec6fc1a942765a28eabd5c9bb6dcb934&amp;type=3#StaticGrid"/>
     <Style src="project://database/Assets/UI/Components/PaperdollComponent.uss?fileID=7433441132597879392&amp;guid=0d53b885910975f3095e09970e2d278d&amp;type=3#PaperdollComponent"/>
-    <ui:VisualElement picking-mode="Ignore" class="ui-layer"/>
+    <Style src="project://database/Assets/UI/HUD.uss?fileID=7433441132597879392&amp;guid=3c74269fe87347e3b8a6f0feb6e7272b&amp;type=3#HUD"/>
+    <Style src="project://database/Assets/UI/Components/ProgressBar.uss?fileID=7433441132597879392&amp;guid=40122c9d90b3219a3b0728d955ab2952&amp;type=3#ProgressBar"/>
+    <ui:VisualElement picking-mode="Ignore" name="VisualElement" class="ui-layer"/>
 </ui:UXML>

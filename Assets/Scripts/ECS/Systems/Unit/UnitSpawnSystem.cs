@@ -135,6 +135,51 @@ namespace ProjectTowerRpg.ECS.Systems
 
                 bool isPlayer = markerData.IsPlayer;
 
+                em.AddComponentData(unitEntity, new HealthComponent
+                {
+                    Current = maxHealth,
+                    Max = maxHealth
+                });
+
+                // 2. Читаем тип ресурса из твоего конфига dbCfg и переводим в ECS Enum
+                ResourceType rType = ResourceType.None;
+                float currentResource = 0f;
+                float maxResource = 0f;
+
+                if (dbCfg != null && dbCfg.resource != null)
+                {
+                    maxResource = dbCfg.resource.max;
+                    currentResource = dbCfg.resource.current;
+
+                    string resTypeStr = dbCfg.resource.type.ToString().ToLower().Trim();
+
+                    if (resTypeStr == "mana") rType = ResourceType.Mana;
+                    else if (resTypeStr == "energy") rType = ResourceType.Energy;
+                    else if (resTypeStr == "rage") rType = ResourceType.Rage;
+                    
+                    // 🌟 ТЕСТ-ХАК: Если это игрок и данные пришли из конфига, режем ману пополам
+                    if (markerData.IsPlayer)
+                    {
+                        currentResource = maxResource * 0.5f;
+                    }
+                }
+                else
+                {
+                    rType = markerData.IsPlayer ? ResourceType.Mana : ResourceType.None;
+                    maxResource = markerData.IsPlayer ? 100f : 0f;
+                    
+                    // 🌟 ТЕСТ-ХАК: Если это игрок и сработал дефолтный фоллбек, тоже заполняем наполовину
+                    currentResource = markerData.IsPlayer ? (maxResource * 0.5f) : 0f;
+                }
+
+                // Вшиваем ресурсный компонент в сущность
+                em.AddComponentData(unitEntity, new ResourceComponent
+                {
+                    Type = rType,
+                    Current = currentResource,
+                    Max = maxResource
+                });
+
                 em.AddComponentData(unitEntity, new AiComponent
                 {
                     IsFromFactory = !isPlayer, 
@@ -153,6 +198,9 @@ namespace ProjectTowerRpg.ECS.Systems
                     playerAi.IsFromFactory = false;
                     playerAi.PatrolRadius = 0f;
                     em.SetComponentData(unitEntity, playerAi);
+
+                    ProjectTowerRpg.Core.UI.EntityRegistry.Register("player", unitEntity);
+                    Debug.Log($"   [UnitSpawnSystem]: Игрок засинхронизирован с EntityRegistry под ключом 'player'");
                 }
                 else
                 {
@@ -178,35 +226,34 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // 🎒 НАКЫДЫВАНИЕ ТЕСТОВОГО ШМОТА В ИНВЕНТАРЬ ИГРОКА (ПЕРЕНЕСЕНО ПОД ОБЪЯВЛЕНИЕ ПЕРЕМЕННОЙ)
-if (isPlayer)
-{
-    var testItems = new (string id, int amount)[]
-    {
-        ("iron_sword", 1),
-        ("crystal_sword", 1),
-        ("leather_helmet", 1),
-        ("clown_hat", 1),
-        ("lesser_mana_potion", 5)
-    };
+                if (isPlayer)
+                {
+                    var testItems = new (string id, int amount)[]
+                    {
+                        ("iron_sword", 1),
+                        ("crystal_sword", 1),
+                        ("leather_helmet", 1),
+                        ("clown_hat", 1),
+                        ("lesser_mana_potion", 5)
+                    };
 
-    var playerSlotsBuffer = em.GetBuffer<SlotData>(inventoryEntity);
+                    var playerSlotsBuffer = em.GetBuffer<SlotData>(inventoryEntity);
 
-    for (int idx = 0; idx < testItems.Length; idx++)
-    {
-        playerSlotsBuffer[idx] = new SlotData
-        {
-            SlotIndex = idx,
-            DataId = testItems[idx].id,
-            DataType = "item",
-            Amount = testItems[idx].amount,
-            EquipSlot = EquipSlot.NONE,
-            ContainerType = ContainerType.INVENTORY
-        };
-    }
-    
-    Debug.Log("🎒 [ФАБРИКА]: Тестовый шмот успешно упакован в инвентарь игрока!");
-}
-
+                    for (int idx = 0; idx < testItems.Length; idx++)
+                    {
+                        playerSlotsBuffer[idx] = new SlotData
+                        {
+                            SlotIndex = idx,
+                            DataId = testItems[idx].id,
+                            DataType = "item",
+                            Amount = testItems[idx].amount,
+                            EquipSlot = EquipSlot.NONE,
+                            ContainerType = ContainerType.INVENTORY
+                        };
+                    }
+                    
+                    Debug.Log("🎒 [ФАБРИКА]: Тестовый шмот успешно упакован в инвентарь игрока!");
+                }
 
                 // Регистрируем мешки в UI телефонную книгу по его уникальному UID чанка
                 string registryUid = isPlayer ? "player" : generatedUid;
