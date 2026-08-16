@@ -1,7 +1,7 @@
 using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
-using UnityEngine; // 🌟 Обязательно добавляем для Physics.Raycast
+using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core;
 
@@ -25,34 +25,55 @@ namespace ProjectTowerRpg.ECS.Systems
             foreach (var (request, requestEntity) in 
                      SystemAPI.Query<RefRO<DropItemRequest>>().WithEntityAccess())
             {
-                Entity worldItemEntity = ecb.CreateEntity();
+                // 1. Рождаем чистую ECS-сущность в памяти
+                Entity itemEntity = ecb.CreateEntity();
 
-                string itemId = request.ValueRO.ItemId.ToString();
-                
-                // 🌟 МАТЕМАТИКА ПРИЖАТИЯ ПРЕДМЕТА К ТЕРРЕЙНУ:
-                // Берем позицию дропа (обычно это координаты игрока)
-                // Берём позицию из запроса дропа
+                string itemIdStr = request.ValueRO.ItemId.ToString();
                 float3 spawnPosition = request.ValueRO.Position;
-
-                // 🌟 Вызываем нашу утилиту в один клик!
                 spawnPosition.y = PhysicsUtils.GetGroundHeight(spawnPosition);
 
-                // Всё! Дальше твой чистый ECS код спавна компонента и LocalTransform
-                ecb.AddComponent(worldItemEntity, LocalTransform.FromPosition(spawnPosition));
+                // 🌟 ЧИСТАЯ СИММЕТРИЯ С ЮНИТАМИ: Сначала генерируем строковый UID по координатам чанка
+                string generatedUidStr = $"i_{(int)spawnPosition.x}_{(int)spawnPosition.z}";
+                
+                // Для ECS-компонента берем чистый интовый хэш-код от этой строки (как у тебя в Бэйкере!)
+                int generatedUidHash = generatedUidStr.GetHashCode();
 
-                ecb.AddComponent(worldItemEntity, new ItemComponent
+                // Накатываем компоненты в ОЗУ
+                ecb.AddComponent(itemEntity, LocalTransform.FromPosition(spawnPosition));
+                ecb.AddComponent(itemEntity, new ItemComponent
                 {
-                    Uid = $"i_{(int)spawnPosition.x}_{(int)spawnPosition.z}".GetHashCode(),
-                    ItemId = itemId,  
+                    Uid = generatedUidHash,
+                    ItemId = itemIdStr,  
                     Amount = request.ValueRO.Amount,
                     LootTableId = "empty",
                     IsLooted = false
                 });
 
-                // Спавним ECS-сущность предмета с уже ИСПРАВЛЕННОЙ высотой Y на земле!
-                ecb.AddComponent(worldItemEntity, LocalTransform.FromPosition(spawnPosition));
+                // =========================================================================
+                // 🏗️ СВЯЗЬ МИРОВ: Загружаем ОДИН универсальный префаб из папки Resources!
+                // =========================================================================
+                var universalPrefab = Resources.Load<GameObject>("Items/default_item");
+                
+                if (universalPrefab != null)
+                {
+                    var spawnedModel = Object.Instantiate(universalPrefab, spawnPosition, Quaternion.identity);
+                    spawnedModel.name = $"{itemIdStr}_{generatedUidStr}";
 
-                Debug.Log($"[ItemSpawnSystem] Предмет успешно приземлен на холм. ItemId={itemId}, Y={spawnPosition.y}");
+                    // 🌟 ИДЕАЛЬНАЯ СИММЕТРИЯ: Находим чистый рантайм-паспорт ItemView и заполняем строки!
+                    var view = spawnedModel.GetComponent<ItemView>();
+                    if (view != null)
+                    {
+                        view.uid = generatedUidStr; // Сюда шёлково залетает строка (string = string)
+                        view.itemId = itemIdStr;
+                        view.IsLinked = false; 
+                    }
+                }
+                else
+                {
+                    Debug.LogError("🚨 ФАБРИКА ПРЕДМЕТОВ: Не удалось найти универсальный ItemPrefab по пути Resources/Items/Iu.prefab!");
+                }
+
+                Debug.Log($"[ItemSpawnSystem] Универсальный префаб заспавнен для: {itemIdStr}, Uid={generatedUidStr}");
 
                 ecb.DestroyEntity(requestEntity);
             }

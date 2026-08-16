@@ -38,6 +38,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         // Намертво цементируем связь марионетки с её ECS-сущностью!
                         view.GetComponent<SyncTransformWithEntity>().Initialize(entity);
                         view.IsLinked = true; // Помечаем, что моделька занята
+                        view.entity = entity; // Передаем живую ECS-ссылку в UnitView, один в один как authoring.Entity = currentEntity для лута!
                         break;
                     }
                 }

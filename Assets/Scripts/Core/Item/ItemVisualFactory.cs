@@ -36,7 +36,7 @@ namespace ProjectTowerRpg.Core.Items
             var em = world.EntityManager;
 
 
-                        // 2. Используем чистый и каноничный SystemAPI.Query прямо внутри MonoBehaviour!
+            // 2. Используем чистый и каноничный SystemAPI.Query прямо внутри MonoBehaviour!
             // Для этого мы временно переключаем контекст выполнения на мир симуляции
             using (var query = em.CreateEntityQuery(typeof(ItemComponent), typeof(LocalTransform)))
             {
@@ -78,35 +78,32 @@ namespace ProjectTowerRpg.Core.Items
             }
 
             // 🎯 Физическое уничтожение графики при удалении сущности из ECS ОЗУ
-System.Collections.Generic.List<Entity> toRemove = new System.Collections.Generic.List<Entity>();
+            System.Collections.Generic.List<Entity> toRemove = new System.Collections.Generic.List<Entity>();
 
-foreach (Entity entity in _spawnedEntities)
-{
-    if (!em.Exists(entity))
-    {
-        toRemove.Add(entity);
-        
-        // Нативно вытаскиваем игровой объект куба из нашего реестра
-        GameObject cubeObject = EntityRegistry.GetItemVisual(entity);
-        if (cubeObject != null)
-        {
-            // Насильно стираем куб со сцены в реальном времени!
-            Destroy(cubeObject);
-            
-            // Зачищаем реестр, чтобы не копить утечки памяти
-            EntityRegistry.UnregisterItemVisual(entity);
-        }
-    }
-}
+            foreach (Entity entity in _spawnedEntities)
+            {
+                if (!em.Exists(entity))
+                {
+                    toRemove.Add(entity);
+                    
+                    // Нативно вытаскиваем игровой объект куба из нашего реестра
+                    GameObject cubeObject = EntityRegistry.GetItemVisual(entity);
+                    if (cubeObject != null)
+                    {
+                        // Насильно стираем куб со сцены в реальном времени!
+                        Destroy(cubeObject);
+                        
+                        // Зачищаем реестр, чтобы не копить утечки памяти
+                        EntityRegistry.UnregisterItemVisual(entity);
+                    }
+                }
+            }
 
-// Безопасно очищаем наш HashSet
-foreach (Entity entity in toRemove)
-{
-    _spawnedEntities.Remove(entity);
-}
-
-
-
+            // Безопасно очищаем наш HashSet
+            foreach (Entity entity in toRemove)
+            {
+                _spawnedEntities.Remove(entity);
+            }
         }
     }
 }

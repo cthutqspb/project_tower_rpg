@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Entities;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -10,6 +11,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
         [HideInInspector] 
         public bool IsLinked = false; // Флаг-замок: чтобы система не пыталась привязать сущность дважды
+        public Entity entity;
     }
 }
 

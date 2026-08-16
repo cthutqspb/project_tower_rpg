@@ -39,12 +39,31 @@ namespace ProjectTowerRpg.ECS.Systems
             
             if (Physics.SphereCast(ray, 0.3f, out RaycastHit hit, 100f))
             {
-                var itemAuthoring = hit.collider.GetComponent<ItemAuthoring>();
+                Entity foundEntity = Entity.Null;
+                bool isItem = false;
 
-                if (itemAuthoring != null && itemAuthoring.Entity != Entity.Null)
+                // 📦 ПРОВЕРЯЕМ ПРЕДМЕТ: Достаем твой новый чистый рантайм-паспорт ItemView!
+                var itemView = hit.collider.GetComponent<ItemView>();
+                if (itemView != null && itemView.Entity != Entity.Null)
                 {
-                    Entity foundEntity = itemAuthoring.Entity;
+                    foundEntity = itemView.Entity;
+                    isItem = true;
+                }
+                // 👥 TODO: Добавить проверку UnitView для юнитов (монстры/NPC/игрок) после интеграции боевого менеджера
+                /*
+                else
+                {
+                    var unitView = hit.collider.GetComponent<UnitView>();
+                    if (unitView != null && unitView.entity != Entity.Null)
+                    {
+                        foundEntity = unitView.entity;
+                    }
+                }
+                */
 
+                // ЕСЛИ КОЛЛАЙДЕР ВЕРНУЛ ВАЛИДНУЮ ECS-СУЩНОСТЬ
+                if (foundEntity != Entity.Null)
+                {
                     if (hoverState.ValueRO.CurrentEntity == foundEntity)
                     {
                         hoverState.ValueRW.HitPosition = hit.point;
@@ -54,12 +73,13 @@ namespace ProjectTowerRpg.ECS.Systems
                     hoverState.ValueRW.CurrentEntity = foundEntity;
                     hoverState.ValueRW.HitPosition = hit.point;
 
-                    if (EntityManager.HasComponent<ItemComponent>(foundEntity))
+                    if (isItem && EntityManager.HasComponent<ItemComponent>(foundEntity))
                     {
                         // Нативная замена CustomCursor на встроенную систему Unity
                         // Текстуры курсоров можно будет подключить позже, пока ставим дефолт
                         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto); 
                     }
+                    // TODO: Накатить обработку курсоров боя/диалога на основе UnitComponent
                     
                     Debug.Log($"[HoverSystem] Мышь наведена на Entity ID: {foundEntity.Index}");
                     return;
