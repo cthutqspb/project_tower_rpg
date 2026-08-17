@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.Units;
 using System.Collections.Generic;
 
 namespace ProjectTowerRpg.Core.UI.Components
@@ -147,6 +148,10 @@ namespace ProjectTowerRpg.Core.UI.Components
                     {
                         RenderItem(worldItem, isInInventory: false);
                     }
+                    else if (payload.Kind == TooltipKind.UNIT && payload.Info is UnitConfig worldUnit)
+                    {
+                        RenderUnit(worldUnit);
+                    }
                     break;
             }
         }
@@ -154,7 +159,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         // ================================================================
         // ⚔️ ЗРЯЧИЙ ААА-РЕНДЕР ТВОЕЙ ЛАПШИ ХАРАКТЕРИСТИК ИЗ DEFOLD
         // ================================================================
-                private void RenderItem(ItemConfig cfg, bool isInInventory)
+        private void RenderItem(ItemConfig cfg, bool isInInventory)
         {
             int amount = 1; // В будущем можно прокидывать реальный стак через payload.Context
 
@@ -246,6 +251,15 @@ namespace ProjectTowerRpg.Core.UI.Components
             string weightLabel = $"{weightName}: {cfg.identity.weight:F1}";
             string priceLabel = $"{priceName}: {cfg.identity.price}";
             AddLine(weightLabel, priceLabel, color: new Color(0.5f, 0.5f, 0.5f, 1f));
+        }
+
+        private void RenderUnit(UnitConfig cfg)
+        {
+            // Нативно переводим ключ из JSON и бахаем по центру как заголовок!
+            string nameText = ProjectTowerRpg.Core.Localization.LocalizationManager.Get(cfg.identity.name_key).ToUpper(); 
+            
+            // Базовый белый MMO-цвет для шапки существа
+            AddLine(nameText, color: Color.white, isHeader: true);
         }
 
         private void ClearTooltip()

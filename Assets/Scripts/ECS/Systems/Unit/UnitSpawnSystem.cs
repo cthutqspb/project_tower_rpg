@@ -282,6 +282,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         viewScript.uid = isPlayer ? "player" : generatedUid;
                         viewScript.unitId = uId;
+                        viewScript.entity = unitEntity;
                         viewScript.IsLinked = true;
                     }
 

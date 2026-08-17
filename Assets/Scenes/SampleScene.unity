@@ -343,7 +343,7 @@ MonoBehaviour:
   VerticalAxis:
     Value: 17.5
     Center: 17.5
-    Range: {x: -10, y: 45}
+    Range: {x: -7.2, y: 72}
     Wrap: 0
     Recentering:
       Enabled: 0
@@ -683,6 +683,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -4081297709301163423, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -2060011924318904896, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4638542505044187823, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5130159587060829609, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
       propertyPath: m_LocalPosition.x
       value: 4.6707
@@ -697,11 +709,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5130159587060829609, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071067
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5130159587060829609, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.7071068
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5130159587060829609, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
       propertyPath: m_LocalRotation.y
@@ -709,7 +721,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5130159587060829609, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5130159587060829609, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -726,6 +738,10 @@ PrefabInstance:
     - target: {fileID: 5510765859794261779, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
       propertyPath: m_Name
       value: skeleton
+      objectReference: {fileID: 0}
+    - target: {fileID: 6303579507799144134, guid: c0f7b7c3c0a1dfadebd9332a6fa813a9, type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

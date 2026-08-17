@@ -23,7 +23,6 @@ namespace ProjectTowerRpg.ECS.Systems
 
             if (UIManager.IsBlocked)
             {
-                // Исправлено: Добавлен обязательный синтаксический флаг ref
                 ResetHover(ref hoverState.ValueRW);
                 return;
             }
@@ -41,25 +40,33 @@ namespace ProjectTowerRpg.ECS.Systems
             {
                 Entity foundEntity = Entity.Null;
                 bool isItem = false;
+                bool isUnit = false;
+                string currentUnitId = string.Empty;
 
-                // 📦 ПРОВЕРЯЕМ ПРЕДМЕТ: Достаем твой новый чистый рантайм-паспорт ItemView!
-                var itemView = hit.collider.GetComponent<ItemView>();
-                if (itemView != null && itemView.Entity != Entity.Null)
+                // 📦 1. ПРОВЕРЯЕМ ПРЕДМЕТ: Ищем паспорт в родителях на случай сложных коллайдеров
+                var itemView = hit.collider.GetComponentInParent<ItemView>();
+                if (itemView != null)
                 {
-                    foundEntity = itemView.Entity;
-                    isItem = true;
-                }
-                // 👥 TODO: Добавить проверку UnitView для юнитов (монстры/NPC/игрок) после интеграции боевого менеджера
-                /*
-                else
-                {
-                    var unitView = hit.collider.GetComponent<UnitView>();
-                    if (unitView != null && unitView.entity != Entity.Null)
+                    if (itemView.Entity != Entity.Null)
                     {
-                        foundEntity = unitView.entity;
+                        foundEntity = itemView.Entity;
+                        isItem = true;
                     }
                 }
-                */
+                // 👥 2. ПРОВЕРЯЕМ ЮНИТА: Бронебойно ищем UnitView, если луч врезался в кость скелета
+                else
+                {
+                    var unitView = hit.collider.GetComponentInParent<UnitView>();
+                    if (unitView != null)
+                    {
+                        if (unitView.entity != Entity.Null)
+                        {
+                            foundEntity = unitView.entity;
+                            currentUnitId = unitView.unitId;
+                            isUnit = true;
+                        }
+                    }
+                }
 
                 // ЕСЛИ КОЛЛАЙДЕР ВЕРНУЛ ВАЛИДНУЮ ECS-СУЩНОСТЬ
                 if (foundEntity != Entity.Null)
@@ -73,22 +80,38 @@ namespace ProjectTowerRpg.ECS.Systems
                     hoverState.ValueRW.CurrentEntity = foundEntity;
                     hoverState.ValueRW.HitPosition = hit.point;
 
+                    // ОБРАБОТКА КОНТЕНТА ПРЕДМЕТА
                     if (isItem && EntityManager.HasComponent<ItemComponent>(foundEntity))
                     {
-                        // Нативная замена CustomCursor на встроенную систему Unity
-                        // Текстуры курсоров можно будет подключить позже, пока ставим дефолт
                         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto); 
+                        
+                        var itemComponentData = EntityManager.GetComponentData<ItemComponent>(foundEntity);
+                        string currentItemIdStr = itemComponentData.ItemId.ToString();
+
+                        var dbItemCfg = ProjectTowerRpg.Core.Items.ItemsDatabase.GetItem(currentItemIdStr);
+                        if (dbItemCfg != null)
+                        {
+                            TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.ITEM, dbItemCfg);
+                        }
                     }
-                    // TODO: Накатить обработку курсоров боя/диалога на основе UnitComponent
+                    // ОБРАБОТКА КОНТЕНТА ЮНИТА
+                    else if (isUnit && EntityManager.HasComponent<UnitComponent>(foundEntity))
+                    {
+                        Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto); 
+
+                        var dbUnitCfg = ProjectTowerRpg.Core.Units.UnitsDatabase.GetUnit(currentUnitId);
+                        if (dbUnitCfg != null)
+                        {
+                            TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.UNIT, dbUnitCfg);
+                        }
+                    }
                     
-                    Debug.Log($"[HoverSystem] Мышь наведена на Entity ID: {foundEntity.Index}");
                     return;
                 }
             }
 
             if (hoverState.ValueRO.HasTarget)
             {
-                // Исправлено: Добавлен обязательный синтаксический флаг ref
                 ResetHover(ref hoverState.ValueRW);
             }
         }
@@ -99,8 +122,9 @@ namespace ProjectTowerRpg.ECS.Systems
             hover.HitPosition = math.float3(0, 0, 0); // Ошибка CS0103 полностью пропала
             
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-            //Debug.Log("[HoverSystem] Мышь ушла в пустоту. Ховер сброшен.");
+            
+            // 🌟 СБРОС ТУЛТИПА: Мышь ушла с объекта — убираем плашку с экрана
+            TooltipManager.HideWorldTooltips();
         }
     }
 }
-
