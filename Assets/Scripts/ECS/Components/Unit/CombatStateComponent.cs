@@ -17,6 +17,13 @@ namespace ProjectTowerRpg.ECS.Components
         public float CurrentSpeed;       // parameters.current_speed
         public float HitboxRadius;       // parameters.hitbox_radius
 
+        // 🌟 СЕТЕВОЙ ЗАДЕЛ: Персональная цель конкретно ЭТОГО существа
+        // (Игрок хранит тут скелета, а скелет в своей памяти будет хранить игрока!)
+        public Entity CurrentTarget;
+
+        // Быстрое свойство-помощник для проверки, есть ли у юнита цель
+        public bool HasTarget => CurrentTarget != Entity.Null;
+
         // // TODO: WoW-Канон магии, агро-матрицы и вендетты на будущее
         // public Entity CombatTarget;   // combat_target_uid
         // public float GcdCurrent;      // cast.gcd_current

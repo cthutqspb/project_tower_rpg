@@ -8,23 +8,24 @@ namespace ProjectTowerRpg.Core.UI.Components
 {
     [Serializable]
     // 🌟 ИСПРАВЛЕНО: Теперь класс официально подписывает контракт ресивера компонентов ECS!
-    public class UnitFrame : IEcsUiComponentReceiver<HealthComponent>, IEcsUiComponentReceiver<ResourceComponent>
+    public class UnitFrame : IEcsUiComponentReceiver<HealthComponent>, IEcsUiComponentReceiver<ResourceComponent>, IEcsUiTargetReceiver
     {
         [Header("Список компонентов фрейма")]
         [SerializeField] private VisualTreeAsset _frameUxml;       // Сюда UnitFrame.uxml
         [SerializeField] private VisualTreeAsset _progressBarUxml; // Сюда ProgressBar.uxml
+        public bool IsTargetFrame = false;
 
         private VisualElement _frameRoot;
         private Label _unitNameLabel;
         private Label _unitLevelLabel;
-
+        
         private HealthBar _unitHealthBar;
         private ResourceBar _unitResourceBar;
 
         public UnitFrame() { }
         
         private Entity _boundEntity = Entity.Null;
-
+       
         /// <summary>
         /// Сборка фрейма прямо внутри переданного слота
         /// </summary>
@@ -146,6 +147,30 @@ namespace ProjectTowerRpg.Core.UI.Components
                 UIRegistry.Register(_boundEntity, this);
                 Debug.Log($"[UnitFrame ДЕБАГ]: Сущность {_boundEntity.Index} УСПЕШНО зарегистрирована в UIRegistry для этого фрейма!");
             }
+        }
+
+        public void UpdateTargetInfo(ref HealthComponent health, ref ResourceComponent resource)
+        {
+             // 🔒 ГВАРД-ПРЕДОХРАНИТЕЛЬ: Мой личный фрейм игрока игнорирует этот метод!
+             if (!IsTargetFrame) return;
+
+             SetVisible(true);
+             UpdateHealth(health.Current, health.Max);
+
+             if (resource.Type != ProjectTowerRpg.ECS.Components.ResourceType.None)
+             {
+                 UpdateResource(resource.Type, resource.Current, resource.Max);
+             }
+
+             UpdateIdentity("ЦЕЛЬ", 1); 
+        }
+
+        public void ClearTarget()
+        {
+            // 🔒 ГВАРД-ПРЕДОХРАНИТЕЛЬ: Мой личный фрейм игрока никогда не выключится от клика по земле!
+            if (!IsTargetFrame) return;
+
+            SetVisible(false);
         }
     }
 }

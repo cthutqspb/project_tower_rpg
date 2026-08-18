@@ -28,7 +28,7 @@ namespace ProjectTowerRpg.ECS.Systems
             // Перебираем твои новые компоненты стейта, твой родной MovementComponent
             // и стандартный LocalTransform через нативный SystemAPI.Query
              foreach (var (ai, move, combat, transform) in 
-                     SystemAPI.Query<RefRW<AiComponent>, RefRW<MovementComponent>, RefRW<CombatStateComponent>, RefRW<LocalTransform>>())
+                     SystemAPI.Query<RefRW<AiComponent>, RefRW<MovementComponent>, RefRO<CombatStateComponent>, RefRW<LocalTransform>>())
             {
                 // 🛡️ WOW-КАНОН ОПТИМИЗАЦИИ (Твой оригинальный Lua-гвард):
                 // Если этот юнит не из фабрики (например, игрок или редакторный призрак) —

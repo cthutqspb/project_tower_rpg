@@ -59,49 +59,83 @@ namespace ProjectTowerRpg.ECS.Systems
  
             // ... (Твой стандартный блок OnUpdate с проверкой осей и UIManager.IsBlocked)
 
-            // ОБРАБОТКА КЛИКА В 3D МИРЕ — СТЕРИЛЬНЫЙ ВАРИАНТ
+                        // =========================================================================
+            // 🖱️ УНИВЕРСАЛЬНЫЙ WoW-КЛИК ПО ЛКМ (Интеракт + Выделение Цели)
+            // =========================================================================
             if (!isUiBlocked && _interactOrLookAction.triggered)
             {
                 if (DragManager.Instance != null && !DragManager.Instance.IsDragging)
                 {
-                    if (SystemAPI.TryGetSingleton<HoverState>(out var hover) && hover.HasTarget)
+                    if (SystemAPI.TryGetSingleton<HoverState>(out var hover) && 
+                        SystemAPI.TryGetSingletonEntity<PlayerTag>(out var playerEntity))
                     {
-                        Entity targetEntity = hover.CurrentEntity;
-                        
-                        // Проверяем, есть ли у цели позиция
-                        if (SystemAPI.HasComponent<LocalTransform>(targetEntity))
+                        var combatState = SystemAPI.GetComponent<CombatStateComponent>(playerEntity);
+
+                        if (hover.HasTarget)
                         {
-                            var targetPos = SystemAPI.GetComponent<LocalTransform>(targetEntity).Position;
-                            var playerPos = PlayerUtils.GetPosition();
-                            
-                            float distance = math.distance(playerPos, targetPos);
-                            float maxLootDistance = 0.72f; 
-                            
-                            if (distance > maxLootDistance)
+                            Entity targetEntity = hover.CurrentEntity;
+
+                            // 👥 ФИЛЬТР А: КЛИКНУЛИ В ЮНИТА (Скелет / NPC)
+                            if (SystemAPI.HasComponent<UnitComponent>(targetEntity))
                             {
-                                Debug.Log($"[InputSystem] Слишком далеко до цели ({distance:F1}м). Нужно подойти ближе.");
-                                return;
+                                // Взятие в таргет работает ВСЕГДА и с любого расстояния!
+                                combatState.CurrentTarget = targetEntity;
+                                SystemAPI.SetComponent(playerEntity, combatState);
+                                Debug.Log($"[InputSystem]: Цель-ЮНИТ записана в CombatState игрока! Индекс: {targetEntity.Index}");
+
+                                // TODO ДАЛЕКО В БУДУЩЕМ: Если дистанция в упор — можно сразу запускать автоатаку
                             }
+
+                            // 📦 ФИЛЬТР Б: КЛИКНУЛИ В ПРЕДМЕТ (Лут / Куб)
+                            else if (SystemAPI.HasComponent<ItemComponent>(targetEntity))
+                            {
+                                // Предметы тоже можно брать в таргет по канону (или нет, но мы пишем для задела)
+                                combatState.CurrentTarget = targetEntity;
+                                SystemAPI.SetComponent(playerEntity, combatState);
+                                Debug.Log($"[InputSystem]: Цель-ПРЕДМЕТ записана в CombatState игрока! Индекс: {targetEntity.Index}");
+
+                                // А вот ЛУТАТЬ предмет разрешаем СТРОГО в упор!
+                                if (SystemAPI.HasComponent<LocalTransform>(targetEntity))
+                                {
+                                    var targetPos = SystemAPI.GetComponent<LocalTransform>(targetEntity).Position;
+                                    var playerPos = PlayerUtils.GetPosition();
+                                    float distance = math.distance(playerPos, targetPos);
+                                    float maxLootDistance = 0.72f;
+
+                                    if (distance <= maxLootDistance)
+                                    {
+                                        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+                                        var ecb = ecbSingleton.CreateCommandBuffer(World.Unmanaged);
+
+                                        ecb.AddComponent(targetEntity, new ClickIntent { Actor = playerEntity });
+                                        Debug.Log($"[InputSystem] В упор! Послан ClickIntent на Предмет ID: {targetEntity.Index}");
+                                    }
+                                    else
+                                    {
+                                        Debug.Log($"[InputSystem] Слишком далеко до предмета ({distance:F1}м). Нужно подойти ближе.");
+                                    }
+                                }
+                            }
+
+                            // 🧱 ФИЛЬТР В: ДАЛЕКО В БУДУЩЕМ (ObjectComponent / Интерактивные двери / Рычаги)
+                            /*
+                            else if (SystemAPI.HasComponent<ObjectComponent>(targetEntity))
+                            {
+                                // Логика рычагов и дверей...
+                            }
+                            */
                         }
-                        
-                        if (SystemAPI.TryGetSingletonEntity<PlayerTag>(out var playerEntity))
+                        else
                         {
-                            // Забираем синглтон фабрики буферов конца симуляции
-                            var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-                            
-                            // ИСПРАВЛЕНО: Передаем World.Unmanaged вместо несуществующего state!
-                            var ecb = ecbSingleton.CreateCommandBuffer(World.Unmanaged);
-
-                            ecb.AddComponent(targetEntity, new ClickIntent 
-                            { 
-                                Actor = playerEntity 
-                            });
-
-                            Debug.Log($"[InputSystem] Послан сигнал клика на Предмет ID: {targetEntity.Index} от Лидера: {playerEntity.Index}");
+                            // Кликнули в пустоту (земля/небо) — сбрасываем таргет игрока
+                            combatState.CurrentTarget = Entity.Null;
+                            SystemAPI.SetComponent(playerEntity, combatState);
+                            Debug.Log("[InputSystem]: Цель игрока сброшена в Entity.Null (Клик в пустоту)");
                         }
                     }
                 }
             }
+
 
             // =========================================================================
             // 🦾 ТЕСТ-ХАК ТРАТЫ МАНЫ ЧЕРЕЗ СТЕРИЛЬНЫЙ ECB (Конец симуляции)

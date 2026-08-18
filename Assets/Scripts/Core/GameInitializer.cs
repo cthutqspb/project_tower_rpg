@@ -1,6 +1,7 @@
 using UnityEngine;
 using ProjectTowerRpg.Core.Localization;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.Units; // ← Добавь юзинг базы юнитов
 
 public class GameInitializer : MonoBehaviour
 {
@@ -12,6 +13,12 @@ public class GameInitializer : MonoBehaviour
         // 2. Накатываем базу данных шмоток из JSON
         ItemsDatabase.Load();
 
+        // 🌟 3. НАКАТЫВАЕМ БАЗУ ДАННЫХ СУЩЕСТВ (Исправляет слепоту UI на чистой сцене!)
+        if (!UnitsDatabase.IsLoaded)
+        {
+            UnitsDatabase.Load();
+        }
+
         // =========================================================================
         // 🎰 ДEБAГ-ТEСТ: Проверяем, как бэкэнд видит наш Кристальный Меч в ОЗУ!
         // =========================================================================
@@ -19,7 +26,6 @@ public class GameInitializer : MonoBehaviour
         
         if (sword != null)
         {
-            // Вытаскиваем локализованное имя меча из нашего ItemsDatabase.json -> Locales/ru/items.json
             string realName = LocalizationManager.Get(sword.identity.name_key);
             string realDesc = LocalizationManager.Get(sword.identity.desc_key);
 

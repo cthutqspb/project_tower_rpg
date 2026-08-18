@@ -21,12 +21,6 @@ namespace ProjectTowerRpg.ECS.Systems
         {
             var em = EntityManager;
 
-            if (!UnitsDatabase.IsLoaded)
-            {
-                UnitsDatabase.Load();
-                return;
-            }
-
             // ================================================================
             // ЭТАП 1: РЕГИСТРАЦИЯ СУМОК ИГРОКА В REEСТР UI
             // ================================================================
