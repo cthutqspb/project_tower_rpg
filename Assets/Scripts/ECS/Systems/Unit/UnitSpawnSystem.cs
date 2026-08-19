@@ -20,45 +20,16 @@ namespace ProjectTowerRpg.ECS.Systems
         protected override void OnUpdate()
         {
             var em = EntityManager;
-
+            
             // ================================================================
-            // ЭТАП 1: РЕГИСТРАЦИЯ СУМОК ИГРОКА В REEСТР UI
-            // ================================================================
-            var containerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<ContainerConfigComponent>());
-            var containers = containerQuery.ToEntityArray(Allocator.Temp);
-
-            bool playerRegistered = false;
-            foreach (var containerEntity in containers)
-            {
-                var config = em.GetComponentData<ContainerConfigComponent>(containerEntity);
-                
-                if (em.Exists(config.Owner) && em.HasComponent<PlayerTag>(config.Owner))
-                {
-                    if (config.Rows == 1)
-                    {
-                        EntityRegistry.Register("player_paperdoll", containerEntity);
-                    }
-                    else
-                    {
-                        EntityRegistry.Register("player_inventory", containerEntity);
-                    }
-                    playerRegistered = true;
-                }
-            }
-            containers.Dispose();
-
-            // ================================================================
-            // ЭТАП 2: ОБРАБОТКА МАРКЕРОВ СПАВНА
+            // ОБРАБОТКА МАРКЕРОВ СПАВНА
             // ================================================================
             var markerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<UnitSpawnMarkerComponent>());
             
             if (markerQuery.IsEmpty)
             {
-                if (playerRegistered)
-                {
-                    Debug.Log("✅ [UnitSpawnSystem]: Фабрика успешно завершила работу. Все сущности созданы.");
-                    this.Enabled = false;
-                }
+                Debug.Log("✅ [UnitSpawnSystem]: Фабрика успешно завершила работу. Все сущности созданы.");
+                this.Enabled = false;
                 return;
             }
 
@@ -192,9 +163,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     playerAi.IsFromFactory = false;
                     playerAi.PatrolRadius = 0f;
                     em.SetComponentData(unitEntity, playerAi);
-
-                    ProjectTowerRpg.Core.UI.EntityRegistry.Register("player", unitEntity);
-                    Debug.Log($"   [UnitSpawnSystem]: Игрок засинхронизирован с EntityRegistry под ключом 'player'");
                 }
                 else
                 {
@@ -204,6 +172,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 // 🏗️ 2. СТРОИМ БАЗОВЫЙ ИНВЕНТАРЬ (72 слота для всех под будущее расширение)
                 var inventoryEntity = em.CreateEntity();
                 em.AddComponentData(inventoryEntity, new ContainerConfigComponent { Owner = unitEntity, Columns = 6, Rows = 12 });
+                em.AddComponent<InventoryTag>(inventoryEntity);
                 var slotsBuffer = em.AddBuffer<SlotData>(inventoryEntity);
                 for (int i = 0; i < 72; i++)
                 {
@@ -213,6 +182,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 // 🏗️ 3. СТРОИМ КУКЛУ ШМОТА
                 var paperdollEntity = em.CreateEntity();
                 em.AddComponentData(paperdollEntity, new ContainerConfigComponent { Owner = unitEntity, Columns = PAPERDOLL_SLOTS.Length, Rows = 1 });
+                em.AddComponent<PaperdollTag>(paperdollEntity);
                 var paperdollBuffer = em.AddBuffer<SlotData>(paperdollEntity);
                 for (int j = 0; j < PAPERDOLL_SLOTS.Length; j++)
                 {
@@ -248,11 +218,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     
                     Debug.Log("🎒 [ФАБРИКА]: Тестовый шмот успешно упакован в инвентарь игрока!");
                 }
-
-                // Регистрируем мешки в UI телефонную книгу по его уникальному UID чанка
-                string registryUid = isPlayer ? "player" : generatedUid;
-                EntityRegistry.Register($"{registryUid}_inventory", inventoryEntity);
-                EntityRegistry.Register($"{registryUid}_paperdoll", paperdollEntity);
 
                 // =========================================================================
                 // 🏗️ 4. ДИНАМИЧЕСКИЙ СПАВН 3D-ВИЗУАЛА ИЗ ПАПКИ RESOURCES/UNITS/

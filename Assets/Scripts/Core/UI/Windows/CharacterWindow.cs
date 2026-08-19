@@ -40,9 +40,14 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 _header.AddManipulator(dragManipulator);
             }
 
+            Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+            if (playerEntity == Entity.Null) return;
+
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+
             // Инвентарь
+            var inventoryEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(playerEntity, em);
             var inventoryContainer = root.Q<VisualElement>("inventory-container");
-            var inventoryEntity = EntityRegistry.Get("player_inventory"); // Твой ключ!
             
             if (inventoryContainer != null && inventoryEntity != Entity.Null)
             {
@@ -51,7 +56,6 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 {
                     var inventoryComp = world.EntityManager.GetComponentData<ContainerConfigComponent>(inventoryEntity);
                     _inventoryGrid = new StaticGrid(inventoryComp.Columns, inventoryComp.Rows, "inventory");
-                    _inventoryGrid.DataSourceId = "player_inventory";
                     
                     _inventoryGrid.BindToEntity(inventoryEntity); 
                     inventoryContainer.Add(_inventoryGrid);
@@ -59,13 +63,12 @@ namespace ProjectTowerRpg.Core.UI.Windows
             }
 
             // Кукла
+            var paperdollEntity = ContainerHelper.GetContainerForUnit<PaperdollTag>(playerEntity, em);
             var paperdollContainer = root.Q<VisualElement>("paperdoll-container");
-            var paperdollEntity = EntityRegistry.Get("player_paperdoll"); // Твой ключ!
             
             if (paperdollContainer != null && paperdollEntity != Entity.Null)
             {
                 _paperdoll = new Paperdoll(_paperdollUxml);
-                _paperdoll.DataSourceId = "player_paperdoll";
                 
                 _paperdoll.BindToEntity(paperdollEntity); 
                 paperdollContainer.Add(_paperdoll);
@@ -73,4 +76,3 @@ namespace ProjectTowerRpg.Core.UI.Windows
         }
     }
 }
-

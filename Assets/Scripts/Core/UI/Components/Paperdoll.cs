@@ -8,29 +8,13 @@ using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
-    public class Paperdoll : VisualElement, IDataSourceProvider, IEcsUiBufferReceiver<SlotData>
+    public class Paperdoll : VisualElement, IEcsUiBufferReceiver<SlotData>, IEntityContainer
     {
-        private string _dataSourceId;
-        private Entity _paperdollEntity; // ИСПРАВЛЕНО: Перевели в приватное нейтральное поле
-        
+        private Entity _paperdollEntity;
         private List<SlotElement> _slots = new();
 
-        // ИСПРАВЛЕНО: Реализация интерфейсного свойства для автоматического сканирования базовым окном UIWindow
         public Entity BoundEntity => _paperdollEntity;
 
-        public string DataSourceId 
-        { 
-            get => _dataSourceId; 
-            set 
-            {
-                _dataSourceId = value;
-                foreach (var slot in _slots)
-                {
-                    slot.DataSourceId = value;
-                }
-            }
-        }
-        
         public Paperdoll(VisualTreeAsset uxml)
         {
             this.AddToClassList("paperdoll-grid");
@@ -47,40 +31,33 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
             
             var leftColumn = this.Q<VisualElement>("left-column");
-            var rightColumn = this.Q<VisualElement>("right-column");
             var bottomLeft = this.Q<VisualElement>("bottom-left");
-            var bottomRight = this.Q<VisualElement>("bottom-right");
 
-            // 0. HEAD (Левая колонка)
             if (leftColumn != null)
             {
                 CreatePaperdollSlot(leftColumn, 0, "HEAD", "paperdoll-slot-HEAD");
-                // 1. CHEST (Левая колонка)
                 CreatePaperdollSlot(leftColumn, 1, "CHEST", "paperdoll-slot-CHEST");
-                // 2. LEGS (Левая колонка)
                 CreatePaperdollSlot(leftColumn, 2, "LEGS", "paperdoll-slot-LEGS");
             }
 
-            // 3. MAIN_HAND (Нижняя левая колонка)
             if (bottomLeft != null)
             {
                 CreatePaperdollSlot(bottomLeft, 3, "MAIN_HAND", "paperdoll-slot-MAIN_HAND");
-                // 4. OFF_HAND (Нижняя левая колонка)
                 CreatePaperdollSlot(bottomLeft, 4, "OFF_HAND", "paperdoll-slot-OFF_HAND");
             }
         }
 
         private void CreatePaperdollSlot(VisualElement parent, int index, string nameId, string ussClass)
         {
-            var slot = new SlotElement();
-            slot.SlotIndex = index; 
-            slot.GridType = "paperdoll";
-            slot.DataSourceId = DataSourceId;
-            slot.ContainerEntity = _paperdollEntity;
-            slot.name = $"slot-{nameId}";
+            var slot = new SlotElement
+            {
+                SlotIndex = index,
+                GridType = "paperdoll",
+                ContainerEntity = _paperdollEntity,
+                name = $"slot-{nameId}",
+                pickingMode = PickingMode.Position
+            };
             slot.AddToClassList(ussClass);
-            
-            slot.pickingMode = PickingMode.Position;
 
             _slots.Add(slot);
             parent.Add(slot);
@@ -95,8 +72,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 slot.ContainerEntity = paperdollEntity;
             }
-            
-            // ИСПРАВЛЕНО: Саморегистрация удалена! UIWindow сделает всё сам.
             
             var world = World.DefaultGameObjectInjectionWorld;
             if (world == null) return;
@@ -122,8 +97,5 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _slots[i].SetData(itemId, config, "paperdoll", i, slotData.Amount);
             }
         }
-        
-        string IDataSourceProvider.DataSourceId => DataSourceId;
     }
 }
-

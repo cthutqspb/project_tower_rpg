@@ -73,7 +73,7 @@ namespace ProjectTowerRpg.Core.UI
             Debug.Log("[DragManager]: Ghost создан");
         }
 
-                private void Update()
+        private void Update()
         {
             // Если ghost ещё не создался (reload UI), ничего не делаем
             if (_ghost == null) return;
@@ -113,10 +113,9 @@ namespace ProjectTowerRpg.Core.UI
                     }
                     
                     // Находим контейнер общего типа (если бросили просто на окно без конкретного слота)
-                    var provider = picked.GetFirstAncestorOfType<IDataSourceProvider>();
-                    if (provider != null)
+                    if (picked is IEntityContainer container)
                     {
-                        Finish(provider, -1);
+                        Finish(container, -1);
                         return;
                     }
                 }
@@ -125,7 +124,6 @@ namespace ProjectTowerRpg.Core.UI
                 HandleWorldDrop(mousePos);
             }
         }
-
 
         private float3 GetDropPosition(float3 playerPosition)
         {
@@ -257,11 +255,6 @@ namespace ProjectTowerRpg.Core.UI
             if (component is StaticGrid grid)
             {
                 return grid.BoundEntity;
-            }
-
-            if (component is IDataSourceProvider provider)
-            {
-                return EntityRegistry.Get(provider.DataSourceId);
             }
 
             return Entity.Null;

@@ -45,21 +45,16 @@ namespace ProjectTowerRpg.ECS.Systems
                 Entity actorEntity = intent.ValueRO.Actor;
                 Entity targetInventory = Entity.Null;
 
-                // Если лутает живой Игрок — берем его глобальную сумку из твоего реестра
-                if (SystemAPI.HasComponent<PlayerTag>(actorEntity))
-                {
-                    targetInventory = EntityRegistry.Get("player_inventory");
-                }
-                else
-                {
-                    // Для NPC-спутников и монстров вытаскиваем инвентарь по их динамическому UID чанка,
-                    // который твой Бэйкер честно регистрирует при их рождении!
-                    if (SystemAPI.TryGetComponent<UnitComponent>(actorEntity, out var unitComp))
-                    {
-                        targetInventory = EntityRegistry.Get($"{unitComp.Uid}_inventory");
-                    }
-                }
+                // Получаем EntityManager
+                var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
+                // Для ЛЮБОГО юнита (игрок, монстр, NPC) — ищем инвентарь по Owner + InventoryTag
+                targetInventory = ContainerHelper.GetContainerForUnit<InventoryTag>(actorEntity, em);
+
+                if (targetInventory == Entity.Null)
+                {
+                    Debug.LogError($"[ActionDispatcher] Инвентарь для актора {actorEntity.Index} не найден!");
+                }
                 if (targetInventory != Entity.Null)
                 {
                     // Твой родной, кристально чистый вызов экшена лута без нарушения многопоточности!
