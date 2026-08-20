@@ -44,7 +44,7 @@ namespace ProjectTowerRpg.Core.Items
             if (IsLoaded) return;
 
             // Находим путь к файлу (подставь свою рабочую папку, например Resources или StreamingAssets)
-            string filePath = Path.Combine(Application.streamingAssetsPath, "Data/LootTables.json");
+            string filePath = Path.Combine(Application.streamingAssetsPath, "LootTables.json");
             
             // Если у тебя базы лежат в Resources:
             // TextAsset targetJson = Resources.Load<TextAsset>("Data/LootTables");

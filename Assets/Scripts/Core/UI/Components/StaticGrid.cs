@@ -70,6 +70,9 @@ namespace ProjectTowerRpg.Core.UI.Components
                 slot.ContainerEntity = targetEntity;
             }
 
+            // ✅ РЕГИСТРИРУЕМСЯ В UIRegistry ДЛЯ АВТОМАТИЧЕСКОГО ОБНОВЛЕНИЯ
+            UIRegistry.Register(targetEntity, this);
+
             var world = World.DefaultGameObjectInjectionWorld;
             if (world == null) return;
             

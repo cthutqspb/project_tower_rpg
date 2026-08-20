@@ -1,21 +1,30 @@
 using System;
 using UnityEngine;
 using ProjectTowerRpg.Core.UI.Components;
+using Unity.Entities; // Нагло дописываем юзинг для Entity, чтобы мост знал номера сущностей!
 
 namespace ProjectTowerRpg.Core.UI
 {
     public static class UIEvents
     {
         public static event System.Action ToggleCharacterWindow;
+        
+        public static event Action<Entity> OpenContainerWindow;
+        
         public static event System.Action CloseAllWindows;
 
-        // ДОБАВЛЯЕМ СЛЕПЫЕ КАНАЛЫ СВЯЗИ ДЛЯ СЛОТОВ (Твои msg.post аналоги)
+        // ДОБАВЛЯЕМ СЛЕПЫЕ КАНАЛЫ СВЯЗИ ДЛЯ СЛОТОВ
         public static event Action<SlotElement, int, string, string, int> OnSlotDoubleClick;
         public static event Action<SlotElement, int, string, string, int, Vector2> OnSlotRightClick;
 
         public static void TriggerToggleCharacterWindow()
         {
             ToggleCharacterWindow?.Invoke();
+        }
+
+        public static void TriggerOpenContainerWindow(Entity containerEntity)
+        {
+            OpenContainerWindow?.Invoke(containerEntity);
         }
 
         public static void TriggerCloseAllWindows()

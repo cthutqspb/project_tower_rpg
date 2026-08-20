@@ -3,6 +3,7 @@ using Unity.Mathematics;
 using UnityEngine.UIElements;
 using UnityEngine.InputSystem;
 using Unity.Entities;
+using ProjectTowerRpg.ECS.Actions;      // ← ДОБАВЛЕНО
 using ProjectTowerRpg.ECS.Systems;
 using ProjectTowerRpg.Core.UI.Components;
 using ProjectTowerRpg.ECS.Components;
@@ -75,22 +76,16 @@ namespace ProjectTowerRpg.Core.UI
 
         private void Update()
         {
-            // Если ghost ещё не создался (reload UI), ничего не делаем
             if (_ghost == null) return;
-
-            // Если в данный момент ничего не тащим — Update просто спит и ждёт вызова StartDrag из манипулятора
             if (_activeDrag == null) return;
 
             var mouse = Mouse.current;
             if (mouse == null) return;
 
             Vector2 mousePos = mouse.position.ReadValue();
-            
-            // Обновляем позицию визуального призрака за курсором
             _ghost.style.left = mousePos.x - 24;
             _ghost.style.top = Screen.height - mousePos.y - 24;
 
-            // Проверяем, отпустил ли игрок левую кнопку мыши
             if (!mouse.leftButton.isPressed)
             {
                 var localPos = new Vector2(mousePos.x, Screen.height - mousePos.y);
@@ -98,29 +93,25 @@ namespace ProjectTowerRpg.Core.UI
 
                 if (picked != null && picked != _root)
                 {
-                    // Ищем любой источник драга под курсором (инвентарь, кукла, экшнбар)
                     IDragSource slot = null;
                     if (picked is IDragSource ds)
                         slot = ds;
                     else
                         slot = picked.GetFirstAncestorOfType<IDragSource>();
-                    
+
                     if (slot != null && slot is SlotElement slotElement)
                     {
-                        // Идеальный полиморфизм: передаем чистый int индекс слота
                         Finish(slotElement, slotElement.SlotIndex);
                         return;
                     }
-                    
-                    // Находим контейнер общего типа (если бросили просто на окно без конкретного слота)
+
                     if (picked is IEntityContainer container)
                     {
                         Finish(container, -1);
                         return;
                     }
                 }
-                
-                // Если отпустили мышь в пустом месте экрана — это дроп в мир
+
                 HandleWorldDrop(mousePos);
             }
         }
@@ -129,15 +120,15 @@ namespace ProjectTowerRpg.Core.UI
         {
             var camera = Camera.main;
             if (camera == null) return playerPosition + new float3(1.5f, 0, 1.5f);
-            
+
             var forward = camera.transform.forward;
             forward.y = 0;
             forward.Normalize();
-            
+
             var random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(1, 999999));
             float sideAngle = random.NextFloat(-0.3f, 0.3f);
             var direction = math.mul(quaternion.RotateY(sideAngle), forward);
-            
+
             return playerPosition + direction * random.NextFloat(0.27f, 0.72f);
         }
 
@@ -161,9 +152,9 @@ namespace ProjectTowerRpg.Core.UI
                 {
                     Type = "item_drop",
                     SourceEntity = sourceEntity,
-                    SourceSlot = _activeDrag.SlotIndex, // Теперь это int!
+                    SourceSlot = _activeDrag.SlotIndex,
                     TargetEntity = Entity.Null,
-                    TargetSlot = -1,                    // Теперь это int!
+                    TargetSlot = -1,
                     ItemId = _activeDrag.ItemId,
                     Amount = _activeDrag.Amount,
                     Position = dropPosition
@@ -183,19 +174,14 @@ namespace ProjectTowerRpg.Core.UI
 
         public void StartDrag(DragData data)
         {
-            if (_activeDrag != null)
-            {
-                CancelDrag();
-            }
+            if (_activeDrag != null) CancelDrag();
 
             _activeDrag = data;
             ClearGhost();
 
             _ghost.style.display = DisplayStyle.Flex;
             if (data.Icon != null)
-            {
                 _ghost.style.backgroundImage = new StyleBackground(data.Icon);
-            }
 
             _amountLabel.text = data.Amount > 1 ? data.Amount.ToString() : "";
             _amountLabel.style.display = data.Amount > 1 ? DisplayStyle.Flex : DisplayStyle.None;
@@ -224,9 +210,9 @@ namespace ProjectTowerRpg.Core.UI
                     {
                         Type = "item_transfer",
                         SourceEntity = sourceEntity,
-                        SourceSlot = _activeDrag.SlotIndex, // Теперь это int!
+                        SourceSlot = _activeDrag.SlotIndex,
                         TargetEntity = targetEntity,
-                        TargetSlot = targetSlot,            // Теперь это int!
+                        TargetSlot = targetSlot,
                         ItemId = _activeDrag.ItemId,
                         Amount = _activeDrag.Amount
                     });
@@ -247,15 +233,13 @@ namespace ProjectTowerRpg.Core.UI
             if (component == null) return Entity.Null;
 
             if (component is SlotElement slotElement)
-            {
                 return slotElement.ContainerEntity;
-            }
 
-            // ИСПРАВЛЕНО: Вместо устаревшего .InventoryEntity читаем универсальное .BoundEntity!
             if (component is StaticGrid grid)
-            {
                 return grid.BoundEntity;
-            }
+
+            if (component is Paperdoll paperdoll)
+                return paperdoll.BoundEntity;
 
             return Entity.Null;
         }
@@ -266,7 +250,6 @@ namespace ProjectTowerRpg.Core.UI
 
             ClearGhost();
             _activeDrag = null;
-
             Debug.Log("[DragManager] Драг отменён");
         }
 
@@ -286,11 +269,9 @@ namespace ProjectTowerRpg.Core.UI
         private void OnDestroy()
         {
             if (_panelRenderer != null)
-            {
                 _panelRenderer.UnregisterUIReloadCallback(OnUIReloaded);
-            }
+
             _instance = null;
         }
     }
 }
-

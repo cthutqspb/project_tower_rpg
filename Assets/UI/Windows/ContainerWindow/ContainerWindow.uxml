@@ -1,0 +1,32 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- Подключаем наш свежий файл стилей без инлайнов -->
+    <ui:Style src="project://database/Assets/UI/Windows/ContainerWindow/ContainerWindow.uss" />
+
+    <!-- Корневой контейнер окна добычи -->
+    <ui:VisualElement class="loot-window" name="window-root" picking-mode="Position">
+        
+        <!-- Хедер-контейнер (сюда встанет HeaderComponent) -->
+        <ui:VisualElement name="header-container" />
+        
+        <!-- Тело окна добычи -->
+        <ui:VisualElement class="loot-body" name="content-container">
+            
+            <!-- Сетка выпавших предметов (StaticGrid создастся в C#) -->
+            <ui:ScrollView
+              class="loot-inventory-column"
+              name="inventory-container"
+              style="padding: 0;"
+              movement-type="Elastic"
+              elasticity="0.1">
+            </ui:ScrollView>
+            
+            <!-- Подвал окна с кнопкой -->
+            <ui:VisualElement class="loot-footer" name="footer-container">
+                <ui:Button class="take-all-button" name="take-all-btn" text="ВЗЯТЬ ВСЁ" />
+            </ui:VisualElement>
+            
+        </ui:VisualElement>
+        
+    </ui:VisualElement>
+</ui:UXML>
+
