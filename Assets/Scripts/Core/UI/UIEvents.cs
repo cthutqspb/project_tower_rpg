@@ -14,8 +14,8 @@ namespace ProjectTowerRpg.Core.UI
         public static event System.Action CloseAllWindows;
 
         // ДОБАВЛЯЕМ СЛЕПЫЕ КАНАЛЫ СВЯЗИ ДЛЯ СЛОТОВ
-        public static event Action<SlotElement, int, string, string, int> OnSlotDoubleClick;
-        public static event Action<SlotElement, int, string, string, int, Vector2> OnSlotRightClick;
+        public static event Action<SlotElement, int, string, int> OnSlotDoubleClick;
+        public static event Action<SlotElement, int, string, int, Vector2> OnSlotRightClick;
 
         public static void TriggerToggleCharacterWindow()
         {
@@ -33,15 +33,15 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // Триггеры для вызова из внутренностей SlotElement
-        public static void TriggerSlotDoubleClick(SlotElement slot, int index, string gridType, string itemId, int amount)
+        public static void TriggerSlotDoubleClick(SlotElement slot, int index, string itemId, int amount)
         {
-            OnSlotDoubleClick?.Invoke(slot, index, gridType, itemId, amount);
+            OnSlotDoubleClick?.Invoke(slot, index, itemId, amount);
         }
 
-        public static void TriggerSlotRightClick(SlotElement slot, int index, string gridType, string itemId, int amount, Vector2 mousePos)
+        public static void TriggerSlotRightClick(SlotElement slot, int index, string itemId, int amount, Vector2 mousePos)
         {
-            OnSlotRightClick?.Invoke(slot, index, gridType, itemId, amount, mousePos);
-        }
+            OnSlotRightClick?.Invoke(slot, index, itemId, amount, mousePos);
+        }    
     }
 }
 

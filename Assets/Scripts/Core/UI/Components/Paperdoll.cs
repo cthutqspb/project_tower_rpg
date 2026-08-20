@@ -52,7 +52,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             var slot = new SlotElement
             {
                 SlotIndex = index,
-                GridType = "paperdoll",
                 ContainerEntity = _paperdollEntity,
                 name = $"slot-{nameId}",
                 pickingMode = PickingMode.Position
@@ -94,7 +93,8 @@ namespace ProjectTowerRpg.Core.UI.Components
                 var itemId = slotData.DataId.ToString();
                 var config = !string.IsNullOrEmpty(itemId) ? ItemsDatabase.GetItem(itemId) : null;
                 
-                _slots[i].SetData(itemId, config, "paperdoll", i, slotData.Amount);
+                // ✅ ИСПРАВЛЕНО: убрали gridType
+                _slots[i].SetData(itemId, config, i, slotData.Amount);
             }
         }
     }

@@ -11,7 +11,6 @@ namespace ProjectTowerRpg.Core.UI
         public int Amount;
         public Sprite Icon;
         public string SourceId;
-        public string GridType;
         public Entity SourceEntity;
         public Entity TargetEntity;
     }

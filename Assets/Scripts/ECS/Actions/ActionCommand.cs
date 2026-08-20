@@ -6,7 +6,7 @@ namespace ProjectTowerRpg.ECS.Actions
 {
     public struct ActionCommand : IComponentData
     {
-        public FixedString64Bytes Type;        // "loot", "open_container", "attack", "interact", "move_to", "item_transfer", "item_drop", "item_use"
+        public FixedString64Bytes ActionType;        // "loot", "open_container", "attack", "interact", "move_to", "item_transfer", "item_drop", "item_use"
         public Entity SourceEntity;            // Кто выполняет действие
         public int SourceSlot;                 // Для трансферов/дропа
         public Entity TargetEntity;            // Над кем/чем выполняется действие

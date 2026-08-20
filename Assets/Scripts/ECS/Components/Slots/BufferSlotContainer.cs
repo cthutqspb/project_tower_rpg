@@ -87,6 +87,16 @@ public class BufferSlotContainer : ISlotContainer
 
         if (content is SlotData incomingData)
         {
+            // ================================================================
+            // 🔥 ЗАЩИТА ОТ ВЛОЖЕННЫХ КОНТЕЙНЕРОВ (ГЛУБИНА = 1)
+            // ================================================================
+            // Если предмет — это контейнер, то класть его в другой контейнер НЕЛЬЗЯ
+            if (IsContainerItem(incomingData.DataId.ToString()))
+            {
+                Debug.Log($"[BufferSlotContainer] Блокировка: попытка положить контейнер '{incomingData.DataId}' в контейнер!");
+                return false;
+            }
+
             var targetContainerType = slots[slot].ContainerType;
 
             switch (targetContainerType)
@@ -109,5 +119,15 @@ public class BufferSlotContainer : ISlotContainer
         }
 
         return false;
+    }    
+
+    // ================================================================
+    // 🛠️ ВСПОМОГАТЕЛЬНЫЙ МЕТОД
+    // ================================================================
+    private bool IsContainerItem(string itemId)
+    {
+        if (string.IsNullOrEmpty(itemId)) return false;
+        var config = ItemsDatabase.GetItem(itemId);
+        return config != null && config.identity.type == "container";
     }
 }

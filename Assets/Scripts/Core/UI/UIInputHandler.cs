@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Entities;
 using UnityEngine.UIElements;
-using ProjectTowerRpg.ECS.Actions;          // ← ДОБАВЛЕНО
+using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.ECS.Systems;
 using ProjectTowerRpg.Core.UI.Components;
@@ -14,7 +14,6 @@ namespace ProjectTowerRpg.Core.UI
         private InputAction _toggleCharacterAction;
         private InputAction _closeWindowAction;
         private EntityManager _entityManager;
-        
         private TooltipVisual _tooltipVisual;
 
         private void Start()
@@ -34,7 +33,6 @@ namespace ProjectTowerRpg.Core.UI
                 panelRenderer.RegisterUIReloadCallback((renderer, root, version) => 
                 {
                     if (root == null) return;
-                    
                     _tooltipVisual = new TooltipVisual();
                     root.Add(_tooltipVisual);
                 });
@@ -49,15 +47,8 @@ namespace ProjectTowerRpg.Core.UI
 
         private void Update()
         {
-            if (_toggleCharacterAction.triggered)
-            {
-                UIEvents.TriggerToggleCharacterWindow();
-            }
-
-            if (_closeWindowAction.triggered)
-            {
-                WindowManager.CloseTop();
-            }
+            if (_toggleCharacterAction.triggered) UIEvents.TriggerToggleCharacterWindow();
+            if (_closeWindowAction.triggered) WindowManager.CloseTop();
 
             if (Mouse.current != null)
             {
@@ -65,90 +56,132 @@ namespace ProjectTowerRpg.Core.UI
                 TooltipManager.UpdateMouse(mousePos.x, mousePos.y);
             }
 
-            if (_tooltipVisual != null)
-            {
-                _tooltipVisual.UpdateTick();
-            }
+            if (_tooltipVisual != null) _tooltipVisual.UpdateTick();
         }
 
-        private void HandleSlotDoubleClick(SlotElement slot, int index, string gridType, string itemId, int amount)
+        // ================================================================
+        // 🎯 ДАБЛКЛИК (БЕЗ GRIDTYPE!)
+        // ================================================================
+        private void HandleSlotDoubleClick(SlotElement slot, int index, string itemId, int amount)
         {
             if (slot.ContainerEntity == Entity.Null) return;
 
             var em = _entityManager;
-            var actionEntity = em.CreateEntity();
 
-            var currentConfig = em.GetComponentData<ContainerConfigComponent>(slot.ContainerEntity);
-            Entity unitOwner = currentConfig.Owner;
+            bool isInventory = em.HasComponent<InventoryTag>(slot.ContainerEntity);
+            bool isPaperdoll = em.HasComponent<PaperdollTag>(slot.ContainerEntity);
+            bool isContainer = em.HasComponent<ContainerTag>(slot.ContainerEntity);
 
             Entity targetContainerEntity = Entity.Null;
 
-            var containerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<ContainerConfigComponent>());
-            var allContainers = containerQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
-
-            foreach (var container in allContainers)
+            // КЕЙС 1: ИНВЕНТАРЬ → кукла
+            if (isInventory && !isContainer)
             {
-                var cfg = em.GetComponentData<ContainerConfigComponent>(container);
-                if (cfg.Owner == unitOwner)
+                var ownerEntity = em.GetComponentData<ContainerConfigComponent>(slot.ContainerEntity).Owner;
+
+                var allContainers = em.CreateEntityQuery(
+                    ComponentType.ReadOnly<ContainerConfigComponent>(),
+                    ComponentType.ReadOnly<PaperdollTag>()
+                ).ToEntityArray(Unity.Collections.Allocator.Temp);
+
+                foreach (var container in allContainers)
                 {
-                    if (gridType == "inventory" && cfg.Rows == 1)
-                    {
-                        targetContainerEntity = container;
-                        break;
-                    }
-                    if (gridType == "paperdoll" && cfg.Rows > 1)
+                    var cfg = em.GetComponentData<ContainerConfigComponent>(container);
+                    if (cfg.Owner == ownerEntity)
                     {
                         targetContainerEntity = container;
                         break;
                     }
                 }
-            }
-            allContainers.Dispose();
+                allContainers.Dispose();
 
-            if (targetContainerEntity == Entity.Null)
-            {
-                Debug.LogWarning($"[UIInputHandler] Парный контейнер для юнита {unitOwner} не найден!");
+                if (targetContainerEntity != Entity.Null)
+                {
+                    CreateTransferCommand(em, slot.ContainerEntity, index, targetContainerEntity, itemId, amount);
+                    Debug.Log($"[UIInputHandler] Даблклик: экипировка {itemId}");
+                    return;
+                }
+
+                Debug.LogWarning($"[UIInputHandler] Не найдена кукла для {itemId}");
                 return;
             }
 
-            if (gridType == "inventory")
+            // КЕЙС 2: КУКЛА → инвентарь
+            if (isPaperdoll)
             {
-                em.AddComponentData(actionEntity, new ActionCommand
+                var ownerEntity = em.GetComponentData<ContainerConfigComponent>(slot.ContainerEntity).Owner;
+
+                var allContainers = em.CreateEntityQuery(
+                    ComponentType.ReadOnly<ContainerConfigComponent>(),
+                    ComponentType.ReadOnly<InventoryTag>()
+                ).ToEntityArray(Unity.Collections.Allocator.Temp);
+
+                foreach (var container in allContainers)
                 {
-                    Type = "item_transfer",
-                    SourceEntity = slot.ContainerEntity,
-                    SourceSlot = index,
-                    TargetEntity = targetContainerEntity,
-                    TargetSlot = -1,
-                    ItemId = itemId,
-                    Amount = amount
-                });
-                Debug.Log($"[UIInputHandler] Даблклик: экипировка {itemId}");
+                    var cfg = em.GetComponentData<ContainerConfigComponent>(container);
+                    if (cfg.Owner == ownerEntity)
+                    {
+                        targetContainerEntity = container;
+                        break;
+                    }
+                }
+                allContainers.Dispose();
+
+                if (targetContainerEntity != Entity.Null)
+                {
+                    CreateTransferCommand(em, slot.ContainerEntity, index, targetContainerEntity, itemId, amount);
+                    Debug.Log($"[UIInputHandler] Даблклик: снятие {itemId}");
+                    return;
+                }
+
+                Debug.LogWarning($"[UIInputHandler] Не найден инвентарь для снятия {itemId}");
+                return;
             }
-            else if (gridType == "paperdoll")
+
+            // КЕЙС 3: КОНТЕЙНЕР (сундук/матрешка) → инвентарь игрока
+            if (isContainer)
             {
-                em.AddComponentData(actionEntity, new ActionCommand
+                Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+                if (playerEntity != Entity.Null)
                 {
-                    Type = "item_transfer",
-                    SourceEntity = slot.ContainerEntity,
-                    SourceSlot = index,
-                    TargetEntity = targetContainerEntity,
-                    TargetSlot = -1,
-                    ItemId = itemId,
-                    Amount = amount
-                });
-                Debug.Log($"[UIInputHandler] Даблклик: снятие {itemId}");
+                    targetContainerEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(playerEntity, em);
+                }
+
+                if (targetContainerEntity != Entity.Null)
+                {
+                    CreateTransferCommand(em, slot.ContainerEntity, index, targetContainerEntity, itemId, amount);
+                    Debug.Log($"[UIInputHandler] Даблклик: забрал {itemId} из контейнера");
+                    return;
+                }
+
+                Debug.LogWarning($"[UIInputHandler] Не найден инвентарь игрока для {itemId}");
+                return;
             }
+
+            Debug.LogWarning($"[UIInputHandler] Неизвестный тип контейнера для даблклика: {slot.ContainerEntity}");
         }
 
-        private void HandleSlotRightClick(SlotElement slot, int index, string gridType, string itemId, int amount, Vector2 mousePos)
+        // ================================================================
+        // 🎯 ПКМ (БЕЗ GRIDTYPE!)
+        // ================================================================
+        private void HandleSlotRightClick(SlotElement slot, int index, string itemId, int amount, Vector2 mousePos)
         {
-            if (gridType == "aura_frame")
+            if (slot.ContainerEntity == Entity.Null) return;
+
+            var em = _entityManager;
+
+            bool isAuraFrame = em.HasComponent<AuraFrameTag>(slot.ContainerEntity);
+            bool isActionBar = em.HasComponent<ActionBarTag>(slot.ContainerEntity);
+            bool isInventory = em.HasComponent<InventoryTag>(slot.ContainerEntity);
+            bool isContainer = em.HasComponent<ContainerTag>(slot.ContainerEntity);
+
+            // КЕЙС 1: АУРА → снять бафф
+            if (isAuraFrame)
             {
-                var actionEntity = _entityManager.CreateEntity();
-                _entityManager.AddComponentData(actionEntity, new ActionCommand
+                var actionEntity = em.CreateEntity();
+                em.AddComponentData(actionEntity, new ActionCommand
                 {
-                    Type = "disable_aura",
+                    ActionType = "disable_aura",
                     SourceEntity = slot.ContainerEntity,
                     SourceSlot = index,
                     ItemId = itemId
@@ -157,15 +190,45 @@ namespace ProjectTowerRpg.Core.UI
                 return;
             }
 
-            if (gridType == "action_bar")
+            // КЕЙС 2: ACTION BAR → игнорируем
+            if (isActionBar)
             {
                 return;
             }
 
-            if (gridType == "inventory")
+            // КЕЙС 3: ИНВЕНТАРЬ (не сундук) → контекстное меню
+            if (isInventory && !isContainer)
             {
                 Debug.Log($"[UIInputHandler] ПКМ по рюкзаку: {itemId} на {mousePos}");
+                return;
             }
+
+            // КЕЙС 4: СУНДУК → осмотр
+            if (isContainer)
+            {
+                Debug.Log($"[UIInputHandler] ПКМ по сундуку: осмотр {itemId}");
+                return;
+            }
+
+            Debug.Log($"[UIInputHandler] ПКМ по неизвестному контейнеру: {slot.ContainerEntity}");
+        }
+
+        // ================================================================
+        // 🛠️ ВСПОМОГАТЕЛЬНЫЙ МЕТОД
+        // ================================================================
+        private void CreateTransferCommand(EntityManager em, Entity source, int sourceSlot, Entity target, string itemId, int amount)
+        {
+            var actionEntity = em.CreateEntity();
+            em.AddComponentData(actionEntity, new ActionCommand
+            {
+                ActionType = "item_transfer",
+                SourceEntity = source,
+                SourceSlot = sourceSlot,
+                TargetEntity = target,
+                TargetSlot = -1,
+                ItemId = itemId,
+                Amount = amount
+            });
         }
     }
 }

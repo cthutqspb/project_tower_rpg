@@ -6,14 +6,25 @@ namespace ProjectTowerRpg.ECS.Systems
     public class ItemView : MonoBehaviour
     {
         [Header("Item View Passport")]
-        public string uid;      // Генерируется чанком при дропе или пишется руками на сцене
-        public string itemId;   // Идентификатор из JSON-базы ("iron_sword", "crystal_sword")
+        public string uid;      // Уникальный строковый ID ("i_123_456")
+        public string itemId;   // Идентификатор из JSON-базы ("iron_sword")
 
         [HideInInspector] 
-        public bool IsLinked = false; // Замок: чтобы линковщик не привязал дважды
+        public bool IsLinked = false;
         
         [HideInInspector]
-        public Entity Entity = Entity.Null; // 🌟 Наш живой ECS-паспорт с большой буквы!
+        public Entity Entity = Entity.Null;
+
+        // Автоматически вычисляем хэш при изменении uid в редакторе
+        #if UNITY_EDITOR
+        private void OnValidate()
+        {
+            if (!string.IsNullOrEmpty(uid))
+            {
+                // Просто для отладки, чтобы видеть хэш в инспекторе
+                // Сам хэш вычисляется на лету в LinkSystem
+            }
+        }
+        #endif
     }
 }
-

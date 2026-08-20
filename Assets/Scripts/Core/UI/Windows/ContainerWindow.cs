@@ -3,6 +3,7 @@ using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.UI.Components;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.ECS.Actions;
 
 namespace ProjectTowerRpg.Core.UI.Windows
 {
@@ -91,10 +92,33 @@ namespace ProjectTowerRpg.Core.UI.Windows
         }
 
         private void OnTakeAllClicked()
-        {
+        {   
             if (_containerEntity == Entity.Null) return;
-            Debug.Log($"💰 [UI] 'ВЗЯТЬ ВСЁ' для сундука {_containerEntity.Index}");
-            Close();
+
+            var defaultWorld = World.DefaultGameObjectInjectionWorld;
+            if (defaultWorld == null) return;
+
+            // 🛠️ ЗРЯЧИЙ ДОСТУП К ОЗУ: Берем EntityManager центрального игрового мира
+            var worldEntityManager = defaultWorld.EntityManager;
+
+            // Находим сущность нашего главного героя через ваш универсальный тег
+            Entity activePlayerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+
+            // Рождаем чистую ECS-сущность команды в ОЗУ симуляции
+            Entity commandEntity = worldEntityManager.CreateEntity();
+            
+            // Накатываем параметры команды — диспетчер шёлково поймает её в следующем кадре!
+            worldEntityManager.AddComponentData(commandEntity, new ActionCommand 
+            { 
+                ActionType = "container_take_all", 
+                SourceEntity = activePlayerEntity, // Кто грабит (Игрок)
+                TargetEntity = _containerEntity     // Что грабим (Сумка сундука/трупа)
+            });
+
+            Debug.Log($"💰 [UI Action]: Отправлена команда container_take_all от игрока {activePlayerEntity.Index} для сундука {_containerEntity.Index}");
+            
+            // Close(); // Закомментировано для отладки
         }
+    
     }
 }

@@ -2,7 +2,6 @@ using Unity.Entities;
 using Unity.Collections;
 using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.Items; // Подключаем твой домен предметов
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -14,39 +13,33 @@ namespace ProjectTowerRpg.ECS.Systems
         {
             var em = EntityManager;
 
-            // 🎯 1. НАХОДИМ ВСЕ МОДЕЛЬКИ ПРЕДМЕТОВ НА СЦЕНЕ (Через чистый ItemView!)
+            // 1. Находим все ItemView на сцене
             var viewsOnScene = Object.FindObjectsByType<ItemView>(FindObjectsInactive.Exclude);
-            if (viewsOnScene.Length == 0) return; 
+            if (viewsOnScene.Length == 0) return;
 
-            // 🎯 2. ДЕЛАЕМ ЗАПРОС В ECS: Берем живые души предметов из ОЗУ
+            // 2. Находим все сущности предметов в ECS
             var query = em.CreateEntityQuery(ComponentType.ReadOnly<ItemComponent>());
             var entities = query.ToEntityArray(Allocator.Temp);
 
-            // 🚀 ЗЕРКАЛЬНЫЙ КОНВЕЙЕР СВЯЗЫВАНИЯ СУЩНОСТЕЙ С ГРАФИКОЙ
+            // 3. Связываем по UID
             foreach (var entity in entities)
             {
                 var itemData = em.GetComponentData<ItemComponent>(entity);
-                string currentItemId = itemData.ItemId.ToString();
                 int currentUid = itemData.Uid;
 
-                foreach (var authoring in viewsOnScene)
+                foreach (var view in viewsOnScene)
                 {
-                    // Проверяем замок: если этот предмет уже привязан к какой-то сущности в ECS — скипаем
-                    if (authoring.Entity != Entity.Null) continue;
+                    // Пропускаем уже привязанные
+                    if (view.Entity != Entity.Null) continue;
 
-                    // Генерируем уникальный UID по текущим координатам куба (Копейка в копейку как в твоем Бэйкере!)
-                    int authoringUid = $"i_{(int)authoring.transform.position.x}_{(int)authoring.transform.position.z}".GetHashCode();
+                    // 🔥 ГЛАВНОЕ: сравниваем по UID (хеш строки)
+                    int viewUid = view.uid.GetHashCode();
 
-                    // Проверяем совпадение: либо совпал уникальный UID координат, либо строковый ID из базы
-                    bool isUidMatch = authoringUid == currentUid;
-                    bool isIdMatch = authoring.itemId == currentItemId;
-
-                    if (isUidMatch || isIdMatch)
+                    if (viewUid == currentUid)
                     {
-                        // 🌟 ЦЕМЕНТИРУЕМ СВЯЗЬ: Записываем живую ECS-сущность прямо в свойство!
-                        authoring.Entity = entity; 
-
-                        Debug.Log($"📦 [ItemViewLinkSystem]: Предмет {authoring.gameObject.name} успешно слинкован с Entity ID: {entity.Index}!");
+                        view.Entity = entity;
+                        view.IsLinked = true;
+                        Debug.Log($"[ItemViewLinkSystem] Связан {view.gameObject.name} (uid: {view.uid}) с Entity {entity.Index}");
                         break;
                     }
                 }
@@ -56,4 +49,3 @@ namespace ProjectTowerRpg.ECS.Systems
         }
     }
 }
-

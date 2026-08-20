@@ -68,7 +68,8 @@ namespace ProjectTowerRpg.ECS.Actions
                 Columns = columns,
                 Rows = rows
             });
-
+            
+            ecb.AddComponent<ContainerTag>(bagEntity);
             ecb.AddComponent<InventoryTag>(bagEntity);
 
             var slotsBuffer = ecb.AddBuffer<SlotData>(bagEntity);

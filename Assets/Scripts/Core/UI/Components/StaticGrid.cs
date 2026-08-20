@@ -10,20 +10,17 @@ namespace ProjectTowerRpg.Core.UI.Components
 {
     public class StaticGrid : VisualElement, IEcsUiBufferReceiver<SlotData>, IEntityContainer
     {
-        private string _gridType;
         private int _columns;
         private int _rows;
         private List<SlotElement> _slots = new();
         private Entity _boundEntity;
 
-        public string GridType => _gridType;
         public Entity BoundEntity => _boundEntity;
 
         public StaticGrid(int columns, int rows, string gridType)
         {
             _columns = columns;
             _rows = rows;
-            _gridType = gridType;
             
             this.AddToClassList("static-grid-container");
             this.AddToClassList($"grid-{gridType}");
@@ -40,7 +37,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 var slot = new SlotElement
                 {
                     SlotIndex = i,
-                    GridType = _gridType,
+                    // ❌ GridType = _gridType, ← УДАЛИТЬ!
                     name = $"slot-{i}",
                     style =
                     {
@@ -70,7 +67,6 @@ namespace ProjectTowerRpg.Core.UI.Components
                 slot.ContainerEntity = targetEntity;
             }
 
-            // ✅ РЕГИСТРИРУЕМСЯ В UIRegistry ДЛЯ АВТОМАТИЧЕСКОГО ОБНОВЛЕНИЯ
             UIRegistry.Register(targetEntity, this);
 
             var world = World.DefaultGameObjectInjectionWorld;
@@ -98,7 +94,8 @@ namespace ProjectTowerRpg.Core.UI.Components
                 var itemId = slotData.DataId.ToString();
                 var config = !string.IsNullOrEmpty(itemId) ? ItemsDatabase.GetItem(itemId) : null;
                 
-                _slots[i].SetData(itemId, config, _gridType, i, slotData.Amount);
+                // ✅ ИСПРАВЛЕНО: убрали gridType
+                _slots[i].SetData(itemId, config, i, slotData.Amount);
             }
         }
     }

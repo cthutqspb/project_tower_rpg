@@ -80,7 +80,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
                             var command = ActionResolver.Resolve(playerEntity, targetEntity, em);
 
-                            if (command.Type != "none")
+                            if (command.ActionType != "none")
                             {
                                 command.SourceEntity = playerEntity; // ← ЭТА СТРОКА БЫЛА ПРОПУЩЕНА
 
@@ -90,7 +90,7 @@ namespace ProjectTowerRpg.ECS.Systems
                                 var cmdEntity = ecb.CreateEntity();
                                 ecb.AddComponent(cmdEntity, command);
 
-                                Debug.Log($"[InputSystem] Создана команда '{command.Type}' для цели {targetEntity.Index}");
+                                Debug.Log($"[InputSystem] Создана команда '{command.ActionType}' для цели {targetEntity.Index}");
                             }
                         }
                         else

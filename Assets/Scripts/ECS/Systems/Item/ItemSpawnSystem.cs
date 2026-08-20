@@ -66,7 +66,8 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         view.uid = generatedUidStr; // Сюда шёлково залетает строка (string = string)
                         view.itemId = itemIdStr;
-                        view.IsLinked = false; 
+                        view.IsLinked = false;
+                        view.Entity = itemEntity;
                     }
                 }
                 else

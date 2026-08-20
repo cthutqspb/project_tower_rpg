@@ -150,7 +150,7 @@ namespace ProjectTowerRpg.Core.UI
                 var actionEntity = _entityManager.CreateEntity();
                 _entityManager.AddComponentData(actionEntity, new ActionCommand
                 {
-                    Type = "item_drop",
+                    ActionType = "item_drop",
                     SourceEntity = sourceEntity,
                     SourceSlot = _activeDrag.SlotIndex,
                     TargetEntity = Entity.Null,
@@ -208,7 +208,7 @@ namespace ProjectTowerRpg.Core.UI
                     var actionEntity = _entityManager.CreateEntity();
                     _entityManager.AddComponentData(actionEntity, new ActionCommand
                     {
-                        Type = "item_transfer",
+                        ActionType = "item_transfer",
                         SourceEntity = sourceEntity,
                         SourceSlot = _activeDrag.SlotIndex,
                         TargetEntity = targetEntity,

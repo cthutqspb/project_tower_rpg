@@ -104,7 +104,10 @@ namespace ProjectTowerRpg.ECS.Actions
             {
                 ItemId = itemId,
                 Amount = amount,
-                Position = position
+                Position = position,
+                LootTableId = "", // если нужно
+                RespawnTime = 0,  // если нужно
+                IsLooted = false  // ← ДОБАВИТЬ!
             });
 
             Debug.Log($"[ItemActions] Запрос на спавн предмета {itemId} x{amount} отправлен в ItemSpawnSystem");

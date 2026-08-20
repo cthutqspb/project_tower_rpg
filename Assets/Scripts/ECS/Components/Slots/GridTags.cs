@@ -16,4 +16,6 @@ namespace ProjectTowerRpg.ECS.Components
     public struct AuraFrameTag : IComponentData { }
 
     public struct PaperdollTag : IComponentData { }
+
+    public struct ContainerTag : IComponentData { }
 }

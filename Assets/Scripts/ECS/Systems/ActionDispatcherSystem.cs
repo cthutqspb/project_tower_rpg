@@ -32,9 +32,9 @@ namespace ProjectTowerRpg.ECS.Systems
             foreach (var (cmd, entity) in 
                      SystemAPI.Query<RefRO<ActionCommand>>().WithEntityAccess())
             {
-                var type = cmd.ValueRO.Type.ToString();
+                var actionType = cmd.ValueRO.ActionType.ToString();
 
-                switch (type)
+                switch (actionType)
                 {
                     case "loot":
                         ExecuteLoot(cmd.ValueRO, ecb);
@@ -42,6 +42,10 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     case "open_container":
                         ExecuteOpenContainer(cmd.ValueRO, ecb);
+                        break;
+
+                    case "container_take_all":
+                        ExecuteContainerTakeAll(cmd.ValueRO);
                         break;
 
                     case "attack":
@@ -69,7 +73,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         break;
 
                     default:
-                        Debug.LogWarning($"[ActionDispatcher]: Неизвестная команда '{type}'");
+                        Debug.LogWarning($"[ActionDispatcher]: Неизвестная команда '{actionType}'");
                         break;
                 }
 
@@ -103,6 +107,54 @@ namespace ProjectTowerRpg.ECS.Systems
             ContainerActions.Open(cmd.TargetEntity, ecb);
             Debug.Log($"[ActionDispatcher] Открыт контейнер {cmd.TargetEntity.Index}");
         }
+
+        private void ExecuteContainerTakeAll(ActionCommand cmd)
+        {
+            var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+
+            // 1. Узнаем Entity рантайм-мешка сундука, который мы грабим
+            Entity sourceBagEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(cmd.TargetEntity, entityManager);
+            
+            // 2. Узнаем Entity рантайм-мешка рюкзака игрока, куда переливаем вещи
+            Entity targetBagEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(cmd.SourceEntity, entityManager);
+
+            if (sourceBagEntity == Entity.Null || targetBagEntity == Entity.Null)
+            {
+                Debug.LogWarning("[ActionDispatcher] 'ВЗЯТЬ ВСЁ' отменено: не найден мешок сундука или игрока.");
+                return;
+            }
+
+            // 3. Получаем доступ к буферу слотов сундука, чтобы узнать, сколько там ячеек
+            var sourceSlotsBuffer = _slotDataLookup[sourceBagEntity];
+
+            // 🔄 Бежим по ячейкам мешка сундука
+            for (int i = 0; i < sourceSlotsBuffer.Length; i++)
+            {
+                var slotData = sourceSlotsBuffer[i];
+
+                // 💰 Если в слоте сундука есть реальный предмет — шёлково скармливаем команду твоему трансферу!
+                if (!slotData.IsEmpty)
+                {
+                    // Создаем промежуточную подкоманду на перенос конкретного слота
+                    var singleTransferCommand = new ActionCommand
+                    {
+                        ActionType = "item_transfer",
+                        SourceEntity = sourceBagEntity, // Скормили Entity самого мешка сундука!
+                        SourceSlot = i,
+                        TargetEntity = targetBagEntity, // Скормили Entity самого рюкзака игрока!
+                        TargetSlot = -1,                // Диспетчер сам найдет пустой слот по правилам CanPlaceContent
+                        ItemId = slotData.DataId,
+                        Amount = slotData.Amount
+                    };
+
+                    // Нагло вызываем твой готовый метод! Он сам создаст BufferSlotContainer и сделает Transfer!
+                    ExecuteItemTransfer(singleTransferCommand);
+                }
+            }
+
+            Debug.Log($"💰 [ActionDispatcher]: Экшен 'ВЗЯТЬ ВСЁ' шёлково перелил предметы из мешка {sourceBagEntity.Index} в рюкзак {targetBagEntity.Index}.");
+        }
+
 
         private void ExecuteAttack(ActionCommand cmd)
         {

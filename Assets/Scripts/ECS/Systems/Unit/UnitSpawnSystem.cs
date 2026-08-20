@@ -193,7 +193,8 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (isPlayer)
                 {
                     var testItems = new (string id, int amount)[]
-                    {
+                    {   
+                        ("crystal_sword", 1),
                         ("iron_sword", 1),
                         ("crystal_sword", 1),
                         ("leather_helmet", 1),

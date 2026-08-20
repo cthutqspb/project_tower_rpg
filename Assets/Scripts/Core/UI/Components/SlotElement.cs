@@ -90,7 +90,6 @@ namespace ProjectTowerRpg.Core.UI.Components
                 Amount = _amount,
                 Icon = null, // TODO: вытащить спрайт из конфигурации, если нужно
                 SourceId = DataSourceId,
-                GridType = GridType,
                 SourceEntity = ContainerEntity
             };
         }
@@ -99,30 +98,60 @@ namespace ProjectTowerRpg.Core.UI.Components
         // Public Methods (Слот теперь просто принимает готовые данные)
         // ================================================================
 
-        public void SetData(string itemId, ItemConfig config, string gridType, int index, int amount = 1)
+        public void SetData(string itemId, ItemConfig config, int index, int amount = 1)
         {
             _itemId = itemId;
             _amount = amount;
-            GridType = gridType;
             SlotIndex = index;
             
             ClearVisual();
 
             if (config == null || string.IsNullOrEmpty(itemId) || amount <= 0)
             {
-                return; // Если слот пустой, просто выходим (он уже очистился внутри ClearVisual)
+                return;
             }
 
             _icon.style.display = DisplayStyle.Flex;
             _icon.style.backgroundColor = GetQualityColor(config.identity.quality);
 
-            if (gridType == "action_bar")
+            // 🔥 ОПРЕДЕЛЯЕМ ТИП ПО ТЕГАМ (через ContainerEntity)
+            if (ContainerEntity != Entity.Null)
             {
-                _bindLabel.style.display = DisplayStyle.Flex;
-                _bindLabel.text = GetBindKey(index);
+                var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+                
+                // Проверяем теги прямо в ECS
+                bool isActionBar = em.HasComponent<ActionBarTag>(ContainerEntity);
+                bool isAuraFrame = em.HasComponent<AuraFrameTag>(ContainerEntity);
+                bool isInventory = em.HasComponent<InventoryTag>(ContainerEntity);
+                bool isPaperdoll = em.HasComponent<PaperdollTag>(ContainerEntity);
+                bool isContainer = em.HasComponent<ContainerTag>(ContainerEntity);
+
+                // ================================================================
+                // КЕЙС: ACTION BAR → показываем бинд-клавишу
+                // ================================================================
+                if (isActionBar)
+                {
+                    _bindLabel.style.display = DisplayStyle.Flex;
+                    _bindLabel.text = GetBindKey(index);
+                }
+
+                // ================================================================
+                // КЕЙС: АУРА → показываем длительность (задел)
+                // ================================================================
+                if (isAuraFrame)
+                {
+                    // TODO: отображать длительность ауры
+                    // _durationLabel.style.display = DisplayStyle.Flex;
+                    // _durationLabel.text = duration.ToString();
+                }
+
+                // ================================================================
+                // КЕЙС: ИНВЕНТАРЬ, КУКЛА, КОНТЕЙНЕР → стандартное отображение
+                // ================================================================
+                // Ничего дополнительного не делаем, просто показываем иконку и количество
             }
 
-            // Проверяем, что количество больше 1, чтобы отобразить счетчик стака
+            // Количество
             if (amount > 1)
             {
                 _amountLabel.style.display = DisplayStyle.Flex;
@@ -130,11 +159,9 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
             else
             {
-                // Если 1 или меньше, скрываем лейбл количества
                 _amountLabel.style.display = DisplayStyle.None;
                 _amountLabel.text = "";
             }
-
         }
 
         // Метод Refresh() больше не лезет в ECS! Сетка сама обновит слот, когда прилетит буфер.
@@ -169,23 +196,21 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         private void OnSlotClicked(ClickEvent evt)
         {
-            // Если слот пустой — кликать не по чему
             if (string.IsNullOrEmpty(_itemId)) return;
 
-            // 🎯 СЦЕНАРИЙ 1: Системный двойной клик левой кнопкой мыши (ЛКМ)
+            // Даблклик ЛКМ
             if (evt.clickCount == 2 && evt.button == 0)
-            {   
-                // Слот просто сообщает наверх: "По мне кликнули дважды!"
-                UIEvents.TriggerSlotDoubleClick(this, SlotIndex, GridType, _itemId, _amount);
+            {
+                UIEvents.TriggerSlotDoubleClick(this, SlotIndex, _itemId, _amount);
                 evt.StopPropagation();
                 return;
             }
 
-            // 🎯 СЦЕНАРИЙ 2: Одиночный правый клик (ПКМ)
+            // ПКМ
             if (evt.clickCount == 1 && evt.button == 1)
             {
-                // ИСПРАВЛЕНО: Заменили evt.mousePosition на родное evt.position
-                UIEvents.TriggerSlotRightClick(this, SlotIndex, GridType, _itemId, _amount, evt.position);
+                // ✅ ИСПРАВЛЕНО: используем evt.position
+                UIEvents.TriggerSlotRightClick(this, SlotIndex, _itemId, _amount, evt.position);
                 evt.StopPropagation();
                 return;
             }
