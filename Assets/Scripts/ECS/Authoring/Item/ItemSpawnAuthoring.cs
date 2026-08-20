@@ -11,6 +11,12 @@ namespace ProjectTowerRpg.ECS.Authoring
         public string itemId = "iron_sword";
         public int amount = 1;
 
+        [Header("ID таблицы лута")]
+        public string lootTableId = "";
+
+        [Header("Время респавна объекта (в СЕКУНДАХ, 0 = без респавна)")]
+        public int respawnTime = 0;
+
         // 🎨 ВИЗУАЛИЗАЦИЯ МЕТКИ В РЕДАКТОРЕ UNITY (Каноничный неоновый Tokyonight Green)
         private void OnDrawGizmos()
         {
@@ -41,8 +47,9 @@ namespace ProjectTowerRpg.ECS.Authoring
             AddComponent(entity, new DropItemRequest
             {
                 ItemId = authoring.itemId,
-                Amount = authoring.amount,
-                Position = authoring.transform.position
+                Amount = authoring.amount, 
+                Position = authoring.transform.position,
+                LootTableId = authoring.lootTableId,
             });
         }
     }

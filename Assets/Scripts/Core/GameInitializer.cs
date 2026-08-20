@@ -12,6 +12,7 @@ public class GameInitializer : MonoBehaviour
         
         // 2. Накатываем базу данных шмоток из JSON
         ItemsDatabase.Load();
+        LootTables.Load();
 
         // 🌟 3. НАКАТЫВАЕМ БАЗУ ДАННЫХ СУЩЕСТВ (Исправляет слепоту UI на чистой сцене!)
         if (!UnitsDatabase.IsLoaded)

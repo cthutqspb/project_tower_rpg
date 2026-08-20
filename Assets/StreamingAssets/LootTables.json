@@ -1,0 +1,45 @@
+{
+  "chest_common": [
+    {
+      "item_id": "lesser_mana_potion",
+      "chance": 1.0,
+      "min_amount": 1,
+      "max_amount": 3
+    },
+    {
+      "item_id": "crystal_sword",
+      "chance": 0.5,
+      "min_amount": 1,
+      "max_amount": 1
+    }
+  ],
+  "unit_common": [
+    {
+      "item_id": "lesser_mana_potion",
+      "chance": 1.0,
+      "min_amount": 1,
+      "max_amount": 1
+    },
+    {
+      "item_id": "iron_sword",
+      "chance": 0.5,
+      "min_amount": 1,
+      "max_amount": 1
+    }
+  ],
+  "wooden_barrel": [
+    {
+      "item_id": "lesser_mana_potion",
+      "chance": 1.0,
+      "min_amount": 1,
+      "max_amount": 2
+    },
+    {
+      "item_id": "iron_sword",
+      "chance": 0.3,
+      "min_amount": 1,
+      "max_amount": 1
+    }
+  ]
+}
+

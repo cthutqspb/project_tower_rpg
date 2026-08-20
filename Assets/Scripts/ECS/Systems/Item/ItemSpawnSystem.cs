@@ -45,8 +45,9 @@ namespace ProjectTowerRpg.ECS.Systems
                     Uid = generatedUidHash,
                     ItemId = itemIdStr,  
                     Amount = request.ValueRO.Amount,
-                    LootTableId = "empty",
-                    IsLooted = false
+                    LootTableId = request.ValueRO.LootTableId,
+                    IsLooted = request.ValueRO.IsLooted,
+                    RespawnTime = request.ValueRO.RespawnTime
                 });
 
                 // =========================================================================

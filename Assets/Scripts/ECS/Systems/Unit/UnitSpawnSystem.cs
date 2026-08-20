@@ -198,7 +198,8 @@ namespace ProjectTowerRpg.ECS.Systems
                         ("crystal_sword", 1),
                         ("leather_helmet", 1),
                         ("clown_hat", 1),
-                        ("lesser_mana_potion", 5)
+                        ("lesser_mana_potion", 5),
+                        ("chest_common", 1)
                     };
 
                     var playerSlotsBuffer = em.GetBuffer<SlotData>(inventoryEntity);
