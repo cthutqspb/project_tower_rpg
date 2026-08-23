@@ -68,10 +68,10 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             this.RegisterCallback<PointerOverEvent>(OnPointerOver);
             this.RegisterCallback<PointerOutEvent>(OnPointerOut);
+            this.RegisterCallback<PointerDownEvent>(OnSlotClicked);
 
             var dragManipulator = new DragManipulator(this, DragMode.Slot);
             this.AddManipulator(dragManipulator);
-            this.RegisterCallback<ClickEvent>(OnSlotClicked);
         }
 
         // ================================================================
@@ -194,26 +194,25 @@ namespace ProjectTowerRpg.Core.UI.Components
             };
         }
 
-        private void OnSlotClicked(ClickEvent evt)
+        private void OnSlotClicked(PointerDownEvent evt)
         {
             if (string.IsNullOrEmpty(_itemId)) return;
 
-            // Даблклик ЛКМ
-            if (evt.clickCount == 2 && evt.button == 0)
+            // Создаем универсальный контекст, куда пишем ВСЕ параметры мыши
+            var context = new UiClickContext
             {
-                UIEvents.TriggerSlotDoubleClick(this, SlotIndex, _itemId, _amount);
-                evt.StopPropagation();
-                return;
-            }
+                ContextEntity = this.ContainerEntity,
+                SlotIndex = this.SlotIndex,
+                TargetId = _itemId,
+                Amount = _amount,
+                MousePosition = evt.position,
+                MouseButton = evt.button, // 0 или 1
+                ClickCount = evt.clickCount // 1 или 2
+            };
 
-            // ПКМ
-            if (evt.clickCount == 1 && evt.button == 1)
-            {
-                // ✅ ИСПРАВЛЕНО: используем evt.position
-                UIEvents.TriggerSlotRightClick(this, SlotIndex, _itemId, _amount, evt.position);
-                evt.StopPropagation();
-                return;
-            }
+            // Отправляем в единый канал
+            UIEvents.TriggerUiClick(context);
+            evt.StopPropagation();
         }
 
         private string GetBindKey(int index)
@@ -227,7 +226,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             };
         }
         
-               private void OnPointerOver(PointerOverEvent evt)
+        private void OnPointerOver(PointerOverEvent evt)
         {
             // ПРИНТ 1: Проверяем, реагирует ли вообще ячейка на мышь
             Debug.Log($"[SlotElement] Мышь ХОВЕР на слоте #{SlotIndex}. Текущий ItemId: '{_itemId}', GridType: '{GridType}'");

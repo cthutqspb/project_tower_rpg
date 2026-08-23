@@ -57,10 +57,17 @@ namespace ProjectTowerRpg.ECS.Systems
             bool isRmbPressed = !isUiBlocked && _actionOrOrbitAction.IsPressed();
 
             // ================================================================
-            // 3. ОБРАБОТКА ЛЕВОЙ КНОПКИ МЫШИ (Интеракт / Клик)
+            // 3. ОБРАБОТКА КЛИКОВ В МИРЕ (ЛКМ и ПКМ)
             // ================================================================
-            if (!isUiBlocked && _interactOrLookAction.triggered)
+
+            // ✅ ЗАКРЫВАЕМ КОНТЕКСТНОЕ МЕНЮ ПРИ ЛЮБОМ КЛИКЕ В МИРЕ
+            if (!isUiBlocked && (_interactOrLookAction.triggered || _actionOrOrbitAction.triggered))
             {
+                UIEvents.TriggerActionsMenuClosed();
+            }
+             
+            if (!isUiBlocked && _interactOrLookAction.triggered)
+            { 
                 if (DragManager.Instance != null && !DragManager.Instance.IsDragging)
                 {
                     if (SystemAPI.TryGetSingleton<HoverState>(out var hover) &&

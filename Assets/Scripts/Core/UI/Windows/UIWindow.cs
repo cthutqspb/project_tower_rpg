@@ -115,7 +115,17 @@ namespace ProjectTowerRpg.Core.UI
         // ================================================================
 
         public virtual void Open() { if (_context != null) _context.Show(); }
-        public virtual void Close() { if (_context != null) _context.Close(); }
+        public virtual void Close()
+        {
+            // ✅ ОТМЕНЯЕМ ДРАГ ПРИ ЗАКРЫТИИ ЛЮБОГО ОКНА!
+            if (DragManager.Instance != null && DragManager.Instance.IsDragging)
+            {
+                DragManager.Instance.CancelDrag();
+                Debug.Log($"[{GetType().Name}] Драг отменён при закрытии окна.");
+            }
+
+            if (_context != null) _context.Close();
+        }
         public virtual void Toggle() { if (_context != null) _context.Toggle(); }
 
         protected virtual void OnWindowBuilt(VisualElement root) { }

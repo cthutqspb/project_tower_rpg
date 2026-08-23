@@ -1,5 +1,5 @@
 /* Полностью растягиваем корень HUD поверх ui-layer, копейка в копейку как твоё окно персонажа! */
-.hud-screen-root {
+.hud-root {
     position: absolute;
     left: 0px;
     top: 0px;

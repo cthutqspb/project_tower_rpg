@@ -68,8 +68,7 @@ namespace ProjectTowerRpg.Core.UI
 
             // 1. Клонируем плоский скелет HUD
             _root = _hudUxml.CloneTree();
-            _root.pickingMode = PickingMode.Ignore; 
-            _root.style.flexGrow = 1;
+            _root.pickingMode = PickingMode.Ignore;
             globalUiRoot.Add(_root);
 
             // 2. Находим слоты-пустышки в XML

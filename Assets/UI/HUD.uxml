@@ -3,9 +3,11 @@
     <ui:VisualElement picking-mode="Ignore" name="hud-root" class="hud" style="position: absolute; width: 100%; height: 100%; flex-grow: 1; justify-content: space-between;">
         
         <!-- Чистые слоты-пустышки под фреймы -->
-        <ui:VisualElement name="PlayerFrameSlot" />
-        <ui:VisualElement name="TargetFrameSlot" style="align-self: flex-end;" />
+        <!-- Фрейм игрока — в левом верхнем углу -->
+        <ui:VisualElement picking-mode="Ignore" name="PlayerFrameSlot" style="position: absolute; left: 20px; top: 20px;" />
         
+        <!-- Фрейм цели — в правом верхнем углу -->
+        <ui:VisualElement picking-mode="Ignore" name="TargetFrameSlot" style="position: absolute; right: 20px; top: 20px;" />        
     </ui:VisualElement>
 </ui:UXML>
 

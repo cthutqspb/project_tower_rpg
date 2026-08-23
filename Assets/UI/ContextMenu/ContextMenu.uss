@@ -1,0 +1,97 @@
+.context-menu-root {
+    position: absolute;
+    display: none;
+    flex-grow: 1;
+    pointer-events: none; /* чтобы клик проходил сквозь корень */
+}
+
+.context-menu-background {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.85);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 4px;
+    min-width: 180px;
+    max-width: 260px;
+    pointer-events: auto;
+    flex-direction: column;
+}
+
+.context-menu-scroll {
+    flex-grow: 1;
+    max-height: 400px;
+}
+
+.context-menu-scroll .unity-scroll-view__content-container {
+    flex-grow: 1;
+}
+
+.context-menu-list {
+    flex-direction: column;
+    flex-grow: 1;
+    padding: 2px;
+}
+
+/* ================================================================
+   КНОПКА КОНТЕКСТНОГО МЕНЮ
+   ================================================================ */
+.context-menu-button {
+    height: 32px;
+    margin: 1px 0;
+    padding: 4px 12px;
+    background-color: rgba(255, 255, 255, 0.0);
+    border-width: 0;
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    -unity-text-align: middle-left;
+    flex-shrink: 0;
+    transition-duration: 0.08s;
+    align-items: center;
+}
+
+.context-menu-button:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.context-menu-button:active {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.context-menu-button .unity-label {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* КНОПКА С ИКОНКОЙ (задел) */
+.context-menu-button .icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    background-color: transparent;
+}
+
+/* РАЗДЕЛИТЕЛЬ */
+.context-menu-divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.08);
+    margin: 4px 8px;
+}
+
+/* СТИЛЬ ДЛЯ ДИЗАБЛЕД КНОПОК (будущее) */
+.context-menu-button.disabled {
+    color: rgba(255, 255, 255, 0.25);
+    pointer-events: none;
+}
+
+.context-menu-button.disabled:hover {
+    background-color: transparent;
+}
+
+/* ПОДСКАЗКА (Shortcut) — задел для будущего */
+.context-menu-button .shortcut {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 11px;
+    -unity-text-align: middle-right;
+    flex-grow: 1;
+}

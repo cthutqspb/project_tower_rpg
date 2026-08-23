@@ -7,6 +7,9 @@
 /Builds/
 /UserSettings/
 
+/Assets/_Recovery.meta
+/Assets/_Recovery/
+
 # Файлы Plastic SCM и автогенерация
 /.plastic/
 *.sln

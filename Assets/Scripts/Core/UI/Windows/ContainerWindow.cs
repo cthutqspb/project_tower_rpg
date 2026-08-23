@@ -21,11 +21,15 @@ namespace ProjectTowerRpg.Core.UI.Windows
         private void OnEnable()
         {
             UIEvents.OpenContainerWindow += OpenContainer;
+            UIEvents.CloseContainerWindow += CloseContainerByEntity;
+            UIEvents.CloseAllWindows += Close;
         }
 
         private void OnDisable()
         {
             UIEvents.OpenContainerWindow -= OpenContainer;
+            UIEvents.CloseContainerWindow -= CloseContainerByEntity;
+            UIEvents.CloseAllWindows -= Close;
         }
 
         public void OpenContainer(Entity targetContainerEntity)
@@ -33,6 +37,15 @@ namespace ProjectTowerRpg.Core.UI.Windows
             _containerEntity = targetContainerEntity;
             _isWaitingForBag = true;
             Toggle();
+        }
+
+        private void CloseContainerByEntity(Entity containerEntity)
+        {
+            // Закрываем окно ТОЛЬКО если это наш контейнер
+            if (_containerEntity == containerEntity)
+            {
+                Close();
+            }
         }
 
         protected override void OnWindowBuilt(VisualElement root)

@@ -4,3 +4,7 @@
     height: 100%;
     /* background-color: rgba(0, 27, 72, 0.5); */
 }
+
+TemplateContainer {
+    picking-mode: ignore;
+}

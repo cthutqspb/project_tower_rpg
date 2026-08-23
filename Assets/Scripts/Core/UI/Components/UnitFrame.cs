@@ -162,7 +162,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                  UpdateResource(resource.Type, resource.Current, resource.Max);
              }
 
-             UpdateIdentity("ЦЕЛЬ", 1); 
+             UpdateIdentity("ЦЕЛЬ", 5); 
         }
 
         public void ClearTarget()

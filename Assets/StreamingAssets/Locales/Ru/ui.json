@@ -31,7 +31,7 @@
   "btn_load_game": "Загрузить игру",
   "btn_exit_game": "Выйти из игры",
 
-  "_comment_ContextMenu_Default": "",
+  "_comment_ActionsMenu_Default": "",
   "menu_examine": "Осмотреть",
 
   "_comment_Inventory_item": "",

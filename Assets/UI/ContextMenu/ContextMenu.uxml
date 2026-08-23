@@ -1,0 +1,11 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="context-menu-root" class="context-menu-root" style="position: absolute; display: none;">
+        <ui:VisualElement name="context-menu-background" class="context-menu-background">
+            <ui:ScrollView name="context-menu-scroll" class="context-menu-scroll">
+                <ui:VisualElement name="context-menu-list" class="context-menu-list" style="flex-grow: 1;">
+                    <!-- Сюда будут добавляться кнопки динамически -->
+                </ui:VisualElement>
+            </ui:ScrollView>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

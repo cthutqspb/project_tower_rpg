@@ -2,7 +2,7 @@
     <ui:Style src="project://database/Assets/UI/Windows/CharacterWindow/CharacterWindow.uss" />
 
     <!-- Общий фон окна -->
-    <ui:VisualElement class="character-window" name="window-root" picking-mode="Position">
+    <ui:VisualElement class="character-window" name="window-root" picking-mode="Position" style="position: absolute">
         
         <!-- Хедер (общий для всего окна) -->
         <ui:VisualElement name="header-container" />

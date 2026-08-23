@@ -2802,10 +2802,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1367445829}
   - component: {fileID: 1367445830}
-  - component: {fileID: 1367445834}
-  - component: {fileID: 1367445835}
-  - component: {fileID: 1367445836}
-  - component: {fileID: 1367445837}
+  - component: {fileID: 1367445833}
+  - component: {fileID: 1367445832}
+  - component: {fileID: 1367445831}
   m_Layer: 0
   m_Name: '[UI]'
   m_TagString: Untagged
@@ -2888,31 +2887,7 @@ PanelRenderer:
   m_PivotReferenceSize: 0
   m_Pivot: 0
   m_Position: 0
---- !u!114 &1367445834
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1367445828}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7d047ee185fe1ec66aba404ec80d66b3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.UIManager
---- !u!114 &1367445835
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1367445828}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bfd47a510d79a988c8b555177b70aa30, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.DragManager
---- !u!114 &1367445836
+--- !u!114 &1367445831
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2924,7 +2899,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b984b8935005e12ed8d0397d66ad1646, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.DragManager
---- !u!114 &1367445837
+--- !u!114 &1367445832
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2936,6 +2911,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3abdd265d4d14842a9b0b55ce1bd717d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.UIInputHandler
+--- !u!114 &1367445833
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1367445828}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d047ee185fe1ec66aba404ec80d66b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.UIManager
 --- !u!1 &1895062905
 GameObject:
   m_ObjectHideFlags: 0

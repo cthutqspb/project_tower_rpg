@@ -3,6 +3,7 @@ using UnityEngine;
 using ProjectTowerRpg.Core.UI;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core;
 using ProjectTowerRpg.Core.Loot;
 
 namespace ProjectTowerRpg.ECS.Actions
@@ -33,6 +34,20 @@ namespace ProjectTowerRpg.ECS.Actions
             else
             {
                 Debug.Log($"[ContainerActions] Мешок для {containerEntity.Index} уже существует");
+            }
+
+            // ================================================================
+            // 🔥 ДОБАВЛЯЕМ ВЗАИМОДЕЙСТВИЕ В БУФЕР ИГРОКА
+            // ================================================================
+            Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+            if (playerEntity != Entity.Null)
+            {
+                ecb.AppendToBuffer(playerEntity, new InteractionEntry
+                {
+                    TargetEntity = containerEntity,
+                    MaxDistance = 1.5f
+                });
+                Debug.Log($"[ContainerActions] Добавлено взаимодействие с {containerEntity.Index} в буфер игрока");
             }
 
             // 3. ОТКРЫВАЕМ ОКНО

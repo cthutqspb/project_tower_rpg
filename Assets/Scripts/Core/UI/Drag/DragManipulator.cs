@@ -147,7 +147,10 @@ namespace ProjectTowerRpg.Core.UI
         // ================================================================
 
         private void OnPointerDown(PointerDownEvent evt)
-        {
+        {   
+            Debug.Log($"[DragManipulator] OnPointerDown: pointerId={evt.pointerId} button={evt.button}, mode={_mode}");
+    
+            if (evt.button != 0) return;
             switch (_mode)
             {
                 case DragMode.UIElement:

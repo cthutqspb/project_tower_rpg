@@ -159,6 +159,11 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (isPlayer)
                 {
                     em.AddComponent<PlayerTag>(unitEntity);
+                     // ================================================================
+                    // 🔥 БУФЕР ВЗАИМОДЕЙСТВИЙ (ТОЛЬКО ДЛЯ ИГРОКА)
+                    // ================================================================
+                    em.AddBuffer<InteractionEntry>(unitEntity);
+
                     var playerAi = em.GetComponentData<AiComponent>(unitEntity);
                     playerAi.IsFromFactory = false;
                     playerAi.PatrolRadius = 0f;

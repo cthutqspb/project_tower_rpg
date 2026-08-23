@@ -46,30 +46,30 @@ namespace ProjectTowerRpg.ECS.Actions
             }
 
             // 4. Проверяем, является ли цель предметом (Item)
-// 4. Проверяем, является ли цель предметом (Item)
-if (em.HasComponent<ItemComponent>(target))
-{
-    var itemComponent = em.GetComponentData<ItemComponent>(target);
-    var itemIdStr = itemComponent.ItemId.ToString();
-    var itemConfig = ItemsDatabase.GetItem(itemIdStr);
+            // 4. Проверяем, является ли цель предметом (Item)
+            if (em.HasComponent<ItemComponent>(target))
+            {
+                var itemComponent = em.GetComponentData<ItemComponent>(target);
+                var itemIdStr = itemComponent.ItemId.ToString();
+                var itemConfig = ItemsDatabase.GetItem(itemIdStr);
 
-    Debug.Log($"[ActionResolver] Предмет: {itemIdStr}, Дистанция: {distance:F2}м, Сущность: {target.Index}");
+                Debug.Log($"[ActionResolver] Предмет: {itemIdStr}, Дистанция: {distance:F2}м, Сущность: {target.Index}");
 
-    // 📦 КОНТЕЙНЕР (сундук, труп, матрешка) — проверяем по конфигу из БД
-    if (itemConfig != null && itemConfig.identity.type == "container")
-    {
-        if (distance <= 0.72f)
-            return new ActionCommand { ActionType = "open_container", TargetEntity = target }; // ← target — сущность!
-        else
-            return new ActionCommand { ActionType = "move_to", TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
-    }
+                // 📦 КОНТЕЙНЕР (сундук, труп, матрешка) — проверяем по конфигу из БД
+                if (itemConfig != null && itemConfig.identity.type == "container")
+                {
+                    if (distance <= 0.72f)
+                        return new ActionCommand { ActionType = "open_container", TargetEntity = target }; // ← target — сущность!
+                    else
+                        return new ActionCommand { ActionType = "move_to", TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
+                }
 
-    // 💎 ОБЫЧНЫЙ ПРЕДМЕТ (лут) — ЛУТАЕМ СУЩНОСТЬ, А НЕ ПОИСК ПО ID!
-    if (distance <= 0.72f)
-        return new ActionCommand { ActionType = "loot", TargetEntity = target }; // ← target — сущность!
-    else
-        return new ActionCommand { ActionType = "move_to", TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
-}
+                // 💎 ОБЫЧНЫЙ ПРЕДМЕТ (лут) — ЛУТАЕМ СУЩНОСТЬ, А НЕ ПОИСК ПО ID!
+                if (distance <= 0.72f)
+                    return new ActionCommand { ActionType = "loot", TargetEntity = target }; // ← target — сущность!
+                else
+                    return new ActionCommand { ActionType = "move_to", TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
+            }
 
             // 5. Проверяем, является ли цель объектом (Object)
             if (em.HasComponent<ObjectComponent>(target))
