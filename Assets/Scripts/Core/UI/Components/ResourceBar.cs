@@ -16,9 +16,6 @@ namespace ProjectTowerRpg.Core.UI.Components
         {
             _root = barRoot;
             _fill = barRoot.Q<VisualElement>("fill") ?? barRoot;
-
-            // Взводим дефолтное состояние при старте (100% маны)
-            UpdateResource(ResourceType.Mana, 1.0f);
         }
 
         /// <summary>

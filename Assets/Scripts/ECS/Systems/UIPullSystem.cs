@@ -14,6 +14,7 @@ namespace ProjectTowerRpg.ECS.Systems
             var slotLookup = SystemAPI.GetBufferLookup<SlotData>(true);
             var healthLookup = SystemAPI.GetComponentLookup<HealthComponent>(true);
             var resourceLookup = SystemAPI.GetComponentLookup<ResourceComponent>(true);
+            var unitLookup = SystemAPI.GetComponentLookup<UnitComponent>(true);
 
             var combatLookup = SystemAPI.GetComponentLookup<CombatStateComponent>(true);
 
@@ -70,53 +71,70 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // ================================================================
-                // 🌟 ТВОЙ СЛАЙС Г: ОБНОВЛЕНИЕ ФРЕЙМА ЦЕЛИ (TargetFrame)
+                // 🌟 СЛАЙС Г: РЕАКТИВНОЕ ОБНОВЛЕНИЕ ЮНИТА (UnitFrame)
                 // ================================================================
-                // entity здесь — это Игрок, к которому привязан TargetFrame в UIRegistry
-                if (combatLookup.HasComponent(entity))
-                {
-                    var combatState = combatLookup[entity];
-                    Entity targetEntity = combatState.CurrentTarget;
+                if (unitLookup.HasComponent(entity) && unitLookup.DidChange(entity, LastSystemVersion))
+                {   
+                    var unitData = unitLookup[entity];
 
-                    // Если цель есть и она существует в мире
-                    if (targetEntity != Entity.Null && healthLookup.HasComponent(targetEntity))
+                    foreach (var receiver in receivers)
                     {
-                        // Проверяем: изменился ли сам таргет ИЛИ изменились ли данные внутри этого таргета
-                        bool targetChanged = combatLookup.DidChange(entity, LastSystemVersion);
-                        bool healthChanged = healthLookup.DidChange(targetEntity, LastSystemVersion);
-                        bool resourceChanged = resourceLookup.HasComponent(targetEntity) && resourceLookup.DidChange(targetEntity, LastSystemVersion);
-
-                        if (targetChanged || healthChanged || resourceChanged)
-                        {
-                            var targetHealth = healthLookup[targetEntity];
-                            
-                            foreach (var receiver in receivers)
-                            {
-                                // Интерфейс TargetFrame должен реализовывать этот кастомный ресивер
-                                if (receiver is IEcsUiTargetReceiver targetUi)
-                                {
-                                    // Передаем данные компоненты цели напрямую в UI
-                                    var targetResource = resourceLookup.HasComponent(targetEntity) 
-                                        ? resourceLookup[targetEntity] 
-                                        : default;
-
-                                    targetUi.UpdateTargetInfo(ref targetHealth, ref targetResource);
-                                }
-                            }
-                        }
-                    }
-                    else if (combatLookup.DidChange(entity, LastSystemVersion))
-                    {
-                        // Если таргет сбросился (стал Null) в этом кадре — очищаем UI
-                        foreach (var receiver in receivers)
-                        {
-                            if (receiver is IEcsUiTargetReceiver targetUi)
-                            {
-                                targetUi.ClearTarget();
-                            }
+                        if (receiver is IEcsUiComponentReceiver<UnitComponent> unitUi)
+                        {   
+                            unitUi.UpdateFromComponent(ref unitData);
                         }
                     }
                 }
+
+
+                // ================================================================
+                // 🌟 ТВОЙ СЛАЙС Г: ОБНОВЛЕНИЕ ФРЕЙМА ЦЕЛИ (TargetFrame)
+                // ================================================================
+                // entity здесь — это Игрок, к которому привязан TargetFrame в UIRegistry
+                // if (combatLookup.HasComponent(entity))
+                // {
+                //     var combatState = combatLookup[entity];
+                //     Entity targetEntity = combatState.CurrentTarget;
+                //
+                //     // Если цель есть и она существует в мире
+                //     if (targetEntity != Entity.Null && healthLookup.HasComponent(targetEntity))
+                //     {
+                //         // Проверяем: изменился ли сам таргет ИЛИ изменились ли данные внутри этого таргета
+                //         bool targetChanged = combatLookup.DidChange(entity, LastSystemVersion);
+                //         bool healthChanged = healthLookup.DidChange(targetEntity, LastSystemVersion);
+                //         bool resourceChanged = resourceLookup.HasComponent(targetEntity) && resourceLookup.DidChange(targetEntity, LastSystemVersion);
+                //
+                //         if (targetChanged || healthChanged || resourceChanged)
+                //         {
+                //             var targetHealth = healthLookup[targetEntity];
+                //             
+                //             foreach (var receiver in receivers)
+                //             {
+                //                 // Интерфейс TargetFrame должен реализовывать этот кастомный ресивер
+                //                 if (receiver is IEcsUiTargetReceiver targetUi)
+                //                 {
+                //                     // Передаем данные компоненты цели напрямую в UI
+                //                     var targetResource = resourceLookup.HasComponent(targetEntity) 
+                //                         ? resourceLookup[targetEntity] 
+                //                         : default;
+                //
+                //                     targetUi.UpdateTargetInfo(ref targetHealth, ref targetResource);
+                //                 }
+                //             }
+                //         }
+                //     }
+                //     else if (combatLookup.DidChange(entity, LastSystemVersion))
+                //     {
+                //         // Если таргет сбросился (стал Null) в этом кадре — очищаем UI
+                //         foreach (var receiver in receivers)
+                //         {
+                //             if (receiver is IEcsUiTargetReceiver targetUi)
+                //             {
+                //                 targetUi.ClearTarget();
+                //             }
+                //         }
+                //     }
+                // }
             }
         }
     }

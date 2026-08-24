@@ -672,11 +672,9 @@ MonoBehaviour:
   _playerFrame:
     _frameUxml: {fileID: 9197481963319205126, guid: 5f163d188fc27a53d8a98e5c2b17f3e1, type: 3}
     _progressBarUxml: {fileID: 9197481963319205126, guid: 2e5709dea21d265dd9629eb57af791be, type: 3}
-    IsTargetFrame: 0
   _targetFrame:
     _frameUxml: {fileID: 9197481963319205126, guid: 5f163d188fc27a53d8a98e5c2b17f3e1, type: 3}
     _progressBarUxml: {fileID: 9197481963319205126, guid: 2e5709dea21d265dd9629eb57af791be, type: 3}
-    IsTargetFrame: 1
 --- !u!43 &803995126
 Mesh:
   m_ObjectHideFlags: 0

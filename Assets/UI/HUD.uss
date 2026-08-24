@@ -13,7 +13,3 @@
     pointer-events: none;
 }
 
-.target-frame-alignment {
-    align-self: flex-end;
-}
-

@@ -50,6 +50,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // Вытаскиваем параметры из JSON-базы данных
+                string nameKey = dbCfg.identity.name_key;
                 float baseSpeed = dbCfg.parameters.base_speed;
                 float hitboxRadius = dbCfg.parameters.hitbox_radius;
 
@@ -73,6 +74,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 {
                     Uid = markerData.IsPlayer ? "player" : generatedUid,
                     UnitId = uId,
+                    NameKey = markerData.IsPlayer ? "player" : nameKey,
                     Level = markerData.Level,
                     Position = spawnPos
                 });

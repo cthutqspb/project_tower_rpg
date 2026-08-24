@@ -2,18 +2,21 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
+using ProjectTowerRpg.Core.Localization;
 using ProjectTowerRpg.ECS.Components; // Твой namespace с компонентами
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
     [Serializable]
     // 🌟 ИСПРАВЛЕНО: Теперь класс официально подписывает контракт ресивера компонентов ECS!
-    public class UnitFrame : IEcsUiComponentReceiver<HealthComponent>, IEcsUiComponentReceiver<ResourceComponent>, IEcsUiTargetReceiver
+    public class UnitFrame : IEcsUiComponentReceiver<HealthComponent>,
+                             IEcsUiComponentReceiver<ResourceComponent>,
+                             IEcsUiComponentReceiver<UnitComponent>
     {
         [Header("Список компонентов фрейма")]
         [SerializeField] private VisualTreeAsset _frameUxml;       // Сюда UnitFrame.uxml
         [SerializeField] private VisualTreeAsset _progressBarUxml; // Сюда ProgressBar.uxml
-        public bool IsTargetFrame = false;
+        //public bool IsTargetFrame = false;
 
         private VisualElement _frameRoot;
         private Label _unitNameLabel;
@@ -98,6 +101,21 @@ namespace ProjectTowerRpg.Core.UI.Components
             UpdateResource(component.Type, component.Current, component.Max);
         }
 
+        /// <summary>
+        /// Вызывается UIPullSystem (СЛАЙС Д), когда данные паспорта мутируют или инициализируются в ECS
+        /// </summary>
+        public void UpdateFromComponent(ref UnitComponent component)
+        {
+            // Берем сырой NameKey из компонента, конвертируем в строку
+            string rawNameKey = component.NameKey.ToString();
+
+            // Извлекаем перевод из синглтона локализации и переводим в верхний регистр
+            string localizedName = LocalizationManager.Get(rawNameKey).ToUpper();
+
+            // Перенаправляем подготовленные данные в наш публичный метод апдейта
+            UpdateIdentity(localizedName, component.Level);
+        }
+
         // =========================================================================
         // ТВОИ ВНУТРЕННИЕ МЕТОДЫ ОБНОВЛЕНИЯ ВИЗУАЛА
         // =========================================================================
@@ -114,11 +132,19 @@ namespace ProjectTowerRpg.Core.UI.Components
             _unitResourceBar?.UpdateResource(type, max > 0 ? current / max : 0f);
         }
 
-        public void UpdateIdentity(string nameKey, int level)
+        public void UpdateIdentity(string localizedName, int level)
         {
-            Debug.Log($"[UnitFrame ДЕБАГ]: Обновлен паспорт! Имя/Ключ: {nameKey}, Уровень: {level}");
-            if (_unitNameLabel != null) _unitNameLabel.text = nameKey;
-            if (_unitLevelLabel != null) _unitLevelLabel.text = $"Ур. {level}";
+            Debug.Log($"[UnitFrame ДЕБАГ]: Обновлен паспорт! Имя/Текст: {localizedName}, Уровень: {level}");
+            
+            if (_unitNameLabel != null) 
+            {
+                _unitNameLabel.text = localizedName;
+            }
+
+            if (_unitLevelLabel != null) 
+            {
+                _unitLevelLabel.text = $"Ур. {level}";
+            }
         }
 
         public void SetVisible(bool visible)
@@ -132,45 +158,22 @@ namespace ProjectTowerRpg.Core.UI.Components
         /// </summary>
         public void BindToEntity(Entity entity)
         {
-            Debug.Log($"[UnitFrame ДЕБАГ]: Вызван метод BindToEntity для сущности с ECS-индексом: {entity.Index}");
-
-            if (_boundEntity != Entity.Null)
-            {
-                Debug.Log($"[UnitFrame ДЕБАГ]: Выписываю старую сущность {_boundEntity.Index} из UIRegistry.");
-                UIRegistry.Unregister(_boundEntity, this);
-            }
-
+            if (_boundEntity != Entity.Null) UIRegistry.Unregister(_boundEntity, this);
+            
             _boundEntity = entity;
+            
+            if (_boundEntity != Entity.Null) UIRegistry.Register(_boundEntity, this);
 
-            if (_boundEntity != Entity.Null)
+            // 👑 НАСТОЯЩИЙ REACT UNMOUNT/MOUNT (Канон сброса анимаций Unity):
+            if (_frameRoot != null && _frameRoot.parent != null)
             {
-                UIRegistry.Register(_boundEntity, this);
-                Debug.Log($"[UnitFrame ДЕБАГ]: Сущность {_boundEntity.Index} УСПЕШНО зарегистрирована в UIRegistry для этого фрейма!");
+                var parentSlot = _frameRoot.parent; // Запоминаем наш слот-пустышку (TargetFrameSlot)
+                
+                parentSlot.Remove(_frameRoot); // Физически вырываем фрейм из дерева UI (Unmount)
+                parentSlot.Add(_frameRoot);    // Вставляем его обратно в ту же наносекунду (Mount!)
+                
+                // Все внутренние кэши геометрии и transition полосок стерты в ноль!
             }
-        }
-
-        public void UpdateTargetInfo(ref HealthComponent health, ref ResourceComponent resource)
-        {
-             // 🔒 ГВАРД-ПРЕДОХРАНИТЕЛЬ: Мой личный фрейм игрока игнорирует этот метод!
-             if (!IsTargetFrame) return;
-
-             SetVisible(true);
-             UpdateHealth(health.Current, health.Max);
-
-             if (resource.Type != ProjectTowerRpg.ECS.Components.ResourceType.None)
-             {
-                 UpdateResource(resource.Type, resource.Current, resource.Max);
-             }
-
-             UpdateIdentity("ЦЕЛЬ", 5); 
-        }
-
-        public void ClearTarget()
-        {
-            // 🔒 ГВАРД-ПРЕДОХРАНИТЕЛЬ: Мой личный фрейм игрока никогда не выключится от клика по земле!
-            if (!IsTargetFrame) return;
-
-            SetVisible(false);
         }
     }
 }

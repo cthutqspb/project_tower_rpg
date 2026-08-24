@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Unity.Entities;
-using ProjectTowerRpg.ECS.Actions;
-using ProjectTowerRpg.Core.UI;
+using ProjectTowerRpg.Core.Localization;
 
 namespace ProjectTowerRpg.Core.UI
 {
@@ -12,12 +10,10 @@ namespace ProjectTowerRpg.Core.UI
         private VisualElement _root;
         private VisualElement _listContainer;
         private List<Button> _buttons = new List<Button>();
-        private EntityManager _entityManager;
         private bool _isVisible = false;
 
-        public ActionsMenuVisual(EntityManager entityManager)
+        public ActionsMenuVisual()
         {
-            _entityManager = entityManager;
             this.style.position = Position.Absolute;
             this.style.display = DisplayStyle.None;
             this.pickingMode = PickingMode.Ignore;
@@ -72,14 +68,10 @@ namespace ProjectTowerRpg.Core.UI
             this.pickingMode = PickingMode.Position;
             _isVisible = true;
             this.BringToFront();
-            Debug.Log("[ActionMenuVisual] Меню показано");
         }
 
         public void Hide()
         {
-            Debug.Log("[ActionMenuVisual] Hide()");
-            
-            // ✅ УДАЛЯЕМ ВСЁ, ЧТО СОЗДАЛИ
             if (_root != null)
             {
                 Remove(_root);
@@ -98,7 +90,7 @@ namespace ProjectTowerRpg.Core.UI
         private Button CreateButton(MenuAction action, object contextData)
         {
             var button = new Button();
-            button.text = action.NameKey;
+            button.text = LocalizationManager.Get(action.NameKey);
             button.style.marginBottom = 2;
             button.style.unityTextAlign = TextAnchor.MiddleLeft;
             button.style.paddingLeft = 10;
@@ -136,23 +128,57 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         private void CreateActionCommand(MenuAction action, object menuActionData)
-        {
-            if (_entityManager == null) return;
-
+        {   
             var data = menuActionData as ActionsMenu.MenuActionData;
             if (data == null) return;
 
-            var actionEntity = _entityManager.CreateEntity();
-            _entityManager.AddComponentData(actionEntity, new ActionCommand
-            {
-                ActionType = action.ActionType,
-                SourceEntity = data.ContainerEntity,
-                SourceSlot = data.SlotIndex,
-                ItemId = data.ItemId,
-                Amount = data.Amount,
-            });
+            // ✅ ИДЕАЛЬНАЯ ИЗОЛЯЦИЯ (Реакт-канон): 
+            // Вместо создания сущностей на месте, мы просто стреляем ивентом в глобальную шину!
+            UIEvents.TriggerMenuActionSelected(action, data);
 
-            Debug.Log($"[ActionsMenu] Выполнено действие: {action.ActionType} для {data.ItemId}");
+            Debug.Log($"[ActionsMenuVisual] Действие '{action.ActionType}' отправлено наверх в контроллер.");
         }
+
+        // private void CreateActionCommand(MenuAction action, object menuActionData)
+        // {   
+        //     if (_entityManager == null) return;
+        //
+        //     var data = menuActionData as ActionsMenu.MenuActionData;
+        //     if (data == null) return;
+        //
+        //     // По умолчанию целью является сам игрок (Инициатор)
+        //     Entity targetEntity = data.TargetEntity; 
+        //
+        //     // 🎯 ВЫЧИСЛЯЕМ ЦЕЛЬ СТРОГО ПО КОНТРАКТУ ДАННЫХ КНОПКИ
+        //     if (action.Data != null && action.Data.TryGetValue("target_type", out var typeObj))
+        //     {
+        //         string targetType = typeObj.ToString();
+        //         
+        //         if (targetType == "paperdoll")
+        //         {
+        //             targetEntity = PlayerUtils.GetEntityByTag<PaperdollTag>(_entityManager);
+        //         }
+        //         else if (targetType == "inventory" || targetType == "player_inventory")
+        //         {
+        //             targetEntity = PlayerUtils.GetEntityByTag<InventoryTag>(_entityManager);
+        //         }
+        //         // Если это покупка у торговца, targetEntity — это сам торговец (SourceEntity), 
+        //         // а в системе выполнения команд мы проверим его золото/товары.
+        //     }
+        //     
+        //     var actionEntity = _entityManager.CreateEntity();
+        //     _entityManager.AddComponentData(actionEntity, new ActionCommand
+        //     {
+        //         ActionType = action.ActionType,
+        //         SourceEntity = data.ContainerEntity,
+        //         SourceSlot = data.SlotIndex,
+        //         TargetEntity = targetEntity,
+        //         TargetSlot = -1,
+        //         ItemId = data.ItemId,
+        //         Amount = data.Amount,
+        //     });
+        //
+        //     Debug.Log($"[ActionsMenu] Выполнено действие: {action.ActionType} для {data.ItemId}");
+        // }
     }
 }

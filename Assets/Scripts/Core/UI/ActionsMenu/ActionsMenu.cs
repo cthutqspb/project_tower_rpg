@@ -1,10 +1,8 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
-using ProjectTowerRpg.Core.UI.Components;
 using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.ECS.Components;
-using System.Collections.Generic;
 using ProjectTowerRpg.Core.Items;
 
 namespace ProjectTowerRpg.Core.UI
@@ -57,7 +55,7 @@ namespace ProjectTowerRpg.Core.UI
                 globalUiRoot.Remove(_visual);
             }
 
-            _visual = new ActionsMenuVisual(_entityManager);
+            _visual = new ActionsMenuVisual();
             globalUiRoot.Add(_visual);
             Debug.Log("[ActionsMenu] ActionsMenuVisual добавлен в корень UI");
         }
@@ -124,6 +122,7 @@ namespace ProjectTowerRpg.Core.UI
                 ItemId = context.TargetId,
                 Amount = context.Amount,
                 SourceType = isPaperdoll ? "paperdoll" : "inventory",
+                TargetEntity = PlayerUtils.GetEntityByTag<PlayerTag>()
             };
 
             // Позиционируем меню по координатам мыши из контекста
@@ -162,6 +161,45 @@ namespace ProjectTowerRpg.Core.UI
             _visual = null;
             _isInitialized = false;
             Debug.Log("[ActionsMenu] Очищен");
+        }
+
+        public static void HandleMenuActionSelected(MenuAction action, ActionsMenu.MenuActionData data)
+        {
+            if (_entityManager == null) return;
+            var em = _entityManager;
+
+            // По умолчанию берем Игрока, которого мы бережно вычислили на этапе метода Show
+            Entity targetEntity = data.TargetEntity; 
+
+            // 🎯 СТРОГИЙ МАРШРУТ ПО ДАННЫХ КНОПКИ (Бочки, Торговцы, Банки)
+            if (action.Data != null && action.Data.TryGetValue("target_type", out var typeObj))
+            {
+                string targetType = typeObj.ToString();
+                
+                if (targetType == "paperdoll")
+                {
+                    targetEntity = PlayerUtils.GetEntityByTag<PaperdollTag>(em);
+                }
+                else if (targetType == "inventory" || targetType == "player_inventory")
+                {
+                    targetEntity = PlayerUtils.GetEntityByTag<InventoryTag>(em);
+                }
+            }
+            
+            // Со спакойной душой спавним логическую сущность команды в ECS мире
+            var actionEntity = em.CreateEntity();
+            em.AddComponentData(actionEntity, new ActionCommand
+            {
+                ActionType = action.ActionType,
+                SourceEntity = data.ContainerEntity,
+                SourceSlot = data.SlotIndex,
+                TargetEntity = targetEntity,
+                TargetSlot = -1, // Наша выстраданная минус единица для авто-поиска слотов
+                ItemId = data.ItemId,
+                Amount = data.Amount,
+            });
+
+            Debug.Log($"[UIInputHandler] Реактивно создана ECS-команда: {action.ActionType} для {data.ItemId}. Направление: {targetEntity.Index}");
         }
 
         // ================================================================

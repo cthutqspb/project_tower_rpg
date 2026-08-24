@@ -87,14 +87,28 @@ namespace ProjectTowerRpg.Core.UI
             {
                 foreach (var action in baseActions)
                 {
-                    if (isEquipped && action.ActionType == "item_transfer")
+                    if (action.ActionType == "item_transfer")
                     {
-                        result.Add(new MenuAction
+                        if (isEquipped)
                         {
-                            NameKey = "menu_unequip",
-                            ActionType = "item_transfer",
-                            Data = new Dictionary<string, object> { ["from_paperdoll"] = true }
-                        });
+                            // Вещь на кукле -> кнопка "Снять" -> направление В ИНВЕНТАРЬ
+                            result.Add(new MenuAction
+                            {
+                                NameKey = "menu_unequip",
+                                ActionType = "item_transfer",
+                                Data = new Dictionary<string, object> { ["target_type"] = "inventory" }
+                            });
+                        }
+                        else
+                        {
+                            // Вещь в инвентаре -> кнопка "Надеть" -> направление НА КУКЛУ
+                            result.Add(new MenuAction
+                            {
+                                NameKey = "menu_equip",
+                                ActionType = "item_transfer",
+                                Data = new Dictionary<string, object> { ["target_type"] = "paperdoll" }
+                            });
+                        }
                     }
                     else
                     {

@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using ProjectTowerRpg.Core.UI.Components;
 using Unity.Entities; // Нагло дописываем юзинг для Entity, чтобы мост знал номера сущностей!
 
 namespace ProjectTowerRpg.Core.UI
@@ -26,11 +25,10 @@ namespace ProjectTowerRpg.Core.UI
         public static event System.Action CloseAllWindows;
  
         public static event Action<UiClickContext> OnUiClick;
-        // ДОБАВЛЯЕМ СЛЕПЫЕ КАНАЛЫ СВЯЗИ ДЛЯ СЛОТОВ
-        // public static event Action<SlotElement, int, string, int> OnSlotDoubleClick;
-        // public static event Action<SlotElement, int, string, int, Vector2> OnSlotRightClick;
 
         public static event Action OnActionsMenuClosed;
+
+        public static event Action<MenuAction, ActionsMenu.MenuActionData> OnMenuActionSelected;
         
         public static void TriggerToggleCharacterWindow()
         {
@@ -54,20 +52,14 @@ namespace ProjectTowerRpg.Core.UI
 
         public static void TriggerUiClick(UiClickContext context) => OnUiClick?.Invoke(context);
 
-        // Триггеры для вызова из внутренностей SlotElement
-        // public static void TriggerSlotDoubleClick(SlotElement slot, int index, string itemId, int amount)
-        // {
-        //     OnSlotDoubleClick?.Invoke(slot, index, itemId, amount);
-        // }
-        //
-        // public static void TriggerSlotRightClick(SlotElement slot, int index, string itemId, int amount, Vector2 mousePos)
-        // {
-        //     OnSlotRightClick?.Invoke(slot, index, itemId, amount, mousePos);
-        // }    
-
         public static void TriggerActionsMenuClosed()
         {
             OnActionsMenuClosed?.Invoke();
+        }
+
+        public static void TriggerMenuActionSelected(MenuAction action, ActionsMenu.MenuActionData data)
+        {
+            OnMenuActionSelected?.Invoke(action, data);
         }
     }
 }

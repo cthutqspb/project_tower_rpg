@@ -4,7 +4,6 @@ using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
-using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {

@@ -20,7 +20,10 @@ namespace ProjectTowerRpg.Core.UI
         private PanelRenderer _panelRenderer;
         private VisualElement _root;
         private bool _isUiReady = false;
-        private bool _isPlayerBound = false; // 🔒 Замок-предохранитель
+        private bool _isPlayerBound = false; 
+        
+        // ✅ Храним стейт последней цели, чтобы не спамить реестр перерегистрациями каждый кадр
+        private Entity _lastTargetEntity = Entity.Null; 
 
         private void Awake()
         {
@@ -35,18 +38,68 @@ namespace ProjectTowerRpg.Core.UI
 
         private void Update()
         {
+            Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+            if (playerEntity == Entity.Null) return;
+
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+
             if (_isUiReady && !_isPlayerBound)
             {
-                Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
-                if (playerEntity != Entity.Null)
+                _playerFrame.BindToEntity(playerEntity);
+                _isPlayerBound = true;
+            }
+
+            if (_isPlayerBound && em.HasComponent<CombatStateComponent>(playerEntity))
+            {
+                Entity currentTarget = em.GetComponentData<CombatStateComponent>(playerEntity).CurrentTarget;
+
+                if (currentTarget != _lastTargetEntity)
                 {
-                    _playerFrame.BindToEntity(playerEntity);
-                    UIRegistry.Register(playerEntity, _targetFrame);
-                    _isPlayerBound = true;
-                    Debug.Log("⚡ [HUDManager]: Игрок найден! Фреймы встали на Pull-конвейер.");
+                    // Атомарно перевешиваем рельсы в реестре
+                    _targetFrame.BindToEntity(currentTarget);
+
+                    if (currentTarget == Entity.Null)
+                    {
+                        _targetFrame.SetVisible(false);
+                    }
+                    else
+                    {
+                        // ✅ ВМЕСТО ПОРТЯНКИ IF:
+                        // Мы просто просим UIPullSystem (или пишем хелпер в UIRegistry), 
+                        // чтобы она прямо сейчас принудительно вызвала методы конвейера для этой новой Entity.
+                        // Нам не нужно руками читать компоненты! Мы говорим: "Эй, прогони по конвейеру компоненты скелета для _targetFrame"
+
+                        PushInitialState(currentTarget, _targetFrame);
+                        _targetFrame.SetVisible(true);
+                        
+                    }
+
+                    _lastTargetEntity = currentTarget;
                 }
             }
         }
+
+        private void PushInitialState(Entity target, object receiver)
+        {
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+
+            if (receiver is IEcsUiComponentReceiver<UnitComponent> unitUi && em.HasComponent<UnitComponent>(target))
+            {
+                var comp = em.GetComponentData<UnitComponent>(target);
+                unitUi.UpdateFromComponent(ref comp);
+            }
+            if (receiver is IEcsUiComponentReceiver<HealthComponent> healthUi && em.HasComponent<HealthComponent>(target))
+            {
+                var comp = em.GetComponentData<HealthComponent>(target);
+                healthUi.UpdateFromComponent(ref comp);
+            }
+            if (receiver is IEcsUiComponentReceiver<ResourceComponent> resUi && em.HasComponent<ResourceComponent>(target))
+            {
+                var comp = em.GetComponentData<ResourceComponent>(target);
+                resUi.UpdateFromComponent(ref comp);
+            }
+        }
+
 
         private void OnUIReloaded(PanelRenderer renderer, VisualElement globalUiRoot, int version)
         {
@@ -59,11 +112,17 @@ namespace ProjectTowerRpg.Core.UI
                 if (oldPlayerEntity != Entity.Null)
                 {
                     UIRegistry.Unregister(oldPlayerEntity, _playerFrame);
-                    UIRegistry.Unregister(oldPlayerEntity, _targetFrame);
+                }
+
+                // Выписываем фрейм цели из реестра, если он был к кому-то привязан
+                if (_lastTargetEntity != Entity.Null)
+                {
+                    UIRegistry.Unregister(_lastTargetEntity, _targetFrame);
                 }
 
                 globalUiRoot.Remove(_root);
                 _isPlayerBound = false;
+                _lastTargetEntity = Entity.Null; 
             }
 
             // 1. Клонируем плоский скелет HUD
@@ -71,45 +130,64 @@ namespace ProjectTowerRpg.Core.UI
             _root.pickingMode = PickingMode.Ignore;
             globalUiRoot.Add(_root);
 
-            // 2. Находим слоты-пустышки в XML
+            // 2. Находим слоты-пустышки в XML и собираем в них фреймы
             var playerSlot = _root.Q<VisualElement>("PlayerFrameSlot");
             var targetSlot = _root.Q<VisualElement>("TargetFrameSlot");
 
             if (playerSlot != null) _playerFrame.BuildFrame(playerSlot);
             if (targetSlot != null) _targetFrame.BuildFrame(targetSlot);
 
-            // 3. Выставляем стартовую видимость и паспорта по умолчанию
-            _playerFrame.UpdateIdentity("ПЕРСОНАЖ", 1);
-            _playerFrame.SetVisible(true);
-
-            _targetFrame.UpdateIdentity("ЦЕЛЬ", 1);
-            _targetFrame.SetVisible(false);
-
-            // Если вдруг на момент перезагрузки панелей игрок уже был в реестре — биндимся сразу
+            // 3. ✅ ИСПРАВЛЕННАЯ СИНХРОНИЗАЦИЯ ПРИ ПЕРЕЗАГРУЗКЕ HUD
             Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
             if (playerEntity != Entity.Null)
             {
+                // Биндим игрока и сразу заливаем в его фрейм актуальный стейт из ECS
                 _playerFrame.BindToEntity(playerEntity);
-                UIRegistry.Register(playerEntity, _targetFrame);
+                PushInitialState(playerEntity, _playerFrame);
+                _playerFrame.SetVisible(true);                
+                
                 _isPlayerBound = true;
+
+                // Проверяем, была ли у игрока активная цель до релоада панелей
+                var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+                if (em.HasComponent<CombatStateComponent>(playerEntity))
+                {
+                    Entity currentTarget = em.GetComponentData<CombatStateComponent>(playerEntity).CurrentTarget;
+
+                    if (currentTarget != Entity.Null)
+                    {
+                        // Если цель была — мгновенно восстанавливаем её линк в UIRegistry и рендерим
+                        _targetFrame.BindToEntity(currentTarget);
+                        PushInitialState(currentTarget, _targetFrame);
+                        _targetFrame.SetVisible(true);                        
+                        _lastTargetEntity = currentTarget;
+                    }
+                    else
+                    {
+                        _targetFrame.BindToEntity(Entity.Null);
+                        _targetFrame.SetVisible(false);
+                        _lastTargetEntity = Entity.Null;
+                    }
+                }
             }
 
             _isUiReady = true;
-            Debug.Log("[HUDManager]: Все фреймы шёлково собраны внутри своих слотов!");
+            Debug.Log("[HUDManager]: Все фреймы шёлково собраны внутри своих слотов после релоада!");
         }
 
         private void OnDestroy()
         {
-            if (_panelRenderer != null)
-            {
-                _panelRenderer.UnregisterUIReloadCallback(OnUIReloaded);
-            }
+            if (_panelRenderer != null) _panelRenderer.UnregisterUIReloadCallback(OnUIReloaded);
 
             Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
             if (playerEntity != Entity.Null)
             {
                 UIRegistry.Unregister(playerEntity, _playerFrame);
-                UIRegistry.Unregister(playerEntity, _targetFrame);
+            }
+
+            if (_lastTargetEntity != Entity.Null)
+            {
+                UIRegistry.Unregister(_lastTargetEntity, _targetFrame);
             }
         }     
     }

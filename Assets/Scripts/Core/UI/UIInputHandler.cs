@@ -25,6 +25,7 @@ namespace ProjectTowerRpg.Core.UI
 
             UIEvents.OnUiClick += HandleUiClick;
             UIEvents.OnActionsMenuClosed += ActionsMenu.Hide;
+            UIEvents.OnMenuActionSelected += ActionsMenu.HandleMenuActionSelected;
 
             var panelRenderer = FindAnyObjectByType<PanelRenderer>();
             if (panelRenderer != null)
@@ -59,6 +60,7 @@ namespace ProjectTowerRpg.Core.UI
         {
             UIEvents.OnUiClick -= HandleUiClick;
             UIEvents.OnActionsMenuClosed -= ActionsMenu.Hide;
+            UIEvents.OnMenuActionSelected -= ActionsMenu.HandleMenuActionSelected;
         }
 
         private void Update()
