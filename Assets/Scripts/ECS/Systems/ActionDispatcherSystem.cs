@@ -72,6 +72,10 @@ namespace ProjectTowerRpg.ECS.Systems
                         ExecuteItemUse(cmd.ValueRO);
                         break;
 
+                    case "action_bar_assign":
+                        ExecuteActionBarAssign(cmd.ValueRO);
+                        break;
+
                     default:
                         Debug.LogWarning($"[ActionDispatcher]: Неизвестная команда '{actionType}'");
                         break;
@@ -178,7 +182,7 @@ namespace ProjectTowerRpg.ECS.Systems
         {
             ISlotContainer source = CreateContainer(cmd.SourceEntity);
             ISlotContainer target = CreateContainer(cmd.TargetEntity);
-
+            
             if (source == null || target == null)
             {
                 Debug.LogWarning("[ActionDispatcher] Не удалось создать контейнер для трансфера");
@@ -197,18 +201,32 @@ namespace ProjectTowerRpg.ECS.Systems
                     Amount = cmd.Amount
                 };
 
+                // 1. СНАЧАЛА ИЩЕМ СЛОТ ПО EQUIP_SLOT (ДАЖЕ ЗАНЯТЫЙ)
                 for (int i = 0; i < targetSlotsBuffer.Length; i++)
                 {
-                    if (target.CanPlaceContent(i, incomingContent) && targetSlotsBuffer[i].IsEmpty)
+                    if (target.CanPlaceContent(i, incomingContent))
                     {
                         finalTargetSlot = i;
                         break;
                     }
                 }
 
+                // 2. ЕСЛИ НЕ НАШЛИ — ИЩЕМ ПУСТОЙ СЛОТ (ДЛЯ ИНВЕНТАРЯ)
                 if (finalTargetSlot == -1)
                 {
-                    Debug.LogWarning($"[ActionDispatcher] Нет свободного слота для {cmd.ItemId}");
+                    for (int i = 0; i < targetSlotsBuffer.Length; i++)
+                    {
+                        if (targetSlotsBuffer[i].IsEmpty)
+                        {
+                            finalTargetSlot = i;
+                            break;
+                        }
+                    }
+                }
+
+                if (finalTargetSlot == -1)
+                {
+                    Debug.LogWarning($"[ActionDispatcher] Нет подходящего слота для {cmd.ItemId}");
                     return;
                 }
             }
@@ -244,6 +262,86 @@ namespace ProjectTowerRpg.ECS.Systems
 
             Debug.Log($"[ActionDispatcher] Использован {cmd.ItemId} актором {cmd.SourceEntity.Index}");
         }
+
+                private void ExecuteActionBarAssign(ActionCommand cmd)
+        {
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+            
+            if (!em.HasBuffer<ActionBarSlot>(cmd.TargetEntity)) 
+            {
+                Debug.LogWarning($"[ActionDispatcher] Сущность {cmd.TargetEntity.Index} не имеет буфера ActionBarSlot!");
+                return;
+            }
+
+            var barBuffer = em.GetBuffer<ActionBarSlot>(cmd.TargetEntity);
+
+            // Вычисляем целевую панель из метаданных команды (Amount)
+            int targetPanelId = cmd.Amount > 0 ? cmd.Amount : 1;
+
+            // Переменные для бережного сохранения старых данных целевой ячейки (для СВОПА)
+            string oldAbilityId = "";
+            string oldSlotType = "";
+
+            // 🦾 ФАЗА 1: ЧИТАЕМ И ЗАПОМИНАЕМ СТАРЫЕ ДАННЫЕ ЦЕЛЕВОГО СЛОТА (Для умного свопа)
+            for (int i = 0; i < barBuffer.Length; i++)
+            {
+                var slot = barBuffer[i];
+                if (slot.PanelIndex == targetPanelId && slot.SlotIndex == cmd.TargetSlot)
+                {
+                    oldAbilityId = slot.AbilityId.ToString();
+                    oldSlotType = slot.SlotType.ToString();
+                    break;
+                }
+            }
+
+            // 🦾 ФАЗА 2: ЗАПИСЫВАЕМ НОВУЮ АБИЛКУ В ЦЕЛЕВОЙ СЛOТ
+            for (int i = 0; i < barBuffer.Length; i++)
+            {
+                var slot = barBuffer[i];
+
+                if (slot.PanelIndex == targetPanelId && slot.SlotIndex == cmd.TargetSlot)
+                {
+                    slot.AbilityId = cmd.ItemId;
+                    slot.SlotType = "spell"; // Или "item" из метаданных команды, если притащили предмет
+
+                    barBuffer[i] = slot;
+                    Debug.Log($"[ActionDispatcher]: Ярлык '{cmd.ItemId}' записан в Панель #{targetPanelId}, Слот #{cmd.TargetSlot}");
+                    break;
+                }
+            }
+
+            // 🦾 ФАЗА 3: ОЧИСТКА ИЛИ СВОП СТAРOГO СЛOТA (Чистый WoW-канон!)
+            if (cmd.SourceEntity == cmd.TargetEntity && cmd.SourceSlot != cmd.TargetSlot)
+            {
+                for (int i = 0; i < barBuffer.Length; i++)
+                {
+                    var slot = barBuffer[i];
+
+                    if (slot.PanelIndex == targetPanelId && slot.SlotIndex == cmd.SourceSlot)
+                    {
+                        // Если целевой слот был НЕ пустой — шёлково пихаем туда старую абилку (СВОП!)
+                        if (!string.IsNullOrEmpty(oldAbilityId))
+                        {
+                            slot.AbilityId = oldAbilityId;
+                            slot.SlotType = oldSlotType;
+                            Debug.Log($"[ActionDispatcher]: Своп! Старая абилка '{oldAbilityId}' перемещена обратно в Исходный Слот #{cmd.SourceSlot}");
+                        }
+                        // Если целевой слот был пустым — просто зачищаем за собой следы (ПЕРЕНОС)
+                        else
+                        {
+                            slot.AbilityId = "";
+                            slot.SlotType = "";
+                            Debug.Log($"[ActionDispatcher]: Перенос! Исходный Слот #{cmd.SourceSlot} панели #{targetPanelId} успешно очищен.");
+                        }
+
+                        barBuffer[i] = slot; // Применяем изменения в ОЗУ
+                        break;
+                    }
+                }
+            }
+        }
+
+
 
         private ISlotContainer CreateContainer(Entity entity)
         {

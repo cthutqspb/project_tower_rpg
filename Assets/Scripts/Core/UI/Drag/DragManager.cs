@@ -3,10 +3,9 @@ using Unity.Mathematics;
 using UnityEngine.UIElements;
 using UnityEngine.InputSystem;
 using Unity.Entities;
-using ProjectTowerRpg.ECS.Actions;      // ← ДОБАВЛЕНО
-using ProjectTowerRpg.ECS.Systems;
-using ProjectTowerRpg.Core.UI.Components;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.ECS.Actions;
+using ProjectTowerRpg.Core.UI.Components;
 
 namespace ProjectTowerRpg.Core.UI
 {
@@ -190,43 +189,45 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         public void Finish(object targetComponent, int targetSlot)
+{
+    if (_activeDrag == null) return;
+
+    ClearGhost();
+
+    if (targetComponent is SlotElement targetSlotElement && _activeDrag.Source is SlotElement sourceSlotElement)
+    {
+        Entity sourceEntity = sourceSlotElement.ContainerEntity;
+        Entity targetEntity = targetSlotElement.ContainerEntity;
+
+        if (sourceEntity != Entity.Null && targetEntity != Entity.Null)
         {
-            if (_activeDrag == null) return;
+            var em = _entityManager;
+            var actionEntity = em.CreateEntity();
 
-            Debug.Log($"[DragManager] Finish: target={targetComponent?.GetType().Name ?? "null"}, targetSlot={targetSlot}");
-            ClearGhost();
+            // 🦾 КРИСТАЛЬНЫЙ ECS-КОНТЕКСТ:
+            // Если целевая сущность имеет PlayerTag — значит, мы бросили ярлык прямо на экшен-бар Игрока!
+            bool isTargetBar = em.HasComponent<PlayerTag>(targetEntity);
 
-            if (targetComponent != null && targetSlot != -1)
+            string actionType = isTargetBar ? "action_bar_assign" : "item_transfer";
+
+            em.AddComponentData(actionEntity, new ActionCommand
             {
-                Entity sourceEntity = GetEntityFromComponent(_activeDrag.Source);
-                Entity targetEntity = GetEntityFromComponent(targetComponent);
+                ActionType = actionType,
+                SourceEntity = sourceEntity,
+                SourceSlot = sourceSlotElement.SlotIndex,
+                TargetEntity = targetEntity,
+                TargetSlot = targetSlot, // Локальный индекс кнопки 0..11
+                ItemId = _activeDrag.ItemId,
+                Amount = _activeDrag.Amount
+            });
 
-                Debug.Log($"[DragManager] sourceEntity={sourceEntity}, targetEntity={targetEntity}");
-
-                if (sourceEntity != Entity.Null && targetEntity != Entity.Null)
-                {
-                    var actionEntity = _entityManager.CreateEntity();
-                    _entityManager.AddComponentData(actionEntity, new ActionCommand
-                    {
-                        ActionType = "item_transfer",
-                        SourceEntity = sourceEntity,
-                        SourceSlot = _activeDrag.SlotIndex,
-                        TargetEntity = targetEntity,
-                        TargetSlot = targetSlot,
-                        ItemId = _activeDrag.ItemId,
-                        Amount = _activeDrag.Amount
-                    });
-
-                    Debug.Log($"[DragManager]: Команда создана {_activeDrag.ItemId} -> Слот #{targetSlot}");
-                }
-                else
-                {
-                    Debug.LogWarning($"[DragManager] sourceEntity или targetEntity == Entity.Null");
-                }
-            }
-
-            _activeDrag = null;
+            Debug.Log($"[DragManager]: Спавн ECS-команды {actionType} -> Слот #{targetSlot}");
         }
+    }
+
+    _activeDrag = null;
+}
+
 
         private Entity GetEntityFromComponent(object component)
         {

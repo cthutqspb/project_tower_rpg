@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.UI.Components;
 using ProjectTowerRpg.ECS.Components;
@@ -16,6 +17,13 @@ namespace ProjectTowerRpg.Core.UI
         [Header("Настройки Юнит-Фреймов")]
         [SerializeField] private UnitFrame _playerFrame = new UnitFrame();
         [SerializeField] private UnitFrame _targetFrame = new UnitFrame();
+
+        // =========================================================================
+        // 🔮 НАСТРОЙКИ ЭКШЕН-БАРОВ (Каноничный список под динамическое количество)
+        // =========================================================================
+        [Header("Настройки Экшен-баров")]
+        [SerializeField] private VisualTreeAsset _actionBarUxml; // Наш единый UXML-шаблон панели на 12 слотов
+        [SerializeField] private List<ActionBar> _actionBars = new List<ActionBar>(); // Список самих панелей
 
         private PanelRenderer _panelRenderer;
         private VisualElement _root;
@@ -128,6 +136,14 @@ namespace ProjectTowerRpg.Core.UI
             // 1. Клонируем плоский скелет HUD
             _root = _hudUxml.CloneTree();
             _root.pickingMode = PickingMode.Ignore;
+            // =========================================================================
+            // 🦾 ЖЕЛЕЗОБЕТОННЫЙ РАСТЯГ ОБЕРТКИ (Фронтенд-канон UI Toolkit):
+            // Нагло заставляем внешнюю невидимую коробку занять 100% экрана,
+            // чтобы внутренний .hud и твои проценты панелей считались от реального разрешения!
+            // =========================================================================
+            _root.style.position = Position.Absolute;
+            _root.style.width = Length.Percent(100);
+            _root.style.height = Length.Percent(100);
             globalUiRoot.Add(_root);
 
             // 2. Находим слоты-пустышки в XML и собираем в них фреймы
@@ -170,6 +186,30 @@ namespace ProjectTowerRpg.Core.UI
                     }
                 }
             }
+
+            // =========================================================================
+            // 🦾 СБОРКА И БИНД ЭКШЕН-БАРОВ НА СУЩНОСТЬ ИГРОКА
+            // =========================================================================
+                        if (_actionBarUxml != null && _actionBars != null)
+            {
+                // 1. Создаем геометрию панелей
+                for (int i = 0; i < _actionBars.Count; i++)
+                {
+                    _actionBars[i].BuildPanel(_root, _actionBarUxml, i);
+                }
+
+                // 2. 🦾 НАПРЯМУЮ БИНДИМ НА СУЩНОСТЬ САМОГО ИГРОКА:
+                if (playerEntity != Entity.Null)
+                {
+                    for (int i = 0; i < _actionBars.Count; i++)
+                    {
+                        // Сетки панелей скачают буфер ActionBarSlot прямо из башки игрока!
+                        _actionBars[i].SlotsGrid.BindToEntity(playerEntity);
+                    }
+                    Debug.Log("[HUDManager]: Все экшен-бары шёлково привязаны к буферу ActionBarSlot Игрока!");
+                }
+            }
+
 
             _isUiReady = true;
             Debug.Log("[HUDManager]: Все фреймы шёлково собраны внутри своих слотов после релоада!");

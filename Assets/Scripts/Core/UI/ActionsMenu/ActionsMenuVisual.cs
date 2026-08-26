@@ -138,47 +138,5 @@ namespace ProjectTowerRpg.Core.UI
 
             Debug.Log($"[ActionsMenuVisual] Действие '{action.ActionType}' отправлено наверх в контроллер.");
         }
-
-        // private void CreateActionCommand(MenuAction action, object menuActionData)
-        // {   
-        //     if (_entityManager == null) return;
-        //
-        //     var data = menuActionData as ActionsMenu.MenuActionData;
-        //     if (data == null) return;
-        //
-        //     // По умолчанию целью является сам игрок (Инициатор)
-        //     Entity targetEntity = data.TargetEntity; 
-        //
-        //     // 🎯 ВЫЧИСЛЯЕМ ЦЕЛЬ СТРОГО ПО КОНТРАКТУ ДАННЫХ КНОПКИ
-        //     if (action.Data != null && action.Data.TryGetValue("target_type", out var typeObj))
-        //     {
-        //         string targetType = typeObj.ToString();
-        //         
-        //         if (targetType == "paperdoll")
-        //         {
-        //             targetEntity = PlayerUtils.GetEntityByTag<PaperdollTag>(_entityManager);
-        //         }
-        //         else if (targetType == "inventory" || targetType == "player_inventory")
-        //         {
-        //             targetEntity = PlayerUtils.GetEntityByTag<InventoryTag>(_entityManager);
-        //         }
-        //         // Если это покупка у торговца, targetEntity — это сам торговец (SourceEntity), 
-        //         // а в системе выполнения команд мы проверим его золото/товары.
-        //     }
-        //     
-        //     var actionEntity = _entityManager.CreateEntity();
-        //     _entityManager.AddComponentData(actionEntity, new ActionCommand
-        //     {
-        //         ActionType = action.ActionType,
-        //         SourceEntity = data.ContainerEntity,
-        //         SourceSlot = data.SlotIndex,
-        //         TargetEntity = targetEntity,
-        //         TargetSlot = -1,
-        //         ItemId = data.ItemId,
-        //         Amount = data.Amount,
-        //     });
-        //
-        //     Debug.Log($"[ActionsMenu] Выполнено действие: {action.ActionType} для {data.ItemId}");
-        // }
     }
 }

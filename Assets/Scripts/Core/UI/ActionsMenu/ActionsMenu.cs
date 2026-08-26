@@ -163,30 +163,49 @@ namespace ProjectTowerRpg.Core.UI
             Debug.Log("[ActionsMenu] Очищен");
         }
 
-        public static void HandleMenuActionSelected(MenuAction action, ActionsMenu.MenuActionData data)
+        public static void HandleMenuActionSelected(MenuAction action, MenuActionData data)
         {
             if (_entityManager == null) return;
             var em = _entityManager;
 
-            // По умолчанию берем Игрока, которого мы бережно вычислили на этапе метода Show
-            Entity targetEntity = data.TargetEntity; 
+            // 🔥 ОПРЕДЕЛЯЕМ ЦЕЛЕВУЮ СУЩНОСТЬ НА ОСНОВЕ action.Data
+            Entity targetEntity = Entity.Null;
 
-            // 🎯 СТРОГИЙ МАРШРУТ ПО ДАННЫХ КНОПКИ (Бочки, Торговцы, Банки)
             if (action.Data != null && action.Data.TryGetValue("target_type", out var typeObj))
             {
                 string targetType = typeObj.ToString();
                 
                 if (targetType == "paperdoll")
                 {
-                    targetEntity = PlayerUtils.GetEntityByTag<PaperdollTag>(em);
+                    // Ищем куклу игрока
+                    var playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+                    if (playerEntity != Entity.Null)
+                    {
+                        targetEntity = ContainerHelper.GetContainerForUnit<PaperdollTag>(playerEntity, em);
+                    }
                 }
-                else if (targetType == "inventory" || targetType == "player_inventory")
+                else if (targetType == "inventory")
+                {
+                    // Ищем инвентарь игрока
+                    var playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+                    if (playerEntity != Entity.Null)
+                    {
+                        targetEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(playerEntity, em);
+                    }
+                }
+                else if (targetType == "player_inventory")
                 {
                     targetEntity = PlayerUtils.GetEntityByTag<InventoryTag>(em);
                 }
             }
             
-            // Со спакойной душой спавним логическую сущность команды в ECS мире
+            // 🔥 Если targetEntity всё ещё Null — используем fallback (data.TargetEntity)
+            if (targetEntity == Entity.Null)
+            {
+                targetEntity = data.TargetEntity;
+            }
+
+            // Создаём ActionCommand
             var actionEntity = em.CreateEntity();
             em.AddComponentData(actionEntity, new ActionCommand
             {
@@ -194,12 +213,12 @@ namespace ProjectTowerRpg.Core.UI
                 SourceEntity = data.ContainerEntity,
                 SourceSlot = data.SlotIndex,
                 TargetEntity = targetEntity,
-                TargetSlot = -1, // Наша выстраданная минус единица для авто-поиска слотов
+                TargetSlot = -1,
                 ItemId = data.ItemId,
                 Amount = data.Amount,
             });
 
-            Debug.Log($"[UIInputHandler] Реактивно создана ECS-команда: {action.ActionType} для {data.ItemId}. Направление: {targetEntity.Index}");
+            Debug.Log($"[ActionsMenu] Команда: {action.ActionType}, Source: {data.ContainerEntity.Index}, Target: {targetEntity.Index}");
         }
 
         // ================================================================

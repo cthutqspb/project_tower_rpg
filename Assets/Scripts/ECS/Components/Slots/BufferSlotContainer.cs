@@ -16,7 +16,7 @@ public class BufferSlotContainer : ISlotContainer
         _slotLookup = slotLookup;
     }
 
-        public bool HasContent(int slot)
+    public bool HasContent(int slot)
     {
         var slots = _slotLookup[_entity];
         
@@ -29,7 +29,6 @@ public class BufferSlotContainer : ISlotContainer
         if (slot < 0 || slot >= slots.Length) return false;
         return !slots[slot].IsEmpty;
     }
-
 
     public object GetContent(int slot)
     {

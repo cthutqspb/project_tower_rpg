@@ -2,13 +2,15 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.Abilities;
 using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
     public class SlotElement : VisualElement, IDragSource
     {
-        private VisualElement _icon;
+        // Было: private VisualElement _icon;
+        private Label _icon; // ✅ Изменили на Label для поддержки текста-иконок Nerd Font
         private VisualElement _cooldownOverlay;
         private Label _bindLabel;
         private Label _amountLabel;
@@ -36,11 +38,25 @@ namespace ProjectTowerRpg.Core.UI.Components
             this.style.marginBottom = 2;
             this.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
             
-            _icon = new VisualElement();
+            //_icon = new VisualElement();
+            _icon = new Label(); // ✅ Создаем как текстовый Label
             _icon.AddToClassList("slot-icon");
             _icon.style.width = 40;
             _icon.style.height = 40;
             _icon.style.display = DisplayStyle.None;
+
+            // 🦾 ФРОНТЕНД-ХАК: Идеально центрируем иконку-значок внутри ячейки
+            _icon.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _icon.style.fontSize = 24; // Оптимальный размер для Nerd Font глифов в ячейке 40х40
+            
+            // Загружаем наш сгенерированный TMP Font Asset из папки Resources
+            // (Не забудь положить TerminessNerdFontMono-Regular SDF.asset в Assets/Resources/Fonts/)
+            // var nerdFont = Resources.Load<Font>("Fonts/TerminessNerdFontMono-Regular SDF");
+            // if (nerdFont != null)
+            // {
+            //     _icon.style.unityFontDefinition = new StyleFontDefinition(nerdFont);
+            // }
+
             Add(_icon);
             
             _cooldownOverlay = new VisualElement();
@@ -102,55 +118,56 @@ namespace ProjectTowerRpg.Core.UI.Components
             _itemId = itemId;
             _amount = amount;
             SlotIndex = index;
-            
             ClearVisual();
 
-            if (config == null || string.IsNullOrEmpty(itemId) || amount <= 0)
+            if (string.IsNullOrEmpty(itemId) || amount <= 0)
             {
                 return;
             }
 
             _icon.style.display = DisplayStyle.Flex;
-            _icon.style.backgroundColor = GetQualityColor(config.identity.quality);
 
-            // 🔥 ОПРЕДЕЛЯЕМ ТИП ПО ТЕГАМ (через ContainerEntity)
+            string quality = "common";
+            string iconCharacter = "";
+
+            if (config != null)
+            {
+                quality = config.identity.quality;
+            }
+            else
+            {
+                var abilityConfig = AbilitiesDatabase.GetAbility(itemId);
+                if (abilityConfig != null)
+                {
+                    iconCharacter = abilityConfig.visuals.icon_char;
+                }
+            }
+
+            _icon.style.backgroundColor = GetQualityColor(quality);
+            _icon.text = iconCharacter;
+
             if (ContainerEntity != Entity.Null)
             {
                 var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-                
-                // Проверяем теги прямо в ECS
+
                 bool isActionBar = em.HasComponent<ActionBarTag>(ContainerEntity);
                 bool isAuraFrame = em.HasComponent<AuraFrameTag>(ContainerEntity);
                 bool isInventory = em.HasComponent<InventoryTag>(ContainerEntity);
                 bool isPaperdoll = em.HasComponent<PaperdollTag>(ContainerEntity);
                 bool isContainer = em.HasComponent<ContainerTag>(ContainerEntity);
 
-                // ================================================================
-                // КЕЙС: ACTION BAR → показываем бинд-клавишу
-                // ================================================================
                 if (isActionBar)
                 {
                     _bindLabel.style.display = DisplayStyle.Flex;
                     _bindLabel.text = GetBindKey(index);
                 }
 
-                // ================================================================
-                // КЕЙС: АУРА → показываем длительность (задел)
-                // ================================================================
                 if (isAuraFrame)
                 {
                     // TODO: отображать длительность ауры
-                    // _durationLabel.style.display = DisplayStyle.Flex;
-                    // _durationLabel.text = duration.ToString();
                 }
-
-                // ================================================================
-                // КЕЙС: ИНВЕНТАРЬ, КУКЛА, КОНТЕЙНЕР → стандартное отображение
-                // ================================================================
-                // Ничего дополнительного не делаем, просто показываем иконку и количество
             }
 
-            // Количество
             if (amount > 1)
             {
                 _amountLabel.style.display = DisplayStyle.Flex;
@@ -171,6 +188,7 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         public void ClearVisual()
         {
+            _icon.text = ""; // ✅ Очищаем символ-значок Nerd Font
             _icon.style.display = DisplayStyle.None;
             _icon.style.backgroundColor = Color.clear;
             _bindLabel.text = "";
@@ -227,33 +245,43 @@ namespace ProjectTowerRpg.Core.UI.Components
         
         private void OnPointerOver(PointerOverEvent evt)
         {
-            // ПРИНТ 1: Проверяем, реагирует ли вообще ячейка на мышь
-            Debug.Log($"[SlotElement] Мышь ХОВЕР на слоте #{SlotIndex}. Текущий ItemId: '{_itemId}', GridType: '{GridType}'");
+            //Debug.Log($"[SlotElement] Мышь ХОВЕР на слоте #{SlotIndex}. Текущий ID: '{_itemId}', GridType: '{GridType}'");
 
             if (string.IsNullOrEmpty(_itemId)) 
             {
-                Debug.Log($"[SlotElement] Слот #{SlotIndex} пустой, сессия тултипа пропущена.");
+                //Debug.Log($"[SlotElement] Слот #{SlotIndex} пустой, сессия тултипа пропущена.");
                 return;
             }
 
-            var config = ItemsDatabase.GetItem(_itemId);
-            if (config != null)
+            // 1. Сначала пытаемся найти шмотку в базе предметов
+            var itemConfig = ItemsDatabase.GetItem(_itemId);
+            if (itemConfig != null)
             {
-                // ПРИНТ 2: База данных успешно нашла шмотку по ID
-                Debug.Log($"[SlotElement] УСПЕХ! База данных нашла конфиг для '{_itemId}'. Название из конфига: '{config.identity.name_key}'. Запускаем TooltipManager.");
+                //Debug.Log($"[SlotElement] УСПЕХ! Найдена шмотка '{_itemId}'. Запускаем TooltipManager.");
+                TooltipManager.Show(TooltipDomain.INTERFACE, TooltipKind.ITEM, itemConfig);
+                return; // Выходим, тултип шмотки показан
+            }
+
+            // 2. ✅ Если шмотки нет — проверяем, вдруг это Способность (Spell/Ability) из новой базы!
+            var abilityConfig = AbilitiesDatabase.GetAbility(_itemId);
+            if (abilityConfig != null)
+            {
+                //Debug.Log($"[SlotElement] УСПЕХ! Найдена способность '{_itemId}'. Запускаем TooltipManager.");
                 
-                TooltipManager.Show(TooltipDomain.INTERFACE, TooltipKind.ITEM, config);
+                // Передаем в твой TooltipManager домен интерфейса, тип абилки и сам конфиг способности
+                TooltipManager.Show(TooltipDomain.INTERFACE, TooltipKind.ABILITY, abilityConfig);
             }
             else
             {
-                // ПРИНТ 3: Ошибка в базе данных
-                Debug.LogError($"[SlotElement] КРИТИЧЕСКАЯ ОШИБКА: Предмет '{_itemId}' прописан в слоте, но в ItemsDatabase его НЕТ!");
+                // Если вообще нигде нет — значит реальная ошибка данных
+                //Debug.LogError($"[SlotElement] КРИТИЧЕСКАЯ ОШИБКА: ID '{_itemId}' прописан в слоте, но его НЕТ ни в ItemsDatabase, ни в AbilitiesDatabase!");
             }
         }
 
+
         private void OnPointerOut(PointerOutEvent evt)
         {
-            Debug.Log($"[SlotElement] Мышь УШЛА со слота #{SlotIndex}. Гасим тултип.");
+            //Debug.Log($"[SlotElement] Мышь УШЛА со слота #{SlotIndex}. Гасим тултип.");
             TooltipManager.HideGuiTooltips();
         }
 

@@ -8,6 +8,7 @@ namespace ProjectTowerRpg.ECS.Components
     public struct SlotData : IBufferElementData
     {
         public int SlotIndex;
+        public int PanelIndex;
         public FixedString64Bytes DataId;   // ID предмета ("iron_sword")
         public FixedString64Bytes DataType; // "item", "spell"
         public int Amount;

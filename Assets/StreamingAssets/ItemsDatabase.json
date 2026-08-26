@@ -14,7 +14,7 @@
       "animation": "unit_loot_bag",
       "texture": "project_utumno",
       "tile_index": 3408,
-      "color": null
+      "icon_char": "󰸓"
     },
     "properties": {
       "stackable": false,
@@ -42,7 +42,7 @@
       "animation": "wooden_barrel",
       "texture": "project_utumno",
       "tile_index": 8,
-      "color": null
+      "icon_char": "󱨨"
     },
     "properties": {
       "stackable": false,
@@ -70,7 +70,7 @@
       "animation": "chest_common",
       "texture": "project_utumno",
       "tile_index": 7,
-      "color": null
+      "icon_char": "󰜦"
     },
     "properties": {
       "stackable": false,
@@ -98,7 +98,7 @@
       "animation": "iron_sword",
       "texture": "project_utumno",
       "tile_index": 2976,
-      "color": [0.8, 0.8, 1.0, 1.0]
+      "icon_char": "󰓥"
     },
     "properties": {
       "equip_slot": "MAIN_HAND",
@@ -147,7 +147,7 @@
       "animation": "crystal_sword",
       "texture": "project_utumno",
       "tile_index": 3013,
-      "color": [0.8, 0.8, 1.0, 1.0]
+      "icon_char": "󰓥"
     },
     "properties": {
       "equip_slot": "MAIN_HAND",
@@ -221,7 +221,7 @@
       "animation": "leather_helmet",
       "texture": "project_utumno",
       "tile_index": 2345,
-      "color": [0.8, 0.8, 1.0, 1.0]
+      "icon_char": ""
     },
     "properties": {
       "equip_slot": "HEAD",
@@ -273,7 +273,7 @@
       "animation": "clown_hat",
       "texture": "project_utumno",
       "tile_index": 2347,
-      "color": [0.8, 0.8, 1.0, 1.0]
+      "icon_char": ""  
     },
     "properties": {
       "equip_slot": "HEAD",
@@ -325,7 +325,7 @@
       "animation": "lesser_mana_potion",
       "texture": "project_utumno",
       "tile_index": 2683,
-      "color": [0.8, 0.8, 1.0, 1.0]
+      "icon_char": "󱄯"
     },
     "properties": {
       "equip_slot": null,

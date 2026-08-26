@@ -4,6 +4,7 @@ using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -51,6 +52,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             var slot = new SlotElement
             {
                 SlotIndex = index,
+                // ❌ GridType = "paperdoll", ← УДАЛИТЬ!
                 ContainerEntity = _paperdollEntity,
                 name = $"slot-{nameId}",
                 pickingMode = PickingMode.Position

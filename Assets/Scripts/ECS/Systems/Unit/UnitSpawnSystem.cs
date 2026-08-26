@@ -226,7 +226,37 @@ namespace ProjectTowerRpg.ECS.Systems
                     }
                     
                     Debug.Log("🎒 [ФАБРИКА]: Тестовый шмот успешно упакован в инвентарь игрока!");
-                }
+
+                    // =========================================================================
+                    // 🦾 НАПОЛНЕНИЕ ЭКШЕН-БАРА (Новый изолированный буфер прямо на Игроке!)
+                    // =========================================================================
+                    var barBuffer = em.AddBuffer<ActionBarSlot>(unitEntity);
+
+                    // Нарезаем 12 ярлыков для Панели №1 (Основная нижняя)
+                    for (int k = 0; k < 12; k++)
+                    {
+                        if (k == 0)
+                        {
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, PanelIndex = 1, AbilityId = "melee_attack", SlotType = "spell" });
+                        }
+                        else if (k == 1)
+                        {
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, PanelIndex = 1, AbilityId = "frostbolt", SlotType = "spell" });
+                        }
+                        else
+                        {
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, PanelIndex = 1, AbilityId = "", SlotType = "" });
+                        }
+                    }
+
+                    // Нарезаем 12 ярлыков для Панели №2 (Дополнительная боковая)
+                    for (int k = 0; k < 12; k++)
+                    {
+                        barBuffer.Add(new ActionBarSlot { SlotIndex = k, PanelIndex = 2, AbilityId = "", SlotType = "" });
+                    }
+
+                    Debug.Log("🔮 [ФАБРИКА]: Ссылки на стартовые заклинания успешно вшиты в буфер игрока!");
+                }   
 
                 // =========================================================================
                 // 🏗️ 4. ДИНАМИЧЕСКИЙ СПАВН 3D-ВИЗУАЛА ИЗ ПАПКИ RESOURCES/UNITS/

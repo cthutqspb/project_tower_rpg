@@ -13,7 +13,7 @@ namespace ProjectTowerRpg.ECS.Systems
         public bool IsLinked = false;
         
         [HideInInspector]
-        public Entity Entity = Entity.Null;
+        [System.NonSerialized] public Entity Entity = Entity.Null;
 
         // Автоматически вычисляем хэш при изменении uid в редакторе
         #if UNITY_EDITOR

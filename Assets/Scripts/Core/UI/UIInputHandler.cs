@@ -127,7 +127,15 @@ namespace ProjectTowerRpg.Core.UI
 
                 if (targetContainerEntity != Entity.Null)
                 {
-                    CreateTransferCommand(em, context.ContextEntity, context.SlotIndex, targetContainerEntity, context.TargetId, context.Amount);
+                    CreateTransferCommand(
+                        em,
+                        context.ContextEntity,
+                        context.SlotIndex,
+                        targetContainerEntity, 
+                        context.TargetId,
+                        context.Amount,
+                        -1
+                    );
                     Debug.Log($"[UIInputHandler] Даблклик: экипировка {context.TargetId}");
                     return;
                 }
@@ -159,7 +167,15 @@ namespace ProjectTowerRpg.Core.UI
 
                 if (targetContainerEntity != Entity.Null)
                 {
-                    CreateTransferCommand(em, context.ContextEntity, context.SlotIndex, targetContainerEntity, context.TargetId, context.Amount);
+                    CreateTransferCommand(
+                        em,
+                        context.ContextEntity,
+                        context.SlotIndex,
+                        targetContainerEntity, 
+                        context.TargetId,
+                        context.Amount,
+                        -1
+                    );
                     Debug.Log($"[UIInputHandler] Даблклик: снятие {context.TargetId}");
                     return;
                 }
@@ -179,7 +195,15 @@ namespace ProjectTowerRpg.Core.UI
 
                 if (targetContainerEntity != Entity.Null)
                 {
-                    CreateTransferCommand(em, context.ContextEntity, context.SlotIndex, targetContainerEntity, context.TargetId, context.Amount);
+                    CreateTransferCommand(
+                        em,
+                        context.ContextEntity,
+                        context.SlotIndex,
+                        targetContainerEntity,
+                        context.TargetId,
+                        context.Amount,
+                        -1
+                    );
                     Debug.Log($"[UIInputHandler] Даблклик: забрал {context.TargetId} из контейнера");
                     return;
                 }
@@ -262,7 +286,7 @@ namespace ProjectTowerRpg.Core.UI
         // ================================================================
         // 🛠️ ВСПОМОГАТЕЛЬНЫЙ МЕТОД
         // ================================================================
-        private void CreateTransferCommand(EntityManager em, Entity source, int sourceSlot, Entity target, string itemId, int amount)
+        private void CreateTransferCommand(EntityManager em, Entity source, int sourceSlot, Entity target, string itemId, int amount, int targetSlot = -1)
         {
             var actionEntity = em.CreateEntity();
             em.AddComponentData(actionEntity, new ActionCommand
@@ -271,7 +295,7 @@ namespace ProjectTowerRpg.Core.UI
                 SourceEntity = source,
                 SourceSlot = sourceSlot,
                 TargetEntity = target,
-                TargetSlot = -1,
+                TargetSlot = targetSlot,
                 ItemId = itemId,
                 Amount = amount
             });

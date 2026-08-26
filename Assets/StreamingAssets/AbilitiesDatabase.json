@@ -1,0 +1,239 @@
+{
+  "melee_attack": {
+    "action_type": "ability",
+    "identity": {
+      "name_key": "ability_melee_attack_name",
+      "desc_key": "ability_melee_attack_desc",
+      "class": "all",
+      "tags": ["melee_attack", "physical"]
+    },
+    "visuals": {
+      "animation": "melee_attack",
+      "texture": "project_utumno",
+      "tile_index": 3266,
+      "icon_char": "󰞇",
+      "color": "gray"
+    },
+    "delivery": {
+      "type": "instant_hit",
+      "factory_url": null,
+      "fx": {
+        "sprite_animation": null,
+        "particle_fx": null,
+        "hit_fx": "melee_impact",
+        "duration": 0.0
+      }
+    },
+    "parameters": {
+      "range": 12.0,
+      "speed": 0.0,
+      "cast_time": 0.0,
+      "cooldown": 1.5,
+      "triggers_gcd": false,
+      "is_homing": false,
+      "requires_target": true
+    },
+    "requirements": {
+      "level": 1,
+      "class": "all"
+    },
+    "cost": {
+      "resource": "rage",
+      "value": 0.0
+    },
+    "effects": [
+      {
+        "type": "direct_damage",
+        "school": "physical",
+        "min": 2.0,
+        "max": 4.0,
+        "weapon_multiplier": 1.0,
+        "scaling_stats": {
+          "strength": 1.0
+        },
+        "aura_id": null,
+        "value": 0.0
+      }
+    ]
+  },
+  "frostbolt": {
+    "action_type": "ability",
+    "identity": {
+      "name_key": "ability_frostbolt_name",
+      "desc_key": "ability_frostbolt_desc",
+      "class": "mage",
+      "tags": ["ranged_attack", "damage", "frost"]
+    },
+    "visuals": {
+      "animation": "frostbolt",
+      "texture": "project_utumno",
+      "tile_index": 1650,
+      "icon_char": "",
+      "color": "blue"
+    },
+    "delivery": {
+      "type": "projectile",
+      "factory_url": "game_scene:/world_controller#projectile_factory",
+      "fx": {
+        "sprite_animation": "frostbolt_sprite",
+        "particle_fx": "frostbolt_trail",
+        "hit_fx": "frostbolt_impact",
+        "duration": 0.0
+      }
+    },
+    "parameters": {
+      "range": 450.0,
+      "speed": 450.0,
+      "cast_time": 1.5,
+      "cooldown": 0.0,
+      "triggers_gcd": true,
+      "is_homing": true,
+      "requires_target": true
+    },
+    "requirements": {
+      "level": 1,
+      "class": "mage"
+    },
+    "cost": {
+      "resource": "mana",
+      "value": 4.0
+    },
+    "effects": [
+      {
+        "type": "direct_damage",
+        "school": "frost",
+        "min": 9.0,
+        "max": 15.0,
+        "weapon_multiplier": 0.2,
+        "scaling_stats": {
+          "intellect": 1.0
+        },
+        "aura_id": null,
+        "value": 0.0
+      }
+    ]
+  },
+  "lightning_bolt": {
+    "action_type": "ability",
+    "identity": {
+      "name_key": "ability_lightning_bolt_key",
+      "desc_key": "ability_lightning_bolt_desc",
+      "class": "mage",
+      "tags": ["ranged_attack", "damage", "lightning"]
+    },
+    "visuals": {
+      "animation": "lightning_bolt",
+      "texture": "project_utumno",
+      "tile_index": 1862,
+      "icon_char": "󱐌",
+      "color": "lightyellow"
+    },
+    "delivery": {
+      "type": "beam",
+      "factory_url": "game_scene:/world_controller#projectile_fx_factory",
+      "fx": {
+        "sprite_animation": "lightning_bolt_sprite",
+        "particle_fx": "lightning_beam",
+        "hit_fx": "lightning_bolt_impact",
+        "duration": 0.4
+      }
+    },
+    "parameters": {
+      "range": 750.0,
+      "speed": 450.0,
+      "cast_time": 1.7,
+      "cooldown": 0.0,
+      "triggers_gcd": true,
+      "is_homing": true,
+      "requires_target": true
+    },
+    "requirements": {
+      "level": 1,
+      "class": "mage"
+    },
+    "cost": {
+      "resource": "mana",
+      "value": 7.0
+    },
+    "effects": [
+      {
+        "type": "direct_damage",
+        "school": "lightning",
+        "min": 4.0,
+        "max": 20.0,
+        "weapon_multiplier": 0.25,
+        "scaling_stats": {
+          "intellect": 1.0
+        },
+        "aura_id": null,
+        "value": 0.0
+      },
+      {
+        "type": "apply_aura",
+        "school": null,
+        "min": 0.0,
+        "max": 0.0,
+        "weapon_multiplier": 0.0,
+        "scaling_stats": null,
+        "aura_id": "electrifies",
+        "value": 1.0
+      }
+    ]
+  },
+  "frost_armor": {
+    "action_type": "ability",
+    "identity": {
+      "name_key": "ability_frost_armor_name",
+      "desc_key": "ability_frost_armor_desc",
+      "class": "mage",
+      "tags": ["buff", "frost", "defense"]
+    },
+    "visuals": {
+      "animation": "frost_armor",
+      "texture": "project_utumno",
+      "tile_index": 2021,
+      "icon_char": "",
+      "color": "blue"
+    },
+    "delivery": {
+      "type": "instant_hit",
+      "factory_url": null,
+      "fx": {
+        "sprite_animation": null,
+        "particle_fx": "frost_armor_cast_vfx",
+        "hit_fx": null,
+        "duration": 0.0
+      }
+    },
+    "parameters": {
+      "range": 0.0,
+      "speed": 0.0,
+      "cast_time": 0.0,
+      "cooldown": 30.0,
+      "triggers_gcd": true,
+      "is_homing": false,
+      "requires_target": false
+    },
+    "requirements": {
+      "level": 4,
+      "class": "mage"
+    },
+    "cost": {
+      "resource": "mana",
+      "value": 5.0
+    },
+    "effects": [
+      {
+        "type": "apply_aura",
+        "school": null,
+        "min": 0.0,
+        "max": 0.0,
+        "weapon_multiplier": 0.0,
+        "scaling_stats": null,
+        "aura_id": "frost_armor",
+        "value": 1800.0
+      }
+    ]
+  }
+}
+

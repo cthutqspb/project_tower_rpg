@@ -18,6 +18,11 @@ namespace ProjectTowerRpg.Core.UI
         // Для UIElement режима: храним смещение курсора относительно ЛОКАЛЬНЫХ координат target-элемента
         private Vector2 _pointerOffset;
 
+        // Настройки трешхолда
+        private const float DragThreshold = 5f;    // Порог в пикселях
+        private bool _isDragStarted;               // Флаг активного драга
+        private Vector2 _startPointerPosition;     // Точка первого нажатия
+
         // Конструктор для UIElement режима (драг хедера)
         public DragManipulator(VisualElement dragElement, VisualElement targetElement, DragMode mode)
         {
@@ -53,14 +58,12 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // ================================================================
-        // UIElement MODE (полностью здесь)
+        // UIElement MODE
         // ================================================================
-        private void StartUIElementDrag(PointerDownEvent evt)
+        private void StartUIElementDrag(Vector2 mousePosition, int pointerId)
         {
-            // 1. Переводим элемент на абсолютное позиционирование, чтобы верстка (Flexbox) его не держала
             if (_targetElement.style.position != Position.Absolute)
             {
-                // Запоминаем текущее положение на экране перед переключением
                 float currentLeft = _targetElement.layout.x;
                 float currentTop = _targetElement.layout.y;
 
@@ -68,15 +71,13 @@ namespace ProjectTowerRpg.Core.UI
                 _targetElement.style.left = currentLeft;
                 _targetElement.style.top = currentTop;
                 
-                // Сбрасываем translate, так как теперь управляем через left/top
                 _targetElement.style.translate = StyleKeyword.Null; 
             }
 
-            // 2. Запоминаем точку хвата курсора относительно самого элемента
-            _pointerOffset = _targetElement.WorldToLocal(evt.position);
+            // Считаем офсет от ИСХОДНОЙ точки клика, чтобы окно не прыгало при прохождении порога
+            _pointerOffset = _targetElement.WorldToLocal(mousePosition);
 
-            target.CapturePointer(evt.pointerId);
-            evt.StopPropagation();
+            target.CapturePointer(pointerId);
         }
 
         private void UpdateUIElementDrag(PointerMoveEvent evt)
@@ -86,30 +87,23 @@ namespace ProjectTowerRpg.Core.UI
                 VisualElement root = _targetElement.panel.visualTree;
                 VisualElement parent = _targetElement.parent ?? root;
 
-                // 1. Актуальные размеры в текущий кадр
                 float screenWidth = root.layout.width;
                 float screenHeight = root.layout.height;
                 float elementWidth = _targetElement.layout.width;
                 float elementHeight = _targetElement.layout.height;
 
-                // 2. Позиция мыши в пространстве родителя
                 Vector2 mouseInParentSpace = parent.WorldToLocal(evt.position);
 
-                // 3. Желаемая позиция левого верхнего угла элемента
                 float targetX = mouseInParentSpace.x - _pointerOffset.x;
                 float targetY = mouseInParentSpace.y - _pointerOffset.y;
 
-                // 4. Перевод в мировые координаты для честного Clamp по границам экрана
                 Vector2 targetInWorld = parent.LocalToWorld(new Vector2(targetX, targetY));
 
-                // 5. Ограничиваем строго рамками экрана (от 0 до краев)
                 float clampedWorldX = Mathf.Clamp(targetInWorld.x, 0f, screenWidth - elementWidth);
                 float clampedWorldY = Mathf.Clamp(targetInWorld.y, 0f, screenHeight - elementHeight);
 
-                // 6. Возвращаем ограниченные координаты обратно в родительский контейнер
                 Vector2 finalLocalPos = parent.WorldToLocal(new Vector2(clampedWorldX, clampedWorldY));
 
-                // 7. Напрямую задаем left и top. Никакие флексы, леяуты и ресайзы больше не заблокируют ось X!
                 _targetElement.style.left = finalLocalPos.x;
                 _targetElement.style.top = finalLocalPos.y;
                 
@@ -127,56 +121,93 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         // ================================================================
-        // Slot MODE (только старт, остальное в DragManager)
+        // Slot MODE
         // ================================================================
-        private void StartSlotDrag(PointerDownEvent evt)
+        private void StartSlotDrag(int pointerId)
         {
-            if (target is not IDragSource dragSource || !dragSource.CanDrag()) return;
+            if (target is not IDragSource dragSource || !dragSource.CanDrag())
+            {
+                target.ReleasePointer(pointerId);
+                _isDragStarted = false;
+                return;
+            }
 
             var data = dragSource.GetDragData();
-            if (data == null) return;
+            if (data == null)
+            {
+                target.ReleasePointer(pointerId);
+                _isDragStarted = false;
+                return;
+            }
 
             DragManager.Instance.StartDrag(data);
-
-            target.CapturePointer(evt.pointerId);
-            evt.StopPropagation();
+            target.CapturePointer(pointerId);
         }
 
         // ================================================================
         // ОБЩИЕ ОБРАБОТЧИКИ
         // ================================================================
-
         private void OnPointerDown(PointerDownEvent evt)
         {   
-            Debug.Log($"[DragManipulator] OnPointerDown: pointerId={evt.pointerId} button={evt.button}, mode={_mode}");
-    
             if (evt.button != 0) return;
-            switch (_mode)
-            {
-                case DragMode.UIElement:
-                    StartUIElementDrag(evt);
-                    break;
-                case DragMode.Slot:
-                    StartSlotDrag(evt);
-                    break;
-            }
+
+            _isDragStarted = false;
+            _startPointerPosition = evt.position;
+
+            // Захватываем поинтер сразу, чтобы гарантированно поймать PointerMoveEvent
+            target.CapturePointer(evt.pointerId);
+            evt.StopPropagation();
         }
 
         private void OnPointerMove(PointerMoveEvent evt)
         {
-            switch (_mode)
+            if (!target.HasPointerCapture(evt.pointerId)) return;
+
+            if (!_isDragStarted)
             {
-                case DragMode.UIElement:
-                    UpdateUIElementDrag(evt);
-                    break;
-                case DragMode.Slot:
-                    evt.StopPropagation();
-                    break;
+                float distance = Vector2.Distance(_startPointerPosition, evt.position);
+                if (distance < DragThreshold) return;
+
+                // Пересекли порог — фиксируем старт
+                _isDragStarted = true;
+
+                switch (_mode)
+                {
+                    case DragMode.UIElement:
+                        StartUIElementDrag(_startPointerPosition, evt.pointerId);
+                        break;
+                    case DragMode.Slot:
+                        StartSlotDrag(evt.pointerId);
+                        break;
+                }
+            }
+
+            if (_isDragStarted)
+            {
+                switch (_mode)
+                {
+                    case DragMode.UIElement:
+                        UpdateUIElementDrag(evt);
+                        break;
+                    case DragMode.Slot:
+                        evt.StopPropagation();
+                        break;
+                }
             }
         }
 
         private void OnPointerUp(PointerUpEvent evt)
         {
+            if (evt.button != 0) return;
+
+            // Если отпустили кнопку до прохождения порога — сбрасываем захват (это был просто клик)
+            if (!_isDragStarted && target.HasPointerCapture(evt.pointerId))
+            {
+                target.ReleasePointer(evt.pointerId);
+                evt.StopPropagation();
+                return;
+            }
+
             switch (_mode)
             {
                 case DragMode.UIElement:
@@ -199,10 +230,12 @@ namespace ProjectTowerRpg.Core.UI
                 target.ReleasePointer(evt.pointerId);
             }
             
-            if (_mode == DragMode.Slot)
+            if (_mode == DragMode.Slot && _isDragStarted)
             {
                 DragManager.Instance.CancelDrag();
             }
+
+            _isDragStarted = false;
         }
     }
 }
