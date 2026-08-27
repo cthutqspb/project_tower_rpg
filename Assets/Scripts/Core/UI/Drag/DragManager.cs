@@ -139,27 +139,61 @@ namespace ProjectTowerRpg.Core.UI
                 return;
             }
 
-            float3 dropPosition = GetDropPosition(playerPosition);
-            Entity sourceEntity = GetEntityFromComponent(_activeDrag.Source);
+            // Достаем исходный SlotElement, чтобы прочитать его бэкенд-паспорт
+            SlotElement sourceSlotElement = _activeDrag.Source as SlotElement;
+            if (sourceSlotElement == null)
+            {
+                CancelDrag();
+                return;
+            }
+
+            Entity sourceEntity = sourceSlotElement.ContainerEntity;
 
             if (sourceEntity != Entity.Null)
             {
                 ClearGhost();
+                var em = _entityManager;
+                var actionEntity = em.CreateEntity();
 
-                var actionEntity = _entityManager.CreateEntity();
-                _entityManager.AddComponentData(actionEntity, new ActionCommand
+                // 🦾 ЧИСТЫЙ ECS-РАЗВОД ДОМЕНОВ В ОДНУ СТРОЧКУ:
+                // Если исходный контейнер имеет PlayerTag — значит, ярлык утащили с экшен-бара Игрока!
+                bool isFromActionBar = em.HasComponent<PlayerTag>(sourceEntity);
+
+                if (isFromActionBar)
                 {
-                    ActionType = "item_drop",
-                    SourceEntity = sourceEntity,
-                    SourceSlot = _activeDrag.SlotIndex,
-                    TargetEntity = Entity.Null,
-                    TargetSlot = -1,
-                    ItemId = _activeDrag.ItemId,
-                    Amount = _activeDrag.Amount,
-                    Position = dropPosition
-                });
+                    // WoW-канон: Просто шлём команду ассайна со значением TargetSlot = -1 на зачистку ярлыка!
+                    em.AddComponentData(actionEntity, new ActionCommand
+                    {
+                        ActionType = "action_bar_assign",
+                        SourceEntity = sourceEntity,
+                        SourceSlot = sourceSlotElement.SlotIndex,
+                        TargetEntity = sourceEntity, // Целью ставим себя же
+                        TargetSlot = -1,             // Минус единица — сигнал бэкенду стереть ярлык
+                        ItemId = _activeDrag.ItemId,
+                        Amount = 1                   // Номер панели по умолчанию
+                    });
 
-                Debug.Log($"[DragManager]: Дроп {_activeDrag.ItemId} рядом с игроком: {dropPosition}");
+                    Debug.Log($"[DragManager]: Ярлык экшен-бара '{_activeDrag.ItemId}' выброшен в мир. Команда удаления заспавнена.");
+                }
+                else
+                {
+                    // ⚔️ СТАНДАРТНЫЙ МАТЕРИАЛЬНЫЙ ДРОП ШМОТОК НА ЗЕМЛЮ (Твой родной рабочий код!)
+                    float3 dropPosition = GetDropPosition(playerPosition);
+                    
+                    em.AddComponentData(actionEntity, new ActionCommand
+                    {
+                        ActionType = "item_drop",
+                        SourceEntity = sourceEntity,
+                        SourceSlot = sourceSlotElement.SlotIndex,
+                        TargetEntity = Entity.Null,
+                        TargetSlot = -1,
+                        ItemId = _activeDrag.ItemId,
+                        Amount = _activeDrag.Amount,
+                        Position = dropPosition
+                    });
+
+                    Debug.Log($"[DragManager]: Материальный дроп {_activeDrag.ItemId} на землю рядом с игроком: {dropPosition}");
+                }
             }
             else
             {
@@ -189,45 +223,54 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         public void Finish(object targetComponent, int targetSlot)
-{
-    if (_activeDrag == null) return;
-
-    ClearGhost();
-
-    if (targetComponent is SlotElement targetSlotElement && _activeDrag.Source is SlotElement sourceSlotElement)
-    {
-        Entity sourceEntity = sourceSlotElement.ContainerEntity;
-        Entity targetEntity = targetSlotElement.ContainerEntity;
-
-        if (sourceEntity != Entity.Null && targetEntity != Entity.Null)
         {
-            var em = _entityManager;
-            var actionEntity = em.CreateEntity();
+            if (_activeDrag == null) return;
 
-            // 🦾 КРИСТАЛЬНЫЙ ECS-КОНТЕКСТ:
-            // Если целевая сущность имеет PlayerTag — значит, мы бросили ярлык прямо на экшен-бар Игрока!
-            bool isTargetBar = em.HasComponent<PlayerTag>(targetEntity);
+            ClearGhost();
 
-            string actionType = isTargetBar ? "action_bar_assign" : "item_transfer";
-
-            em.AddComponentData(actionEntity, new ActionCommand
+            if (targetComponent is SlotElement targetSlotElement && _activeDrag.Source is SlotElement sourceSlotElement)
             {
-                ActionType = actionType,
-                SourceEntity = sourceEntity,
-                SourceSlot = sourceSlotElement.SlotIndex,
-                TargetEntity = targetEntity,
-                TargetSlot = targetSlot, // Локальный индекс кнопки 0..11
-                ItemId = _activeDrag.ItemId,
-                Amount = _activeDrag.Amount
-            });
+                Entity sourceEntity = sourceSlotElement.ContainerEntity;
+                Entity targetEntity = targetSlotElement.ContainerEntity;
 
-            Debug.Log($"[DragManager]: Спавн ECS-команды {actionType} -> Слот #{targetSlot}");
+                if (sourceEntity != Entity.Null && targetEntity != Entity.Null)
+                {
+                    var em = _entityManager;
+                    var actionEntity = em.CreateEntity();
+
+                    // 🦾 КРИСТАЛЬНЫЙ ECS-КОНТЕКСТ:
+                    // Если целевая сущность имеет PlayerTag — значит, мы бросили ярлык прямо на экшен-бар Игрока!
+                    bool isTargetBar = em.HasComponent<PlayerTag>(targetEntity);
+                    
+                    // Если мы бросили ярлык на экшен-бар, а исходный контейнер имеет ContainerTag — это 100% чужой сундук или труп!
+                    if (isTargetBar && em.HasComponent<ContainerTag>(sourceEntity))
+                    {
+                        Debug.LogWarning("❌ ГЕЙМДИЗАЙН: Нельзя тащить вещи из чужих сундуков или трупов сразу на панель!");
+                        _activeDrag = null;
+                        return; // Наглухо блокируем транзакцию
+                    }
+
+                    int barIndex = isTargetBar ? targetSlotElement.PanelIndex : sourceSlotElement.PanelIndex;
+                    string actionType = isTargetBar ? "action_bar_assign" : "item_transfer";
+                    
+                    em.AddComponentData(actionEntity, new ActionCommand
+                    {
+                        ActionType = actionType,
+                        SourceEntity = sourceEntity,
+                        SourceSlot = sourceSlotElement.SlotIndex,
+                        TargetEntity = targetEntity,
+                        TargetSlot = targetSlot, // Локальный индекс кнопки 0..11
+                        PanelIndex = barIndex,
+                        ItemId = _activeDrag.ItemId,
+                        Amount = _activeDrag.Amount
+                    });
+
+                    Debug.Log($"[DragManager]: Спавн ECS-команды {actionType} -> Слот #{targetSlot}");
+                }
+            }
+
+            _activeDrag = null;
         }
-    }
-
-    _activeDrag = null;
-}
-
 
         private Entity GetEntityFromComponent(object component)
         {

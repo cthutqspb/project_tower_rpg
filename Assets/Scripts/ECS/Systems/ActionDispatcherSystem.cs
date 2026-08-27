@@ -13,12 +13,12 @@ namespace ProjectTowerRpg.ECS.Systems
     public partial class ActionDispatcherSystem : SystemBase
     {
         private EntityCommandBufferSystem _ecbSystem;
-        private BufferLookup<SlotData> _slotDataLookup;
+        private BufferLookup<ItemSlot> _slotDataLookup;
 
         protected override void OnCreate()
         {
             _ecbSystem = World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
-            _slotDataLookup = GetBufferLookup<SlotData>(false);
+            _slotDataLookup = GetBufferLookup<ItemSlot>(false);
         }
 
         protected override void OnUpdate()
@@ -194,7 +194,7 @@ namespace ProjectTowerRpg.ECS.Systems
             if (finalTargetSlot == -1)
             {
                 var targetSlotsBuffer = _slotDataLookup[cmd.TargetEntity];
-                var incomingContent = new SlotData
+                var incomingContent = new ItemSlot
                 {
                     DataId = cmd.ItemId,
                     DataType = "item",
@@ -263,7 +263,7 @@ namespace ProjectTowerRpg.ECS.Systems
             Debug.Log($"[ActionDispatcher] Использован {cmd.ItemId} актором {cmd.SourceEntity.Index}");
         }
 
-                private void ExecuteActionBarAssign(ActionCommand cmd)
+        private void ExecuteActionBarAssign(ActionCommand cmd)
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
             
@@ -274,74 +274,94 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             var barBuffer = em.GetBuffer<ActionBarSlot>(cmd.TargetEntity);
+            int targetPanelIndex = cmd.PanelIndex > 0 ? cmd.PanelIndex : 1;
 
-            // Вычисляем целевую панель из метаданных команды (Amount)
-            int targetPanelId = cmd.Amount > 0 ? cmd.Amount : 1;
-
-            // Переменные для бережного сохранения старых данных целевой ячейки (для СВОПА)
-            string oldAbilityId = "";
-            string oldSlotType = "";
-
-            // 🦾 ФАЗА 1: ЧИТАЕМ И ЗАПОМИНАЕМ СТАРЫЕ ДАННЫЕ ЦЕЛЕВОГО СЛОТА (Для умного свопа)
-            for (int i = 0; i < barBuffer.Length; i++)
-            {
-                var slot = barBuffer[i];
-                if (slot.PanelIndex == targetPanelId && slot.SlotIndex == cmd.TargetSlot)
-                {
-                    oldAbilityId = slot.AbilityId.ToString();
-                    oldSlotType = slot.SlotType.ToString();
-                    break;
-                }
-            }
-
-            // 🦾 ФАЗА 2: ЗАПИСЫВАЕМ НОВУЮ АБИЛКУ В ЦЕЛЕВОЙ СЛOТ
-            for (int i = 0; i < barBuffer.Length; i++)
-            {
-                var slot = barBuffer[i];
-
-                if (slot.PanelIndex == targetPanelId && slot.SlotIndex == cmd.TargetSlot)
-                {
-                    slot.AbilityId = cmd.ItemId;
-                    slot.SlotType = "spell"; // Или "item" из метаданных команды, если притащили предмет
-
-                    barBuffer[i] = slot;
-                    Debug.Log($"[ActionDispatcher]: Ярлык '{cmd.ItemId}' записан в Панель #{targetPanelId}, Слот #{cmd.TargetSlot}");
-                    break;
-                }
-            }
-
-            // 🦾 ФАЗА 3: ОЧИСТКА ИЛИ СВОП СТAРOГO СЛOТA (Чистый WoW-канон!)
-            if (cmd.SourceEntity == cmd.TargetEntity && cmd.SourceSlot != cmd.TargetSlot)
+            // =========================================================================
+            // 🦾 ФАЗА 0: ДРОП В ПУСТОЙ МИР (Удаление ярлыка с панели)
+            // =========================================================================
+            if (cmd.TargetSlot == -1)
             {
                 for (int i = 0; i < barBuffer.Length; i++)
                 {
                     var slot = barBuffer[i];
-
-                    if (slot.PanelIndex == targetPanelId && slot.SlotIndex == cmd.SourceSlot)
+                    if (slot.PanelIndex == targetPanelIndex && slot.SlotIndex == cmd.SourceSlot)
                     {
-                        // Если целевой слот был НЕ пустой — шёлково пихаем туда старую абилку (СВОП!)
-                        if (!string.IsNullOrEmpty(oldAbilityId))
+                        slot.AbilityId = "";
+                        slot.SlotType = "";
+                        barBuffer[i] = slot;
+                        Debug.Log($"[ActionDispatcher]: Ярлык '{cmd.ItemId}' выброшен в мир. Слот #{cmd.SourceSlot} панели #{targetPanelIndex} очищен.");
+                        return;
+                    }
+                }
+                return;
+            }
+
+            // Временный кэш для честного свопа способностей на панели
+            string tmpAbilityId = "";
+            string tmpSlotType = "";
+
+            // 🦾 ФАЗА 1: ЧИТАЕМ ЦEЛЬ И ЗАПИСЫВАЕМ НОВЫЙ ЯРЛЫК
+            for (int i = 0; i < barBuffer.Length; i++)
+            {
+                var slot = barBuffer[i];
+                if (slot.PanelIndex == targetPanelIndex && slot.SlotIndex == cmd.TargetSlot)
+                {
+                    // Бережно придерживаем в памяти старую абилку перед затиранием
+                    tmpAbilityId = slot.AbilityId.ToString();
+                    tmpSlotType = slot.SlotType.ToString();
+
+                    // Записываем новую
+                    slot.AbilityId = cmd.ItemId;
+                    slot.SlotType = "spell"; 
+                    barBuffer[i] = slot;
+                    break;
+                }
+            }
+
+            // 🦾 ФАЗА 2: РОКИРОВКА (СВОП) ИЛИ ОЧИСТКА ИСХОДНОГО СЛОТА
+            // ✅ ИСПРАВЛЕНО: Убрали сломанную проверку SourceSlot != TargetSlot!
+            // Если SourceEntity совпадает с TargetEntity (мы гоняем ярлыки внутри башки Игрока)
+            if (cmd.SourceEntity == cmd.TargetEntity)
+            {
+                // Но мы должны убедиться, что не затираем ячейку саму в себя, 
+                // если игрок просто взял и бросил абилку в ту же самую кнопку на той же самой панели!
+                // А как понять, что это та же панель? Если бы это была та же панель и тот же слот, 
+                // то tmpAbilityId совпал бы с cmd.ItemId. 
+                // Но проще и надежнее: раз мы знаем, с какой панели мы СЕЙЧАС работаем (cmd.PanelIndex),
+                // давай просто очистим исходный слот на ВСЕХ панелях хоткеев, где совпадает cmd.SourceSlot,
+                // НО кроме той ячейки, которую мы только что перезаписали в Фазе 1!
+                
+                for (int i = 0; i < barBuffer.Length; i++)
+                {
+                    var slot = barBuffer[i];
+
+                    // Ищем наш исходный слот
+                    // (Мы зачищаем ячейку под индексом SourceSlot. Но на какой панели? 
+                    // Если мы перетащили с Панели 1 на Панель 2, то исходный слот лежал на Панели 1.
+                    // Чтобы бэкенд не гадал, мы можем просто проверить: если этот элемент буфера 
+                    // НЕ является нашей новой целевой ячейкой, которую мы только что записали, 
+                    // но у него совпадает DataId/AbilityId с тем, что мы тащили (cmd.ItemId) — значит это ОН!)
+                    if (slot.SlotIndex == cmd.SourceSlot && slot.AbilityId == cmd.ItemId)
+                    {
+                        if (!string.IsNullOrEmpty(tmpAbilityId))
                         {
-                            slot.AbilityId = oldAbilityId;
-                            slot.SlotType = oldSlotType;
-                            Debug.Log($"[ActionDispatcher]: Своп! Старая абилка '{oldAbilityId}' перемещена обратно в Исходный Слот #{cmd.SourceSlot}");
+                            slot.AbilityId = tmpAbilityId;
+                            slot.SlotType = tmpSlotType;
+                            Debug.Log($"[ActionDispatcher]: Своп между панелями! Ярлык '{tmpAbilityId}' улетел на старое место.");
                         }
-                        // Если целевой слот был пустым — просто зачищаем за собой следы (ПЕРЕНОС)
                         else
                         {
                             slot.AbilityId = "";
                             slot.SlotType = "";
-                            Debug.Log($"[ActionDispatcher]: Перенос! Исходный Слот #{cmd.SourceSlot} панели #{targetPanelId} успешно очищен.");
+                            Debug.Log($"[ActionDispatcher]: Перенос между панелями! Старое место очищено.");
                         }
 
-                        barBuffer[i] = slot; // Применяем изменения в ОЗУ
+                        barBuffer[i] = slot;
                         break;
                     }
                 }
-            }
+            }       
         }
-
-
 
         private ISlotContainer CreateContainer(Entity entity)
         {

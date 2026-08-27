@@ -11,7 +11,7 @@ namespace ProjectTowerRpg.ECS.Systems
         protected override void OnUpdate()
         {
             // 🔍 1. БЫСТРЫЕ, ПОТОКОБЕЗОПАСНЫЕ ЛУКАПЫ КОМПОНЕНТОВ (Чтение)
-            var slotLookup = SystemAPI.GetBufferLookup<SlotData>(true);
+            var slotLookup = SystemAPI.GetBufferLookup<ItemSlot>(true);
             var actionBarLookup = SystemAPI.GetBufferLookup<ActionBarSlot>(true);
             var healthLookup = SystemAPI.GetComponentLookup<HealthComponent>(true);
             var resourceLookup = SystemAPI.GetComponentLookup<ResourceComponent>(true);
@@ -33,7 +33,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     var slots = slotLookup[entity];
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiBufferReceiver<SlotData> ui)
+                        if (receiver is IEcsUiBufferReceiver<ItemSlot> ui)
                         {
                             ui.UpdateFromBuffer(slots);
                         }

@@ -116,10 +116,10 @@ namespace ProjectTowerRpg.ECS.Authoring
                 Rows = 12
             });
 
-            var slotsBuffer = AddBuffer<SlotData>(inventoryEntity);
+            var slotsBuffer = AddBuffer<ItemSlot>(inventoryEntity);
             for (int idx = 0; idx < inventorySlotsCount; idx++)
             {
-                slotsBuffer.Add(new SlotData
+                slotsBuffer.Add(new ItemSlot
                 {
                     SlotIndex = idx,
                     DataId = "",
@@ -138,10 +138,10 @@ namespace ProjectTowerRpg.ECS.Authoring
                 Rows = 1
             });
 
-            var paperdollSlotsBuffer = AddBuffer<SlotData>(paperdollEntity);
+            var paperdollSlotsBuffer = AddBuffer<ItemSlot>(paperdollEntity);
             for (int j = 0; j < PAPERDOLL_SLOTS.Length; j++)
             {
-                paperdollSlotsBuffer.Add(new SlotData
+                paperdollSlotsBuffer.Add(new ItemSlot
                 {
                     SlotIndex = j,
                     DataId = "",

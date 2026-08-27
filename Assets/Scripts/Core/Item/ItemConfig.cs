@@ -23,6 +23,7 @@ namespace ProjectTowerRpg.Core.Items
         public string texture;
         public int tile_index;
         public float[] color; // Наш массив [r, g, b, a] для JSON
+        public string icon_char;
 
         // Удобный геттер для Unity: собирает Color из массива на лету
         public Color GetUnityColor()

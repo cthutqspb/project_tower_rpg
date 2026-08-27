@@ -87,10 +87,10 @@ namespace ProjectTowerRpg.ECS.Actions
             ecb.AddComponent<ContainerTag>(bagEntity);
             ecb.AddComponent<InventoryTag>(bagEntity);
 
-            var slotsBuffer = ecb.AddBuffer<SlotData>(bagEntity);
+            var slotsBuffer = ecb.AddBuffer<ItemSlot>(bagEntity);
             for (int i = 0; i < totalSlots; i++)
             {
-                slotsBuffer.Add(new SlotData { SlotIndex = i, ContainerType = ContainerType.INVENTORY });
+                slotsBuffer.Add(new ItemSlot { SlotIndex = i, ContainerType = ContainerType.INVENTORY });
             }
 
             // Раскладываем лут
@@ -98,7 +98,7 @@ namespace ProjectTowerRpg.ECS.Actions
             foreach (var item in lootItems)
             {
                 if (slotIndex >= totalSlots) break;
-                slotsBuffer[slotIndex] = new SlotData
+                slotsBuffer[slotIndex] = new ItemSlot
                 {
                     SlotIndex = slotIndex,
                     DataId = item.ItemId,

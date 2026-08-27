@@ -271,10 +271,10 @@ namespace ProjectTowerRpg.Core.UI
                 }
 
                 // Экшенбар (пока игнорируем)
-                if (em.HasComponent<ActionBarTag>(context.ContextEntity))
-                {
-                    return;
-                }
+                // if (em.HasComponent<ActionBarTag>(context.ContextEntity))
+                // {
+                //     return;
+                // }
 
                 Debug.Log("[UIInputHandler] Перенаправляем контекст в ActionsMenu");
                 

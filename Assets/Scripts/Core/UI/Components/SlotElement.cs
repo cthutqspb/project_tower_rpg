@@ -21,8 +21,8 @@ namespace ProjectTowerRpg.Core.UI.Components
         private int _amount = 0;
 
         public int SlotIndex { get; set; }
+        public int PanelIndex { get; set; }
         public Entity ContainerEntity { get; set; }
-        public string DataSourceId { get; set; }
         
         // Оставляем строки в UI для USS-стилей, это нормально
         public string GridType { get; set; } 
@@ -101,10 +101,10 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 Source = this,
                 SlotIndex = SlotIndex, // Передаем чистый int
+                PanelIndex = PanelIndex,
                 ItemId = _itemId,
                 Amount = _amount,
                 Icon = null, // TODO: вытащить спрайт из конфигурации, если нужно
-                SourceId = DataSourceId,
                 SourceEntity = ContainerEntity
             };
         }
@@ -133,6 +133,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (config != null)
             {
                 quality = config.identity.quality;
+                iconCharacter = config.visuals?.icon_char ?? "";
             }
             else
             {
@@ -146,28 +147,14 @@ namespace ProjectTowerRpg.Core.UI.Components
             _icon.style.backgroundColor = GetQualityColor(quality);
             _icon.text = iconCharacter;
 
-            if (ContainerEntity != Entity.Null)
+            // 🔥 БИНД-КЛАВИША (ТОЛЬКО ДЛЯ ЭКШЕН-БАРА)
+            if (PanelIndex > 0)
             {
-                var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-
-                bool isActionBar = em.HasComponent<ActionBarTag>(ContainerEntity);
-                bool isAuraFrame = em.HasComponent<AuraFrameTag>(ContainerEntity);
-                bool isInventory = em.HasComponent<InventoryTag>(ContainerEntity);
-                bool isPaperdoll = em.HasComponent<PaperdollTag>(ContainerEntity);
-                bool isContainer = em.HasComponent<ContainerTag>(ContainerEntity);
-
-                if (isActionBar)
-                {
-                    _bindLabel.style.display = DisplayStyle.Flex;
-                    _bindLabel.text = GetBindKey(index);
-                }
-
-                if (isAuraFrame)
-                {
-                    // TODO: отображать длительность ауры
-                }
+                _bindLabel.style.display = DisplayStyle.Flex;
+                _bindLabel.text = GetBindKey(index);
             }
 
+            // КОЛИЧЕСТВО (ДЛЯ СТАКОВ)
             if (amount > 1)
             {
                 _amountLabel.style.display = DisplayStyle.Flex;
@@ -245,7 +232,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         
         private void OnPointerOver(PointerOverEvent evt)
         {
-            //Debug.Log($"[SlotElement] Мышь ХОВЕР на слоте #{SlotIndex}. Текущий ID: '{_itemId}', GridType: '{GridType}'");
+            //Debug.Log($"[SlotElement] Мышь ХОВЕР на слоте #{SlotIndex}. Текущий ID: '{_itemId}'");
 
             if (string.IsNullOrEmpty(_itemId)) 
             {

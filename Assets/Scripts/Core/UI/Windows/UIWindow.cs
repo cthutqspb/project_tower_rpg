@@ -15,7 +15,7 @@ namespace ProjectTowerRpg.Core.UI
         protected PanelRenderer _panelRenderer;
 
         // Кэш для ECS-компонентов внутри этого окна, чтобы не сканировать дерево каждый кадр
-        private List<IEcsUiBufferReceiver<SlotData>> _cachedReceivers = new();
+        private List<IEcsUiBufferReceiver<ItemSlot>> _cachedReceivers = new();
 
         public VisualElement Root => _root;
         public bool IsOpen => _context != null && _context.IsVisible;
@@ -56,11 +56,11 @@ namespace ProjectTowerRpg.Core.UI
 
             OnWindowBuilt(_root);
 
-            // Сразу после сборки окна один раз сканируем его и находим все сетки/куклы на базе SlotData
+            // Сразу после сборки окна один раз сканируем его и находим все сетки/куклы на базе ItemSlot
             _cachedReceivers.Clear();
             _root.Query<VisualElement>().ForEach(element =>
             {
-                if (element is IEcsUiBufferReceiver<SlotData> receiver)
+                if (element is IEcsUiBufferReceiver<ItemSlot> receiver)
                 {
                     _cachedReceivers.Add(receiver);
                 }
@@ -84,9 +84,9 @@ namespace ProjectTowerRpg.Core.UI
                     
                     // Сразу форсируем чтение свежих данных из ECS при открытии
                     var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-                    if (em.HasBuffer<SlotData>(receiver.BoundEntity))
+                    if (em.HasBuffer<ItemSlot>(receiver.BoundEntity))
                     {
-                        receiver.UpdateFromBuffer(em.GetBuffer<SlotData>(receiver.BoundEntity));
+                        receiver.UpdateFromBuffer(em.GetBuffer<ItemSlot>(receiver.BoundEntity));
                     }
                 }
             }

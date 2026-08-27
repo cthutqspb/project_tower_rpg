@@ -94,7 +94,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
             {
                 // Мешок найден — строим сетку
                 var containerComp = em.GetComponentData<ContainerConfigComponent>(lootBagEntity);
-                _lootGrid = new StaticGrid(containerComp.Columns, containerComp.Rows, "loot");
+                _lootGrid = new StaticGrid(containerComp.Columns, containerComp.Rows);
                 _lootGrid.BindToEntity(lootBagEntity);
                 _inventoryContainer.Add(_lootGrid);
                 

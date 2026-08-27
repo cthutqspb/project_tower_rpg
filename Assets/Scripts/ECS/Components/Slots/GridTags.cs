@@ -9,9 +9,6 @@ namespace ProjectTowerRpg.ECS.Components
     // Инвентарь (рюкзак, сундук, труп)
     public struct InventoryTag : IComponentData { }
     
-    // Экшенбар (панель способностей)
-    public struct ActionBarTag : IComponentData { }
-    
     // Аурафрейм (баффы/дебаффы)
     public struct AuraFrameTag : IComponentData { }
 

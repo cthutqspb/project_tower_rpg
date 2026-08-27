@@ -55,7 +55,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 if (world != null)
                 {
                     var inventoryComp = world.EntityManager.GetComponentData<ContainerConfigComponent>(inventoryEntity);
-                    _inventoryGrid = new StaticGrid(inventoryComp.Columns, inventoryComp.Rows, "inventory");
+                    _inventoryGrid = new StaticGrid(inventoryComp.Columns, inventoryComp.Rows);
                     
                     _inventoryGrid.BindToEntity(inventoryEntity); 
                     inventoryContainer.Add(_inventoryGrid);

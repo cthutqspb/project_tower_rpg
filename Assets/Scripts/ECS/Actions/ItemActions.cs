@@ -12,9 +12,9 @@ namespace ProjectTowerRpg.ECS.Actions
         // ОЧИСТКА СЛОТОВ
         // ================================================================
 
-        public static void ClearSlot(DynamicBuffer<SlotData> slots, int index)
+        public static void ClearSlot(DynamicBuffer<ItemSlot> slots, int index)
         {
-            slots[index] = new SlotData
+            slots[index] = new ItemSlot
             {
                 SlotIndex = index,
                 ContainerType = slots[index].ContainerType, // Сохраняем тип контейнера (например, Inventory)
@@ -68,7 +68,7 @@ namespace ProjectTowerRpg.ECS.Actions
         // ================================================================
 
         public static void Drop(
-            ref BufferLookup<SlotData> slotDataLookup,
+            ref BufferLookup<ItemSlot> slotDataLookup,
             EntityCommandBuffer ecb,
             Entity containerEntity,
             int index,
@@ -78,7 +78,7 @@ namespace ProjectTowerRpg.ECS.Actions
         {
             if (!slotDataLookup.HasBuffer(containerEntity))
             {
-                Debug.LogWarning("[ItemActions] У сущности нет буфера SlotData");
+                Debug.LogWarning("[ItemActions] У сущности нет буфера ItemSlot");
                 return;
             }
 
@@ -118,14 +118,14 @@ namespace ProjectTowerRpg.ECS.Actions
         // ================================================================
 
         public static void Loot(
-            ref BufferLookup<SlotData> slotDataLookup,
+            ref BufferLookup<ItemSlot> slotDataLookup,
             EntityCommandBuffer ecb,
             Entity itemWorldEntity,
             Entity inventoryEntity)
         {
             if (!slotDataLookup.HasBuffer(inventoryEntity))
             {
-                Debug.LogError($"[ItemActions.Loot] У сущности инвентаря {inventoryEntity.Index} отсутствует DynamicBuffer<SlotData>!");
+                Debug.LogError($"[ItemActions.Loot] У сущности инвентаря {inventoryEntity.Index} отсутствует DynamicBuffer<ItemSlot>!");
                 return;
             }
 
@@ -151,7 +151,7 @@ namespace ProjectTowerRpg.ECS.Actions
 
             if (targetSlotIndex != -1)
             {
-                inventoryBuffer[targetSlotIndex] = new SlotData
+                inventoryBuffer[targetSlotIndex] = new ItemSlot
                 {
                     SlotIndex = targetSlotIndex,
                     DataId = itemData.ItemId,
@@ -175,7 +175,7 @@ namespace ProjectTowerRpg.ECS.Actions
         // ================================================================
 
         public static void Use(
-            ref BufferLookup<SlotData> slotDataLookup,
+            ref BufferLookup<ItemSlot> slotDataLookup,
             Entity containerEntity,
             int index,
             string itemId,
@@ -203,7 +203,7 @@ namespace ProjectTowerRpg.ECS.Actions
             {
                 if (!slotDataLookup.HasBuffer(containerEntity))
                 {
-                    Debug.LogWarning("[ItemActions] У контейнера нет буфера SlotData");
+                    Debug.LogWarning("[ItemActions] У контейнера нет буфера ItemSlot");
                     return;
                 }
 
@@ -214,7 +214,7 @@ namespace ProjectTowerRpg.ECS.Actions
                 var item = slots[index];
                 if (item.Amount > 1)
                 {
-                    slots[index] = new SlotData
+                    slots[index] = new ItemSlot
                     {
                         SlotIndex = index,
                         ContainerType = item.ContainerType,

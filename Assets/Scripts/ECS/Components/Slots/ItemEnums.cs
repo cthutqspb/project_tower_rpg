@@ -5,8 +5,7 @@ namespace ProjectTowerRpg.ECS.Components
         NONE = 0,
         INVENTORY = 1,
         PAPERDOLL = 2,
-        ACTION_BAR = 3,
-        AURA_FRAME = 4
+        AURA_FRAME = 3 //скорее всего не нужен будет
     }
 
     public enum EquipSlot : byte

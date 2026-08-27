@@ -21,7 +21,7 @@ namespace ProjectTowerRpg.Core.UI
             // Запрос на все контейнеры с нужным тегом
             var query = em.CreateEntityQuery(
                 ComponentType.ReadOnly<ContainerConfigComponent>(),
-                ComponentType.ReadOnly<SlotData>(),
+                ComponentType.ReadOnly<ItemSlot>(),
                 ComponentType.ReadOnly<T>()
             );
 
@@ -47,7 +47,7 @@ namespace ProjectTowerRpg.Core.UI
 
             var query = em.CreateEntityQuery(
                 ComponentType.ReadOnly<ContainerConfigComponent>(),
-                ComponentType.ReadOnly<SlotData>()
+                ComponentType.ReadOnly<ItemSlot>()
             );
 
             var allContainers = query.ToEntityArray(allocator);

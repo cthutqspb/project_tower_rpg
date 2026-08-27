@@ -180,20 +180,20 @@ namespace ProjectTowerRpg.ECS.Systems
                 var inventoryEntity = em.CreateEntity();
                 em.AddComponentData(inventoryEntity, new ContainerConfigComponent { Owner = unitEntity, Columns = 6, Rows = 12 });
                 em.AddComponent<InventoryTag>(inventoryEntity);
-                var slotsBuffer = em.AddBuffer<SlotData>(inventoryEntity);
+                var slotsBuffer = em.AddBuffer<ItemSlot>(inventoryEntity);
                 for (int i = 0; i < 72; i++)
                 {
-                    slotsBuffer.Add(new SlotData { SlotIndex = i, DataId = "", DataType = "", Amount = 0, EquipSlot = EquipSlot.NONE, ContainerType = ContainerType.INVENTORY });
+                    slotsBuffer.Add(new ItemSlot { SlotIndex = i, DataId = "", DataType = "", Amount = 0, EquipSlot = EquipSlot.NONE, ContainerType = ContainerType.INVENTORY });
                 }
 
                 // 🏗️ 3. СТРОИМ КУКЛУ ШМОТА
                 var paperdollEntity = em.CreateEntity();
                 em.AddComponentData(paperdollEntity, new ContainerConfigComponent { Owner = unitEntity, Columns = PAPERDOLL_SLOTS.Length, Rows = 1 });
                 em.AddComponent<PaperdollTag>(paperdollEntity);
-                var paperdollBuffer = em.AddBuffer<SlotData>(paperdollEntity);
+                var paperdollBuffer = em.AddBuffer<ItemSlot>(paperdollEntity);
                 for (int j = 0; j < PAPERDOLL_SLOTS.Length; j++)
                 {
-                    paperdollBuffer.Add(new SlotData { SlotIndex = j, DataId = "", DataType = "", Amount = 0, EquipSlot = PAPERDOLL_SLOTS[j], ContainerType = ContainerType.PAPERDOLL });
+                    paperdollBuffer.Add(new ItemSlot { SlotIndex = j, DataId = "", DataType = "", Amount = 0, EquipSlot = PAPERDOLL_SLOTS[j], ContainerType = ContainerType.PAPERDOLL });
                 }
 
                 // 🎒 НАКЫДЫВАНИЕ ТЕСТОВОГО ШМОТА В ИНВЕНТАРЬ ИГРОКА (ПЕРЕНЕСЕНО ПОД ОБЪЯВЛЕНИЕ ПЕРЕМЕННОЙ)
@@ -210,11 +210,11 @@ namespace ProjectTowerRpg.ECS.Systems
                         ("chest_common", 1)
                     };
 
-                    var playerSlotsBuffer = em.GetBuffer<SlotData>(inventoryEntity);
+                    var playerSlotsBuffer = em.GetBuffer<ItemSlot>(inventoryEntity);
 
                     for (int idx = 0; idx < testItems.Length; idx++)
                     {
-                        playerSlotsBuffer[idx] = new SlotData
+                        playerSlotsBuffer[idx] = new ItemSlot
                         {
                             SlotIndex = idx,
                             DataId = testItems[idx].id,

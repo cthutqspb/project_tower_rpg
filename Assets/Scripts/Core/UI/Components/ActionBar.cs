@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
-using ProjectTowerRpg.ECS.Components; // Убедись, что подключен юзинг для ContainerType
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -50,7 +49,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 int panelId = barIndex + 1; 
                 
                 // Передаем в твой новый конструктор StaticGrid тип и номер панели хоткеев!
-                _slotsGrid = new StaticGrid(12, 1, ContainerType.ACTION_BAR.ToString(), panelId);
+                _slotsGrid = new StaticGrid(12, 1, panelId);
                 container.Add(_slotsGrid);
                 
                 Debug.Log($"[ActionBar]: StaticGrid успешно развернут для экшен-бара #{panelId} в ECS-режиме.");

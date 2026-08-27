@@ -8,7 +8,7 @@ using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
-    public class Paperdoll : VisualElement, IEcsUiBufferReceiver<SlotData>, IEntityContainer
+    public class Paperdoll : VisualElement, IEcsUiBufferReceiver<ItemSlot>, IEntityContainer
     {
         private Entity _paperdollEntity;
         private List<SlotElement> _slots = new();
@@ -52,7 +52,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             var slot = new SlotElement
             {
                 SlotIndex = index,
-                // ❌ GridType = "paperdoll", ← УДАЛИТЬ!
                 ContainerEntity = _paperdollEntity,
                 name = $"slot-{nameId}",
                 pickingMode = PickingMode.Position
@@ -77,14 +76,14 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (world == null) return;
             
             var em = world.EntityManager;
-            if (em.HasBuffer<SlotData>(paperdollEntity))
+            if (em.HasBuffer<ItemSlot>(paperdollEntity))
             {
-                var slots = em.GetBuffer<SlotData>(paperdollEntity);
+                var slots = em.GetBuffer<ItemSlot>(paperdollEntity);
                 UpdateFromBuffer(slots);
             }
         }
         
-        public void UpdateFromBuffer(DynamicBuffer<SlotData> slots)
+        public void UpdateFromBuffer(DynamicBuffer<ItemSlot> slots)
         {
             Debug.Log($"[Paperdoll] UpdateFromBuffer: {slots.Length} слотов экипировки");
             

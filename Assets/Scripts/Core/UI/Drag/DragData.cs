@@ -7,10 +7,10 @@ namespace ProjectTowerRpg.Core.UI
     {
         public object Source;
         public int SlotIndex;
+        public int PanelIndex;
         public string ItemId;
         public int Amount;
         public Sprite Icon;
-        public string SourceId;
         public Entity SourceEntity;
         public Entity TargetEntity;
     }

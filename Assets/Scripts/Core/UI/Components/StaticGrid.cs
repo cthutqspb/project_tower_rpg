@@ -8,29 +8,26 @@ using ProjectTowerRpg.Core.Items;
 namespace ProjectTowerRpg.Core.UI.Components
 {
     public class StaticGrid : VisualElement,
-                              IEcsUiBufferReceiver<SlotData>,
+                              IEcsUiBufferReceiver<ItemSlot>,
                               IEcsUiBufferReceiver<ActionBarSlot>,
                               IEntityContainer
     {
         private int _columns;
         private int _rows;
-        private string _gridType;
-        private ContainerType _containerType;
         private int _panelIndex;
         private List<SlotElement> _slots = new();
         private Entity _boundEntity;
 
         public Entity BoundEntity => _boundEntity;
 
-        public StaticGrid(int columns, int rows, string gridType, int panelIndex=0)
+        public StaticGrid(int columns, int rows, int panelIndex=0)
         {
             _columns = columns;
             _rows = rows;
-            _gridType = gridType;
             _panelIndex = panelIndex;
             
             this.AddToClassList("static-grid-container");
-            this.AddToClassList($"grid-{gridType}");
+            //this.AddToClassList($"grid-{gridType}");
             
             this.pickingMode = PickingMode.Ignore;
             this.style.width = columns * 48;
@@ -44,8 +41,8 @@ namespace ProjectTowerRpg.Core.UI.Components
                 var slot = new SlotElement
                 {
                     SlotIndex = i,
-                    // ❌ GridType = _gridType, ← УДАЛИТЬ!
                     name = $"slot-{i}",
+                    PanelIndex = _panelIndex,
                     style =
                     {
                         width = 40,
@@ -80,48 +77,38 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (world == null) return;
             
             var em = world.EntityManager;
-            if (em.HasBuffer<SlotData>(targetEntity))
+            if (em.HasBuffer<ItemSlot>(targetEntity))
             {
-                var slots = em.GetBuffer<SlotData>(targetEntity);
+                var slots = em.GetBuffer<ItemSlot>(targetEntity);
                 UpdateFromBuffer(slots);
             }
             else
             {
-                Debug.LogWarning($"[StaticGrid] Сущность {targetEntity} не имеет универсального буфера SlotData");
+                Debug.LogWarning($"[StaticGrid] Сущность {targetEntity} не имеет универсального буфера ItemSlot");
             }
         }
 
+                // =========================================================================
+        // ⚔️ ПОТОК ИНВЕНТАРЯ (Вызывается автоматически для DynamicBuffer<ItemSlot>)
         // =========================================================================
-        // ⚔️ РЕЛЬСЫ ИНВЕНТАРЯ И КУКЛЫ (Обслуживает строго материальные предметы)
-        // =========================================================================
-        public void UpdateFromBuffer(DynamicBuffer<SlotData> slots)
+        public void UpdateFromBuffer(DynamicBuffer<ItemSlot> slots)
         {
-            // Если эта сетка — экшен-бар, мы сразу выходим, ей тут делать нечего!
-            if (_gridType == "action-bar" || _gridType == "ACTION_BAR") return;
-
-            Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} универсальных слотов. Фильтр по строке: '{_gridType}'");
+            Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} предметов инвентаря.");
             
+            // Кристально чистая зачистка визуала экрана
             foreach (var slot in _slots)
             {
                 slot.ClearVisual();
             }
 
-            for (int i = 0; i < slots.Length; i++)
+            // Слепо и быстро выводим предметы. Никаких ContainerHelper и подсчетов банок!
+            for (int i = 0; i < slots.Length && i < _slots.Count; i++)
             {
                 var slotData = slots[i];
-
-                // Проверяем, что тип контейнера в буфере соответствует типу окна на экране ("inventory" или "paperdoll")
-                if (slotData.ContainerType.ToString().ToLower() == _gridType.ToLower())
-                {
-                    int uiIndex = slotData.SlotIndex;
-                    if (uiIndex >= 0 && uiIndex < _slots.Count)
-                    {
-                        var itemId = slotData.DataId.ToString();
-                        var config = !string.IsNullOrEmpty(itemId) ? ItemsDatabase.GetItem(itemId) : null;
-                        
-                        _slots[uiIndex].SetData(itemId, config, uiIndex, slotData.Amount);
-                    }
-                }
+                var itemId = slotData.DataId.ToString();
+                var config = !string.IsNullOrEmpty(itemId) ? ItemsDatabase.GetItem(itemId) : null;
+                
+                _slots[i].SetData(itemId, config, i, slotData.Amount);
             }
         }
 
@@ -130,9 +117,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         // =========================================================================
         public void UpdateFromBuffer(DynamicBuffer<ActionBarSlot> slots)
         {
-            // Если эта сетка — НЕ экшен-бар, сразу выходим наглухо!
-            if (_gridType != "action-bar" && _gridType != "ACTION_BAR") return;
-
+            // ✅ ИСПРАВЛЕНО: Никаких ручных гвардов. Метод занимается строго хоткеями панелей.
             Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} ярлыков способностей. Панель: #{_panelIndex}");
             
             foreach (var slot in _slots)
@@ -140,7 +125,6 @@ namespace ProjectTowerRpg.Core.UI.Components
                 slot.ClearVisual();
             }
 
-            // Логика подсчета количества предметов из сумки (то, что мы набросали шагом ранее)
             var world = World.DefaultGameObjectInjectionWorld;
             if (world == null) return;
             var em = world.EntityManager;
@@ -149,10 +133,10 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 var slotData = slots[i];
 
-                // Фильтруем элементы буфера строго по номеру этой панели хоткеев
+                // Фильтруем элементы буфера строго по номеру этой панели хоткеев (1 или 2)
                 if (slotData.PanelIndex == _panelIndex)
                 {
-                    int targetUiIndex = slotData.SlotIndex; // Прямой локальный индекс экрана 0..11
+                    int targetUiIndex = slotData.SlotIndex; // Локальный индекс экрана 0..11
 
                     if (targetUiIndex >= 0 && targetUiIndex < _slots.Count)
                     {
@@ -168,9 +152,9 @@ namespace ProjectTowerRpg.Core.UI.Components
                             displayAmount = 0;
                             Entity invEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(_boundEntity, em);
 
-                            if (invEntity != Entity.Null && em.HasBuffer<SlotData>(invEntity))
+                            if (invEntity != Entity.Null && em.HasBuffer<ItemSlot>(invEntity))
                             {
-                                var inventorySlots = em.GetBuffer<SlotData>(invEntity);
+                                var inventorySlots = em.GetBuffer<ItemSlot>(invEntity);
                                 for (int idx = 0; idx < inventorySlots.Length; idx++)
                                 {
                                     if (inventorySlots[idx].DataId == abilityId)
@@ -186,6 +170,5 @@ namespace ProjectTowerRpg.Core.UI.Components
                 }
             }
         }
-    
     }
 }

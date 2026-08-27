@@ -6,11 +6,11 @@ using ProjectTowerRpg.Core.Items;
 public class BufferSlotContainer : ISlotContainer
 {
     private Entity _entity;
-    private BufferLookup<SlotData> _slotLookup;
+    private BufferLookup<ItemSlot> _slotLookup;
 
     public Entity Entity => _entity;
 
-    public BufferSlotContainer(Entity entity, BufferLookup<SlotData> slotLookup)
+    public BufferSlotContainer(Entity entity, BufferLookup<ItemSlot> slotLookup)
     {
         _entity = entity;
         _slotLookup = slotLookup;
@@ -42,7 +42,7 @@ public class BufferSlotContainer : ISlotContainer
         var slots = _slotLookup[_entity];
         if (slot < 0 || slot >= slots.Length) return;
 
-        if (content is SlotData data)
+        if (content is ItemSlot data)
         {
             data.SlotIndex = slot;
             slots[slot] = data;
@@ -67,7 +67,7 @@ public class BufferSlotContainer : ISlotContainer
         var slots = _slotLookup[_entity];
         if (slot >= 0 && slot < slots.Length)
         {
-            slots[slot] = new SlotData
+            slots[slot] = new ItemSlot
             {
                 SlotIndex = slot,
                 ContainerType = slots[slot].ContainerType,
@@ -84,7 +84,7 @@ public class BufferSlotContainer : ISlotContainer
         var slots = _slotLookup[_entity];
         if (slot < 0 || slot >= slots.Length) return false;
 
-        if (content is SlotData incomingData)
+        if (content is ItemSlot incomingData)
         {
             // ================================================================
             // 🔥 ЗАЩИТА ОТ ВЛОЖЕННЫХ КОНТЕЙНЕРОВ (ГЛУБИНА = 1)
@@ -108,9 +108,6 @@ public class BufferSlotContainer : ISlotContainer
                     var config = ItemsDatabase.GetItem(incomingData.DataId.ToString());
                     if (config == null) return false;
                     return config.properties.equip_slot == slots[slot].EquipSlot.ToString();
-
-                case ContainerType.ACTION_BAR:
-                    return incomingData.DataType == "ability" || incomingData.DataType == "item";
 
                 default:
                     return false;
