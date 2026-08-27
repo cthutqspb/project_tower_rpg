@@ -191,7 +191,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
             int finalTargetSlot = cmd.TargetSlot;
 
-            if (finalTargetSlot == -1)
+                        if (finalTargetSlot == -1)
             {
                 var targetSlotsBuffer = _slotDataLookup[cmd.TargetEntity];
                 var incomingContent = new ItemSlot
@@ -201,17 +201,21 @@ namespace ProjectTowerRpg.ECS.Systems
                     Amount = cmd.Amount
                 };
 
-                // 1. СНАЧАЛА ИЩЕМ СЛОТ ПО EQUIP_SLOT (ДАЖЕ ЗАНЯТЫЙ)
-                for (int i = 0; i < targetSlotsBuffer.Length; i++)
+                // 🦾 ИСПРАВЛЕНО: Этот цикл ищет анатомический слот ТОЛЬКО если цель — кукла персонажа!
+                // Проверяем по ECS-тегу целевой сущности
+                if (World.DefaultGameObjectInjectionWorld.EntityManager.HasComponent<PaperdollTag>(cmd.TargetEntity))
                 {
-                    if (target.CanPlaceContent(i, incomingContent))
+                    for (int i = 0; i < targetSlotsBuffer.Length; i++)
                     {
-                        finalTargetSlot = i;
-                        break;
+                        if (target.CanPlaceContent(i, incomingContent))
+                        {
+                            finalTargetSlot = i;
+                            break;
+                        }
                     }
                 }
 
-                // 2. ЕСЛИ НЕ НАШЛИ — ИЩЕМ ПУСТОЙ СЛОТ (ДЛЯ ИНВЕНТАРЯ)
+                // 2. ЕСЛИ НЕ НАШЛИ (ИЛИ ЭТО ИНВЕНТАРЬ) — ИЩЕМ ПУСТОЙ СЛОТ
                 if (finalTargetSlot == -1)
                 {
                     for (int i = 0; i < targetSlotsBuffer.Length; i++)
@@ -267,101 +271,64 @@ namespace ProjectTowerRpg.ECS.Systems
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
             
-            if (!em.HasBuffer<ActionBarSlot>(cmd.TargetEntity)) 
-            {
-                Debug.LogWarning($"[ActionDispatcher] Сущность {cmd.TargetEntity.Index} не имеет буфера ActionBarSlot!");
-                return;
-            }
-
+            if (!em.HasBuffer<ActionBarSlot>(cmd.TargetEntity)) return;
             var barBuffer = em.GetBuffer<ActionBarSlot>(cmd.TargetEntity);
-            int targetPanelIndex = cmd.PanelIndex > 0 ? cmd.PanelIndex : 1;
 
             // =========================================================================
-            // 🦾 ФАЗА 0: ДРОП В ПУСТОЙ МИР (Удаление ярлыка с панели)
+            // 🦾 КЕЙС 0: ДРОП В ПУСТОЙ МИР (Удаление ярлыка с панели в молоко)
             // =========================================================================
             if (cmd.TargetSlot == -1)
             {
-                for (int i = 0; i < barBuffer.Length; i++)
+                // Стирать ячейку экшен-бара можно только если изначально взяли её С экшен-бара Игрока
+                if (em.HasComponent<PlayerTag>(cmd.SourceEntity) && cmd.SourceSlot >= 0 && cmd.SourceSlot < barBuffer.Length)
                 {
-                    var slot = barBuffer[i];
-                    if (slot.PanelIndex == targetPanelIndex && slot.SlotIndex == cmd.SourceSlot)
-                    {
-                        slot.AbilityId = "";
-                        slot.SlotType = "";
-                        barBuffer[i] = slot;
-                        Debug.Log($"[ActionDispatcher]: Ярлык '{cmd.ItemId}' выброшен в мир. Слот #{cmd.SourceSlot} панели #{targetPanelIndex} очищен.");
-                        return;
-                    }
+                    var sourceSlotData = barBuffer[cmd.SourceSlot];
+                    sourceSlotData.AbilityId = "";
+                    barBuffer[cmd.SourceSlot] = sourceSlotData;
                 }
                 return;
             }
 
-            // Временный кэш для честного свопа способностей на панели
-            string tmpAbilityId = "";
-            string tmpSlotType = "";
+            // =========================================================================
+            // 🦾 КЕЙС 1: АТОМАРНАЯ ЗАПИСЬ ЯРЛЫКА В ЦЕЛЬ (Работает ВСЕГДА, индекс 0..23)
+            // =========================================================================
+            var targetSlot = barBuffer[cmd.TargetSlot];
+            
+            // Бережно придерживаем старый ID цели (только на случай рокировки кнопок панели)
+            var tmpAbilityId = targetSlot.AbilityId;
 
-            // 🦾 ФАЗА 1: ЧИТАЕМ ЦEЛЬ И ЗАПИСЫВАЕМ НОВЫЙ ЯРЛЫК
-            for (int i = 0; i < barBuffer.Length; i++)
+            // Записываем ID того, что притащили (хоть спелл, хоть манапот) в ОЗУ панели хоткеев
+            targetSlot.AbilityId = cmd.ItemId;
+            barBuffer[cmd.TargetSlot] = targetSlot; // Ссылка на меч успешно вшита в 5-й слот!
+
+            // =========================================================================
+            // 🦾 КЕЙС 2: РОКИРОВКА (СВОП) КНОПОК ПАНЕЛИ
+            // =========================================================================
+            // 🚨 ЖЕЛЕЗОБЕТОННЫЙ СЛEПОЙ ГВАРД: Мы лезем в исходный слот экшен-бара ТОЛЬКО если 
+            // утащили ярлык С экшен-бара Игрока (PlayerTag)!
+            // Если вещь прилетела из инвентаря (InventoryTag) — мы СЮДА ВООБЩЕ НЕ ЗАХОДИМ! 
+            // Экшен-бару глубоко насрать на 43-й индекс сумки, билд застрахован от падений на 100%!
+            if (em.HasComponent<PlayerTag>(cmd.SourceEntity))
             {
-                var slot = barBuffer[i];
-                if (slot.PanelIndex == targetPanelIndex && slot.SlotIndex == cmd.TargetSlot)
-                {
-                    // Бережно придерживаем в памяти старую абилку перед затиранием
-                    tmpAbilityId = slot.AbilityId.ToString();
-                    tmpSlotType = slot.SlotType.ToString();
+                var sourceSlot = barBuffer[cmd.SourceSlot]; // Индекс гарантированно легитимен 0..23
 
-                    // Записываем новую
-                    slot.AbilityId = cmd.ItemId;
-                    slot.SlotType = "spell"; 
-                    barBuffer[i] = slot;
-                    break;
+                // Если на кнопке-цели что-то сидело — шлёпаем рокировку (СВОП) на старое место панели
+                if (!tmpAbilityId.IsEmpty)
+                {
+                    sourceSlot.AbilityId = tmpAbilityId;
                 }
+                else
+                {
+                    // Если кнопка-цель была пустой — просто стираем ярлык со старой кнопки (ПЕРЕНОС)
+                    sourceSlot.AbilityId = "";
+                }
+
+                barBuffer[cmd.SourceSlot] = sourceSlot;
+                Debug.Log($"[ActionDispatcher]: Перенос ярлыков внутри панелей успешно завершен.");
             }
-
-            // 🦾 ФАЗА 2: РОКИРОВКА (СВОП) ИЛИ ОЧИСТКА ИСХОДНОГО СЛОТА
-            // ✅ ИСПРАВЛЕНО: Убрали сломанную проверку SourceSlot != TargetSlot!
-            // Если SourceEntity совпадает с TargetEntity (мы гоняем ярлыки внутри башки Игрока)
-            if (cmd.SourceEntity == cmd.TargetEntity)
-            {
-                // Но мы должны убедиться, что не затираем ячейку саму в себя, 
-                // если игрок просто взял и бросил абилку в ту же самую кнопку на той же самой панели!
-                // А как понять, что это та же панель? Если бы это была та же панель и тот же слот, 
-                // то tmpAbilityId совпал бы с cmd.ItemId. 
-                // Но проще и надежнее: раз мы знаем, с какой панели мы СЕЙЧАС работаем (cmd.PanelIndex),
-                // давай просто очистим исходный слот на ВСЕХ панелях хоткеев, где совпадает cmd.SourceSlot,
-                // НО кроме той ячейки, которую мы только что перезаписали в Фазе 1!
-                
-                for (int i = 0; i < barBuffer.Length; i++)
-                {
-                    var slot = barBuffer[i];
-
-                    // Ищем наш исходный слот
-                    // (Мы зачищаем ячейку под индексом SourceSlot. Но на какой панели? 
-                    // Если мы перетащили с Панели 1 на Панель 2, то исходный слот лежал на Панели 1.
-                    // Чтобы бэкенд не гадал, мы можем просто проверить: если этот элемент буфера 
-                    // НЕ является нашей новой целевой ячейкой, которую мы только что записали, 
-                    // но у него совпадает DataId/AbilityId с тем, что мы тащили (cmd.ItemId) — значит это ОН!)
-                    if (slot.SlotIndex == cmd.SourceSlot && slot.AbilityId == cmd.ItemId)
-                    {
-                        if (!string.IsNullOrEmpty(tmpAbilityId))
-                        {
-                            slot.AbilityId = tmpAbilityId;
-                            slot.SlotType = tmpSlotType;
-                            Debug.Log($"[ActionDispatcher]: Своп между панелями! Ярлык '{tmpAbilityId}' улетел на старое место.");
-                        }
-                        else
-                        {
-                            slot.AbilityId = "";
-                            slot.SlotType = "";
-                            Debug.Log($"[ActionDispatcher]: Перенос между панелями! Старое место очищено.");
-                        }
-
-                        barBuffer[i] = slot;
-                        break;
-                    }
-                }
-            }       
         }
+
+
 
         private ISlotContainer CreateContainer(Entity entity)
         {

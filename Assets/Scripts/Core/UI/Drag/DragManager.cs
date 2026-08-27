@@ -139,7 +139,6 @@ namespace ProjectTowerRpg.Core.UI
                 return;
             }
 
-            // Достаем исходный SlotElement, чтобы прочитать его бэкенд-паспорт
             SlotElement sourceSlotElement = _activeDrag.Source as SlotElement;
             if (sourceSlotElement == null)
             {
@@ -155,29 +154,28 @@ namespace ProjectTowerRpg.Core.UI
                 var em = _entityManager;
                 var actionEntity = em.CreateEntity();
 
-                // 🦾 ЧИСТЫЙ ECS-РАЗВОД ДОМЕНОВ В ОДНУ СТРОЧКУ:
-                // Если исходный контейнер имеет PlayerTag — значит, ярлык утащили с экшен-бара Игрока!
+                // Различаем домены строго по ECS-тегу Игрока (PlayerTag)
                 bool isFromActionBar = em.HasComponent<PlayerTag>(sourceEntity);
 
                 if (isFromActionBar)
                 {
-                    // WoW-канон: Просто шлём команду ассайна со значением TargetSlot = -1 на зачистку ярлыка!
+                    // WoW-канон: Шлём команду со сквозным SourceSlot и TargetSlot = -1 на зачистку ярлыка!
                     em.AddComponentData(actionEntity, new ActionCommand
                     {
                         ActionType = "action_bar_assign",
                         SourceEntity = sourceEntity,
-                        SourceSlot = sourceSlotElement.SlotIndex,
-                        TargetEntity = sourceEntity, // Целью ставим себя же
-                        TargetSlot = -1,             // Минус единица — сигнал бэкенду стереть ярлык
+                        SourceSlot = sourceSlotElement.SlotIndex, // Прилетит честное сквозное число 0..23!
+                        TargetEntity = sourceEntity, 
+                        TargetSlot = -1,                          // Сигнал бэкенду на зачистку
                         ItemId = _activeDrag.ItemId,
-                        Amount = 1                   // Номер панели по умолчанию
+                        Amount = _activeDrag.Amount               // Честное количество предметов в стаке спасёно!
                     });
 
-                    Debug.Log($"[DragManager]: Ярлык экшен-бара '{_activeDrag.ItemId}' выброшен в мир. Команда удаления заспавнена.");
+                    Debug.Log($"[DragManager]: Ярлык экшен-бара '{_activeDrag.ItemId}' выброшен в мир из сквозного слота #{sourceSlotElement.SlotIndex}.");
                 }
                 else
                 {
-                    // ⚔️ СТАНДАРТНЫЙ МАТЕРИАЛЬНЫЙ ДРОП ШМОТОК НА ЗЕМЛЮ (Твой родной рабочий код!)
+                    // СТАНДАРТНЫЙ МАТЕРИАЛЬНЫЙ ДРОП ШМОТОК НА ЗЕМЛЮ (Твой родной рабочий код)
                     float3 dropPosition = GetDropPosition(playerPosition);
                     
                     em.AddComponentData(actionEntity, new ActionCommand
@@ -250,17 +248,19 @@ namespace ProjectTowerRpg.Core.UI
                         return; // Наглухо блокируем транзакцию
                     }
 
-                    int barIndex = isTargetBar ? targetSlotElement.PanelIndex : sourceSlotElement.PanelIndex;
                     string actionType = isTargetBar ? "action_bar_assign" : "item_transfer";
-                    
+                    // 🦾 ММО-РАЗВОД ИНДЕКСОВ:
+                    // Если цель — боевая панель хоткеев, берём её готовый сквозной ММО-индекс из ОЗУ (0..23).
+                    // Если цель — инвентарь или кукла, берём локальный targetSlot (0..11 или 0..71) для трансфера шмота!
+                    int finalTargetSlot = isTargetBar ? targetSlotElement.SlotIndex : targetSlot;
+
                     em.AddComponentData(actionEntity, new ActionCommand
                     {
                         ActionType = actionType,
                         SourceEntity = sourceEntity,
                         SourceSlot = sourceSlotElement.SlotIndex,
                         TargetEntity = targetEntity,
-                        TargetSlot = targetSlot, // Локальный индекс кнопки 0..11
-                        PanelIndex = barIndex,
+                        TargetSlot = finalTargetSlot, // Сюда улетит чистый сквозной адрес!
                         ItemId = _activeDrag.ItemId,
                         Amount = _activeDrag.Amount
                     });

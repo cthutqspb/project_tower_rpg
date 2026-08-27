@@ -44,15 +44,10 @@ namespace ProjectTowerRpg.Core.UI.Components
             var container = _panelRoot.Q<VisualElement>("slots-container");
             if (container != null)
             {
-                // 🦾 3. ЗАРЯЖАЕМ РЕЛЬСЫ ФИЛЬТРАЦИИ БУФЕРА:
-                // Вычисляем panelId (например, для первой панели i=0 будет panelId=1)
-                int panelId = barIndex + 1; 
+                int startIndex = barIndex * 12; // 0, 12, 24...
                 
-                // Передаем в твой новый конструктор StaticGrid тип и номер панели хоткеев!
-                _slotsGrid = new StaticGrid(12, 1, panelId);
+                _slotsGrid = new StaticGrid(12, 1, startIndex);
                 container.Add(_slotsGrid);
-                
-                Debug.Log($"[ActionBar]: StaticGrid успешно развернут для экшен-бара #{panelId} в ECS-режиме.");
             }
             else
             {

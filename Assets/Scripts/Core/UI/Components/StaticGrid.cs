@@ -14,17 +14,17 @@ namespace ProjectTowerRpg.Core.UI.Components
     {
         private int _columns;
         private int _rows;
-        private int _panelIndex;
+        private int _startIndex;
         private List<SlotElement> _slots = new();
         private Entity _boundEntity;
 
         public Entity BoundEntity => _boundEntity;
 
-        public StaticGrid(int columns, int rows, int panelIndex=0)
+        public StaticGrid(int columns, int rows,  int startIndex = 0)
         {
             _columns = columns;
             _rows = rows;
-            _panelIndex = panelIndex;
+            _startIndex = startIndex;
             
             this.AddToClassList("static-grid-container");
             //this.AddToClassList($"grid-{gridType}");
@@ -38,11 +38,12 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             for (int i = 0; i < columns * rows; i++)
             {
+                int bufferSlotIndex = _startIndex + i;
+
                 var slot = new SlotElement
                 {
-                    SlotIndex = i,
+                    SlotIndex = bufferSlotIndex,
                     name = $"slot-{i}",
-                    PanelIndex = _panelIndex,
                     style =
                     {
                         width = 40,
@@ -113,61 +114,47 @@ namespace ProjectTowerRpg.Core.UI.Components
         }
 
         // =========================================================================
-        // 🔮 РЕЛЬСЫ ЭКШЕН-БАРА (Обслуживает строго ссылки и ярлыки в башке Игрока)
+        // 🔮 РЕЛЬСЫ ЭКШЕН-БАРА (Слепо и реактивно рендерит ВСЕ хоткеи 0..23)
         // =========================================================================
         public void UpdateFromBuffer(DynamicBuffer<ActionBarSlot> slots)
         {
-            // ✅ ИСПРАВЛЕНО: Никаких ручных гвардов. Метод занимается строго хоткеями панелей.
-            Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} ярлыков способностей. Панель: #{_panelIndex}");
-            
-            foreach (var slot in _slots)
-            {
-                slot.ClearVisual();
-            }
+            foreach (var slot in _slots) slot.ClearVisual();
 
             var world = World.DefaultGameObjectInjectionWorld;
             if (world == null) return;
             var em = world.EntityManager;
 
-            for (int i = 0; i < slots.Length; i++)
+            // 🔥 ИСПОЛЬЗУЕМ _startIndex ДЛЯ СМЕЩЕНИЯ
+            for (int i = 0; i < _slots.Count && (i + _startIndex) < slots.Length; i++)
             {
-                var slotData = slots[i];
+                int absoluteIndex = i + _startIndex;
+                var slotData = slots[absoluteIndex];
+                var abilityId = slotData.AbilityId.ToString();
+                if (string.IsNullOrEmpty(abilityId)) continue;
 
-                // Фильтруем элементы буфера строго по номеру этой панели хоткеев (1 или 2)
-                if (slotData.PanelIndex == _panelIndex)
+                var config = ItemsDatabase.GetItem(abilityId);
+                int displayAmount = 1; 
+
+                if (slotData.SlotType == "item")
                 {
-                    int targetUiIndex = slotData.SlotIndex; // Локальный индекс экрана 0..11
+                    displayAmount = 0;
+                    Entity invEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(_boundEntity, em);
 
-                    if (targetUiIndex >= 0 && targetUiIndex < _slots.Count)
+                    if (invEntity != Entity.Null && em.HasBuffer<ItemSlot>(invEntity))
                     {
-                        var abilityId = slotData.AbilityId.ToString();
-                        if (string.IsNullOrEmpty(abilityId)) continue;
-
-                        var config = ItemsDatabase.GetItem(abilityId);
-                        int displayAmount = 1; 
-
-                        // Динамический подсчет стака банок из рюкзака, если ярлык — это предмет
-                        if (slotData.SlotType == "item")
+                        var inventorySlots = em.GetBuffer<ItemSlot>(invEntity);
+                        for (int idx = 0; idx < inventorySlots.Length; idx++)
                         {
-                            displayAmount = 0;
-                            Entity invEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(_boundEntity, em);
-
-                            if (invEntity != Entity.Null && em.HasBuffer<ItemSlot>(invEntity))
+                            if (inventorySlots[idx].DataId == abilityId)
                             {
-                                var inventorySlots = em.GetBuffer<ItemSlot>(invEntity);
-                                for (int idx = 0; idx < inventorySlots.Length; idx++)
-                                {
-                                    if (inventorySlots[idx].DataId == abilityId)
-                                    {
-                                        displayAmount += inventorySlots[idx].Amount;
-                                    }
-                                }
+                                displayAmount += inventorySlots[idx].Amount;
                             }
                         }
-
-                        _slots[targetUiIndex].SetData(abilityId, config, targetUiIndex, displayAmount);
                     }
                 }
+
+                // ✅ ПЕРЕДАЕМ ГЛОБАЛЬНЫЙ ИНДЕКС (absoluteIndex) ДЛЯ БИНДОВ
+                _slots[i].SetData(abilityId, config, absoluteIndex, displayAmount, true);
             }
         }
     }

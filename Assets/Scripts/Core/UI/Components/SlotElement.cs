@@ -21,7 +21,6 @@ namespace ProjectTowerRpg.Core.UI.Components
         private int _amount = 0;
 
         public int SlotIndex { get; set; }
-        public int PanelIndex { get; set; }
         public Entity ContainerEntity { get; set; }
         
         // Оставляем строки в UI для USS-стилей, это нормально
@@ -47,7 +46,7 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             // 🦾 ФРОНТЕНД-ХАК: Идеально центрируем иконку-значок внутри ячейки
             _icon.style.unityTextAlign = TextAnchor.MiddleCenter;
-            _icon.style.fontSize = 24; // Оптимальный размер для Nerd Font глифов в ячейке 40х40
+            _icon.style.fontSize = 39; // Оптимальный размер для Nerd Font глифов в ячейке 40х40
             
             // Загружаем наш сгенерированный TMP Font Asset из папки Resources
             // (Не забудь положить TerminessNerdFontMono-Regular SDF.asset в Assets/Resources/Fonts/)
@@ -101,7 +100,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 Source = this,
                 SlotIndex = SlotIndex, // Передаем чистый int
-                PanelIndex = PanelIndex,
                 ItemId = _itemId,
                 Amount = _amount,
                 Icon = null, // TODO: вытащить спрайт из конфигурации, если нужно
@@ -113,11 +111,11 @@ namespace ProjectTowerRpg.Core.UI.Components
         // Public Methods (Слот теперь просто принимает готовые данные)
         // ================================================================
 
-        public void SetData(string itemId, ItemConfig config, int index, int amount = 1)
+        public void SetData(string itemId, ItemConfig config, int index, int amount = 1, bool isActionBar = false)
         {
             _itemId = itemId;
             _amount = amount;
-            SlotIndex = index;
+            SlotIndex = index; // Кэшируем честный сквозной индекс бэкенда (0..23) для DragData!
             ClearVisual();
 
             if (string.IsNullOrEmpty(itemId) || amount <= 0)
@@ -147,11 +145,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             _icon.style.backgroundColor = GetQualityColor(quality);
             _icon.text = iconCharacter;
 
-            // 🔥 БИНД-КЛАВИША (ТОЛЬКО ДЛЯ ЭКШЕН-БАРА)
-            if (PanelIndex > 0)
+            // 🔥 БИНД-КЛАВИША (Проверяем зрячий флаг, прилетевший из рельс экшен-бара)
+            if (isActionBar)
             {
                 _bindLabel.style.display = DisplayStyle.Flex;
-                _bindLabel.text = GetBindKey(index);
+                // Передаем остаток от деления на 12 (всегда вернет локальный индекс 0..11)
+                _bindLabel.text = GetBindKey(index % 12);
             }
 
             // КОЛИЧЕСТВО (ДЛЯ СТАКОВ)

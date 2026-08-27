@@ -44,8 +44,17 @@ public class BufferSlotContainer : ISlotContainer
 
         if (content is ItemSlot data)
         {
-            data.SlotIndex = slot;
-            slots[slot] = data;
+            // 🦾 ЗРЯЧЕE ОБНОВЛЕНИЕ ЧАНКА ПАМЯТИ ECS:
+            // Берем текущую физическую ячейку, которая прямо сейчас выделена в ОЗУ
+            var targetSlot = slots[slot];
+            
+            // Заменяем в ней ТОЛЬКО контент!
+            targetSlot.DataId = data.DataId;
+            targetSlot.DataType = data.DataType;
+            targetSlot.Amount = data.Amount;
+            
+            // 🚨 ПАСПОРТ СЛОТА (ContainerType и EquipSlot) ОСТАЮТСЯ НЕПРИКОСНОВЕННЫМИ ДЛЯ КУКЛЫ!
+            slots[slot] = targetSlot; // Применяем изменения обратно в буфер
         }
     }
 
@@ -67,6 +76,7 @@ public class BufferSlotContainer : ISlotContainer
         var slots = _slotLookup[_entity];
         if (slot >= 0 && slot < slots.Length)
         {
+            var originalEquipSlot = slots[slot].EquipSlot;
             slots[slot] = new ItemSlot
             {
                 SlotIndex = slot,
@@ -74,7 +84,7 @@ public class BufferSlotContainer : ISlotContainer
                 DataId = "",
                 DataType = "",
                 Amount = 0,
-                EquipSlot = EquipSlot.NONE
+                EquipSlot = originalEquipSlot
             };
         }
     }
@@ -86,13 +96,16 @@ public class BufferSlotContainer : ISlotContainer
 
         if (content is ItemSlot incomingData)
         {
-            // ================================================================
-            // 🔥 ЗАЩИТА ОТ ВЛОЖЕННЫХ КОНТЕЙНЕРОВ (ГЛУБИНА = 1)
-            // ================================================================
-            // Если предмет — это контейнер, то класть его в другой контейнер НЕЛЬЗЯ
-            if (IsContainerItem(incomingData.DataId.ToString()))
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+
+            // =========================================================================
+            // 🔥 ЗРЯЧАЯ ЗАЩИТА ОТ ВЛОЖЕННЫХ КОНТЕЙНЕРОВ (ГЛУБИНА = 1 по канону BG3)
+            // =========================================================================
+            // Если этот конкретный буфер ОЗУ принадлежит внешней бочке/мешку (ContainerTag),
+            // И игрок пытается запихать внутрь неё ЕЩЁ ОДИН контейнер (мешок в бочку) -> БЛОКИРУЕМ!
+            if (em.HasComponent<ContainerTag>(_entity) && IsContainerItem(incomingData.DataId.ToString()))
             {
-                Debug.Log($"[BufferSlotContainer] Блокировка: попытка положить контейнер '{incomingData.DataId}' в контейнер!");
+                Debug.Log($"[BufferSlotContainer] Блокировка: нельзя класть контейнер '{incomingData.DataId}' внутрь другого контейнера!");
                 return false;
             }
 
@@ -101,7 +114,7 @@ public class BufferSlotContainer : ISlotContainer
             switch (targetContainerType)
             {
                 case ContainerType.INVENTORY:
-                    return true;
+                    return true; // В личный рюкзак Игрока (InventoryTag) бочки теперь будут лететь со свистом!
 
                 case ContainerType.PAPERDOLL:
                     if (incomingData.IsEmpty) return false;
@@ -115,7 +128,8 @@ public class BufferSlotContainer : ISlotContainer
         }
 
         return false;
-    }    
+    }
+ 
 
     // ================================================================
     // 🛠️ ВСПОМОГАТЕЛЬНЫЙ МЕТОД

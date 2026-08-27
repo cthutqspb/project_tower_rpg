@@ -228,34 +228,30 @@ namespace ProjectTowerRpg.ECS.Systems
                     Debug.Log("🎒 [ФАБРИКА]: Тестовый шмот успешно упакован в инвентарь игрока!");
 
                     // =========================================================================
-                    // 🦾 НАПОЛНЕНИЕ ЭКШЕН-БАРА (Новый изолированный буфер прямо на Игроке!)
+                    // 🦾 НАПОЛНЕНИЕ ЭКШЕН-БАРА (Плоский сквозной массив хоткеев по ММО-канону)
                     // =========================================================================
                     var barBuffer = em.AddBuffer<ActionBarSlot>(unitEntity);
 
-                    // Нарезаем 12 ярлыков для Панели №1 (Основная нижняя)
-                    for (int k = 0; k < 12; k++)
+                    // Нарезаем суммарно 24 слота (12 для нижней панели + 12 для боковой)
+                    // Теперь SlotIndex — это уникальный сквозной ID ячейки в ОЗУ симуляции (0..23)!
+                    for (int k = 0; k < 24; k++)
                     {
                         if (k == 0)
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, PanelIndex = 1, AbilityId = "melee_attack", SlotType = "spell" });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "melee_attack", SlotType = "spell" });
                         }
                         else if (k == 1)
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, PanelIndex = 1, AbilityId = "frostbolt", SlotType = "spell" });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "frostbolt", SlotType = "spell" });
                         }
                         else
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, PanelIndex = 1, AbilityId = "", SlotType = "" });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "", SlotType = "" });
                         }
                     }
 
-                    // Нарезаем 12 ярлыков для Панели №2 (Дополнительная боковая)
-                    for (int k = 0; k < 12; k++)
-                    {
-                        barBuffer.Add(new ActionBarSlot { SlotIndex = k, PanelIndex = 2, AbilityId = "", SlotType = "" });
-                    }
+                    Debug.Log("🔮 [ФАБРИКА]: Сквозной массив хоткеев (0..23) успешно вшит в буфер игрока!");
 
-                    Debug.Log("🔮 [ФАБРИКА]: Ссылки на стартовые заклинания успешно вшиты в буфер игрока!");
                 }   
 
                 // =========================================================================

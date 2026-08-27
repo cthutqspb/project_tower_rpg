@@ -190,7 +190,7 @@ namespace ProjectTowerRpg.Core.UI
             // =========================================================================
             // 🦾 СБОРКА И БИНД ЭКШЕН-БАРОВ НА СУЩНОСТЬ ИГРОКА
             // =========================================================================
-                        if (_actionBarUxml != null && _actionBars != null)
+            if (_actionBarUxml != null && _actionBars != null)
             {
                 // 1. Создаем геометрию панелей
                 for (int i = 0; i < _actionBars.Count; i++)

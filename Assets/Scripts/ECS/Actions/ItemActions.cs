@@ -31,7 +31,6 @@ namespace ProjectTowerRpg.ECS.Actions
 
         public static void Transfer(ISlotContainer source, int sourceSlot, ISlotContainer target, int targetSlot)
         {
-            // Проверяем, есть ли контент в источнике
             if (!source.HasContent(sourceSlot))
             {
                 Debug.LogWarning($"[ItemActions] В источнике нет контента в слоте #{sourceSlot}");
@@ -40,14 +39,14 @@ namespace ProjectTowerRpg.ECS.Actions
 
             var content = source.GetContent(sourceSlot);
 
-            // Проверка возможности размещения через полиморфный интерфейс целевого контейнера
+            // 1. Первая стандартная проверка: может ли цель принять наш предмет?
             if (!target.CanPlaceContent(targetSlot, content))
             {
                 Debug.LogWarning($"[ItemActions] Нельзя поместить контент в слот #{targetSlot}");
                 return;
             }
 
-            // Если целевой слот пустой → перемещаем
+            // 🟢 КЕЙС А: Целевой слот пустой → обычное перемещение (Твой родной рабочий код)
             if (!target.HasContent(targetSlot))
             {
                 target.SetContent(targetSlot, content);
@@ -56,8 +55,21 @@ namespace ProjectTowerRpg.ECS.Actions
                 return;
             }
 
-            // Если целевой слот занят → своп (меняем контент местами)
+            // 🔴 КЕЙС Б: Целевой слот ЗАНЯТ → Готовим СВОП (Рокировку)
             var targetContent = target.GetContent(targetSlot);
+
+            // =========================================================================
+            // 🦾 ВЕЛИКИЙ ММО-ГВАРД ДВУСТОРОННЕЙ АНАТОМИИ (Защита от вакханалии):
+            // Перед тем как менять вещи местами, мы ОБЯЗАНЫ спросить у исходного контейнера:
+            // "Эй, а ты сможешь принять в свой sourceSlot тот предмет, который вернется тебе при обмене?"
+            // =========================================================================
+            if (!source.CanPlaceContent(sourceSlot, targetContent))
+            {
+                Debug.LogWarning($"[ItemActions] Блокировка Свопа: Исходный слот #{sourceSlot} не может принять возвращаемый предмет '{((ItemSlot)targetContent).DataId}'!");
+                return; // Намертво гасим транзакцию, спасая куклу от заклинивания!
+            }
+
+            // Если обе стороны согласны на обмен — шёлково свопаем шмотки в ОЗУ
             target.SetContent(targetSlot, content);
             source.SetContent(sourceSlot, targetContent);
             Debug.Log($"[ItemActions] Своп слотов #{sourceSlot} ↔ #{targetSlot}");
