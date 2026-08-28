@@ -246,8 +246,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 ecb,
                 cmd.SourceEntity,
                 cmd.SourceSlot,
-                cmd.ItemId.ToString(),
-                cmd.Amount,
                 cmd.Position
             );
 

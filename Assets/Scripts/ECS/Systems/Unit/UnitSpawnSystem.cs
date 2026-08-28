@@ -199,6 +199,10 @@ namespace ProjectTowerRpg.ECS.Systems
                 // 🎒 НАКЫДЫВАНИЕ ТЕСТОВОГО ШМОТА В ИНВЕНТАРЬ ИГРОКА (ПЕРЕНЕСЕНО ПОД ОБЪЯВЛЕНИЕ ПЕРЕМЕННОЙ)
                 if (isPlayer)
                 {
+                                        
+                    // =========================================================================
+                    // 🎒 ММО-НАПОЛНЕНИЕ ИНВЕНТАРЯ ИГРОКА (Честный спавн сущностей шмоток)
+                    // =========================================================================
                     var testItems = new (string id, int amount)[]
                     {   
                         ("crystal_sword", 1),
@@ -210,8 +214,31 @@ namespace ProjectTowerRpg.ECS.Systems
                         ("chest_common", 1)
                     };
 
+                    // 🦾 ШАГ 1: Сначала спавним "души" предметов в ОЗУ.
+                    // Мы временно складываем их в локальный массив, пока ECS перестраивает чанки памяти!
+                    NativeArray<Entity> spawnedItemEntities = new NativeArray<Entity>(testItems.Length, Allocator.Temp);
+
+                    for (int idx = 0; idx < testItems.Length; idx++)
+                    {
+                        Entity itemEntity = em.CreateEntity();
+                        
+                        // Запекаем unmanaged-компоненты данных (заточки, кулдауны вешать сюда!)
+                        em.AddComponentData(itemEntity, new ItemComponent
+                        {
+                            Uid = testItems[idx].id.GetHashCode() + idx, 
+                            ItemId = testItems[idx].id,
+                            Amount = testItems[idx].amount,
+                            IsLooted = true // Он уже в сумке, графика ему пока не нужна
+                        });
+
+                        spawnedItemEntities[idx] = itemEntity;
+                    }
+
+                    // 🦾 ШАГ 2: Все структурные изменения ЗАВЕРШЕНЫ, память ОЗУ стабилизировалась!
+                    // Теперь мы со стопроцентной гарантией скачиваем ЖИВОЙ, АКТУАЛЬНЫЙ буфер инвентаря игрока!
                     var playerSlotsBuffer = em.GetBuffer<ItemSlot>(inventoryEntity);
 
+                    // 🦾 ШАГ 3: Шёлково и безопасно забиваем ячейки рюкзака ссылками на вечные Entity!
                     for (int idx = 0; idx < testItems.Length; idx++)
                     {
                         playerSlotsBuffer[idx] = new ItemSlot
@@ -220,12 +247,18 @@ namespace ProjectTowerRpg.ECS.Systems
                             DataId = testItems[idx].id,
                             DataType = "item",
                             Amount = testItems[idx].amount,
+                            ItemEntity = spawnedItemEntities[idx], // СВЯЗЬ ЗАКРЕПЛЕНА НАМЕРТВО!
                             EquipSlot = EquipSlot.NONE,
                             ContainerType = ContainerType.INVENTORY
                         };
                     }
+
+                    // Освобождаем временный массив выделенной памяти
+                    spawnedItemEntities.Dispose();
                     
-                    Debug.Log("🎒 [ФАБРИКА]: Тестовый шмот успешно упакован в инвентарь игрока!");
+                    Debug.Log("🎒 [ФАБРИКА]: Каждая стартовая шмотка получила свою ECS-сущность и успешно упакована в рюкзак без краша ОЗУ!");
+
+                    Debug.Log("🎒 [ФАБРИКА]: Каждая стартовая шмотка получила свою ECS-сущность и успешно упакована в рюкзак!");
 
                     // =========================================================================
                     // 🦾 НАПОЛНЕНИЕ ЭКШЕН-БАРА (Плоский сквозной массив хоткеев по ММО-канону)

@@ -84,8 +84,6 @@ namespace ProjectTowerRpg.ECS.Actions
             EntityCommandBuffer ecb,
             Entity containerEntity,
             int index,
-            string itemId,
-            int amount,
             float3 position)
         {
             if (!slotDataLookup.HasBuffer(containerEntity))
@@ -109,20 +107,41 @@ namespace ProjectTowerRpg.ECS.Actions
                 return;
             }
 
+            Entity itemEntity = item.ItemEntity;
+
+            // =========================================================================
+            // 🦾 ПУЛЕНЕПРОБИВАЕМЫЙ unmanaged-ГВАРД ЧЕРЕЗ ECB (Спасение куклы без краша):
+            // Если на кукле или в сумке у шмотки лежал Entity.Null, мы рождаем Entity
+            // СТРОГО через отложенный ecb! Никаких EntityManager.CreateEntity живьем!
+            // =========================================================================
+            if (itemEntity == Entity.Null)
+            {
+                // Рождаем виртуальную отложенную Entity в буфере команд!
+                itemEntity = ecb.CreateEntity();
+                
+                // Накатываем данные через ecb! Это на 100% безопасно внутри любых циклов!
+                ecb.AddComponent(itemEntity, new ItemComponent
+                {
+                    Uid = item.DataId.GetHashCode() + index,
+                    ItemId = item.DataId,
+                    Amount = item.Amount,
+                    IsLooted = false
+                });
+                
+                Debug.LogWarning($"⚠️ [ItemActions.Drop]: На кукле/в сумке лежал Entity.Null! Через ECB создана аварийная Entity для {item.DataId}.");
+            }
+
+            // Освобождаем ячейку контейнера (инвентаря или куклы)
             ClearSlot(slots, index);
 
-            Entity requestEntity = ecb.CreateEntity();
-            ecb.AddComponent(requestEntity, new DropItemRequest
-            {
-                ItemId = itemId,
-                Amount = amount,
-                Position = position,
-                LootTableId = "", // если нужно
-                RespawnTime = 0,  // если нужно
-                IsLooted = false  // ← ДОБАВИТЬ!
-            });
+            float3 dropPosition = position;
+            dropPosition.y = ProjectTowerRpg.Core.PhysicsUtils.GetGroundHeight(dropPosition);
 
-            Debug.Log($"[ItemActions] Запрос на спавн предмета {itemId} x{amount} отправлен в ItemSpawnSystem");
+            // 🦾 Теперь всё пишется строго по рельсам ECB. Никаких Structural Changes в рантайме!
+            ecb.AddComponent(itemEntity, Unity.Transforms.LocalTransform.FromPosition(dropPosition));
+            ecb.RemoveComponent<StoredTag>(itemEntity); 
+
+            Debug.Log($"[ItemActions.Drop] Предмет {item.DataId} успешно отправлен в ECB на дроп в позицию {dropPosition}.");
         }
 
         // ================================================================
@@ -132,53 +151,57 @@ namespace ProjectTowerRpg.ECS.Actions
         public static void Loot(
             ref BufferLookup<ItemSlot> slotDataLookup,
             EntityCommandBuffer ecb,
-            Entity itemWorldEntity,
+            Entity itemEntity,
             Entity inventoryEntity)
         {
-            if (!slotDataLookup.HasBuffer(inventoryEntity))
-            {
-                Debug.LogError($"[ItemActions.Loot] У сущности инвентаря {inventoryEntity.Index} отсутствует DynamicBuffer<ItemSlot>!");
-                return;
-            }
+            if (!slotDataLookup.HasBuffer(inventoryEntity)) return;
 
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-            if (!em.HasComponent<ItemComponent>(itemWorldEntity))
-            {
-                Debug.LogWarning($"[ItemActions.Loot] Предмет {itemWorldEntity.Index} больше не существует или уже собран!");
-                return;
-            }
+            if (!em.HasComponent<ItemComponent>(itemEntity)) return;
 
-            var itemData = em.GetComponentData<ItemComponent>(itemWorldEntity);
+            // 🦾 ПУЛЕНЕПРОБИВАЕМЫЙ ММО-ГВАРД: 
+            // Если на предмете УЖЕ висит StoredTag — значит, его уже подняли в этом или прошлом кадре!
+            // Защита от двойного клика сработала, наглухо выходим!
+            if (em.HasComponent<StoredTag>(itemEntity)) return;
+
+            var itemData = em.GetComponentData<ItemComponent>(itemEntity);
             var inventoryBuffer = slotDataLookup[inventoryEntity];
 
             int targetSlotIndex = -1;
             for (int i = 0; i < inventoryBuffer.Length; i++)
             {
-                if (inventoryBuffer[i].IsEmpty)
-                {
-                    targetSlotIndex = i;
-                    break;
-                }
+                if (inventoryBuffer[i].IsEmpty) { targetSlotIndex = i; break; }
             }
 
             if (targetSlotIndex != -1)
             {
+                // Записываем вечную Entity меча в карман рюкзака
                 inventoryBuffer[targetSlotIndex] = new ItemSlot
                 {
                     SlotIndex = targetSlotIndex,
                     DataId = itemData.ItemId,
                     DataType = "item",
                     Amount = itemData.Amount,
+                    ItemEntity = itemEntity, 
                     EquipSlot = EquipSlot.NONE,
                     ContainerType = ContainerType.INVENTORY
                 };
 
-                Debug.Log($"[ItemActions.Loot] Предмет {itemData.ItemId} перенесён в слот #{targetSlotIndex}");
-                ecb.DestroyEntity(itemWorldEntity);
-            }
-            else
-            {
-                Debug.LogWarning("[ItemActions.Loot] Инвентарь полон!");
+                // =========================================================================
+                // 🦾 ВЕЛИКАЯ ММО-УПАКОВКА:
+                // Мы просто НАВЕШИВАЕМ пустой тег StoredTag через ECB!
+                // Системы видимости и очистки кубов мгновенно увидят этот тег 
+                // и сотрут 3D-модель со сцены на следующем же кадре!
+                // =========================================================================
+                ecb.AddComponent<StoredTag>(itemEntity);
+                
+                // Если на предмете висел технический тег графики — тоже гасим его
+                if (em.HasComponent<VisualizedTag>(itemEntity))
+                {
+                    ecb.RemoveComponent<VisualizedTag>(itemEntity);
+                }
+
+                Debug.Log($"[ItemActions.Loot] 'Душа' предмета {itemData.ItemId} (Entity {itemEntity.Index}) успешно упакована в рюкзак.");
             }
         }
 

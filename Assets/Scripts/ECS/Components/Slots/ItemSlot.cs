@@ -11,6 +11,8 @@ namespace ProjectTowerRpg.ECS.Components
         public FixedString64Bytes DataId;   // ID предмета ("iron_sword")
         public FixedString64Bytes DataType; // "item", "spell"
         public int Amount;
+
+        public Entity ItemEntity;
         
         // МЕНЯЕМ СТРОКИ НА ENUMS:
         public EquipSlot EquipSlot;

@@ -32,13 +32,10 @@ namespace ProjectTowerRpg.ECS.Systems
                 float3 spawnPosition = request.ValueRO.Position;
                 spawnPosition.y = PhysicsUtils.GetGroundHeight(spawnPosition);
 
-                // 🌟 ЧИСТАЯ СИММЕТРИЯ С ЮНИТАМИ: Сначала генерируем строковый UID по координатам чанка
                 string generatedUidStr = $"i_{(int)spawnPosition.x}_{(int)spawnPosition.z}";
-                
-                // Для ECS-компонента берем чистый интовый хэш-код от этой строки (как у тебя в Бэйкере!)
                 int generatedUidHash = generatedUidStr.GetHashCode();
 
-                // Накатываем компоненты в ОЗУ
+                // 2. Накатываем базовые unmanaged-компоненты в ОЗУ симуляции
                 ecb.AddComponent(itemEntity, LocalTransform.FromPosition(spawnPosition));
                 ecb.AddComponent(itemEntity, new ItemComponent
                 {
@@ -50,32 +47,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     RespawnTime = request.ValueRO.RespawnTime
                 });
 
-                // =========================================================================
-                // 🏗️ СВЯЗЬ МИРОВ: Загружаем ОДИН универсальный префаб из папки Resources!
-                // =========================================================================
-                var universalPrefab = Resources.Load<GameObject>("Items/default_item");
-                
-                if (universalPrefab != null)
-                {
-                    var spawnedModel = Object.Instantiate(universalPrefab, spawnPosition, Quaternion.identity);
-                    spawnedModel.name = $"{itemIdStr}_{generatedUidStr}";
-
-                    // 🌟 ИДЕАЛЬНАЯ СИММЕТРИЯ: Находим чистый рантайм-паспорт ItemView и заполняем строки!
-                    var view = spawnedModel.GetComponent<ItemView>();
-                    if (view != null)
-                    {
-                        view.uid = generatedUidStr; // Сюда шёлково залетает строка (string = string)
-                        view.itemId = itemIdStr;
-                        view.IsLinked = false;
-                        view.Entity = itemEntity;
-                    }
-                }
-                else
-                {
-                    Debug.LogError("🚨 ФАБРИКА ПРЕДМЕТОВ: Не удалось найти универсальный ItemPrefab по пути Resources/Items/Iu.prefab!");
-                }
-
-                Debug.Log($"[ItemSpawnSystem] Универсальный префаб заспавнен для: {itemIdStr}, Uid={generatedUidStr}");
+                Debug.Log($"[ItemSpawnSystem] Чистая ECS-сущность предмета родилась в ОЗУ: {itemIdStr}, Uid Hash={generatedUidHash}");
 
                 ecb.DestroyEntity(requestEntity);
             }
