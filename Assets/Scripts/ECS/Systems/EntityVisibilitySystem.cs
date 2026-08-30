@@ -31,12 +31,12 @@ namespace ProjectTowerRpg.ECS.Systems
             float3 playerPos = playerTransform.Position;
 
             // =========================================================================
-            // 🧱 КЕЙС А: СПАВН ГРАФИКИ (Предмет свободно лежит в мире и игрок рядом)
+            // 🎒 [РАЗДЕЛ ПРЕДМЕТОВ] КЕЙС А: СПАВН ГРАФИКИ ПРЕДМЕТОВ
             // =========================================================================
             foreach (var (transform, itemData, entity) in 
                      SystemAPI.Query<RefRO<LocalTransform>, RefRO<ItemComponent>>()
-                     .WithNone<StoredTag>()     // 🦾 ГВАРД: Предмет НЕ в инвентаре/сундуке (он на земле)!
-                     .WithNone<VisualizedTag>() // ... и для него еще нет 3D-модели!
+                     .WithNone<StoredTag>()     
+                     .WithNone<VisualizedTag>() 
                      .WithEntityAccess())
             {
                 float3 itemPos = transform.ValueRO.Position;
@@ -66,11 +66,11 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             // =========================================================================
-            // 🧱 КЕЙС Б: ТЕХНИЧЕСКИЙ КУЛЛИНГ ДИСТАНЦИИ (Игрок просто убежал далеко)
+            // 🎒 [РАЗДЕЛ ПРЕДМЕТОВ] КЕЙС Б: КУЛЛИНГ ДИСТАНЦИИ ПРЕДМЕТОВ
             // =========================================================================
             foreach (var (transform, entity) in 
                      SystemAPI.Query<RefRO<LocalTransform>>()
-                     .WithNone<StoredTag>() // Только для тех, кто всё еще свободно лежит в мире
+                     .WithNone<StoredTag>() 
                      .WithAll<VisualizedTag>() 
                      .WithEntityAccess())
             {
@@ -81,6 +81,92 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         if (view.Entity == entity)
                         {
+                            Object.Destroy(view.gameObject);
+                            break;
+                        }
+                    }
+                    ecb.RemoveComponent<VisualizedTag>(entity);
+                }
+            }
+
+            // =========================================================================
+            // 💀 [РАЗДЕЛ ЮНИТОВ] КЕЙС А: МАТЕРИАЛИЗАЦИЯ МОНСТРОВ / NPC / ИГРОКА
+            // =========================================================================
+            foreach (var (transform, unitData, entity) in 
+                     SystemAPI.Query<RefRO<LocalTransform>, RefRO<UnitComponent>>()
+                     .WithNone<VisualizedTag>() 
+                     .WithEntityAccess())
+            {
+                float3 unitPos = transform.ValueRO.Position;
+                if (math.distance(playerPos, unitPos) <= 50f)
+                {
+                    string unitIdStr = unitData.ValueRO.UnitId.ToString();
+                    var unitPrefab = Resources.Load<GameObject>($"Units/{unitIdStr}");
+                    
+                    if (unitPrefab == null)
+                    {
+                        unitPrefab = Resources.Load<GameObject>("Units/default_unit");
+                    }
+
+                    if (unitPrefab != null)
+                    {
+                        var spawnedModel = Object.Instantiate(unitPrefab, unitPos, Quaternion.identity);
+                        
+                        string currentUid = unitData.ValueRO.Uid.ToString();
+                        bool isPlayerEntity = EntityManager.HasComponent<PlayerTag>(entity);
+                        spawnedModel.name = $"{unitIdStr}_{(isPlayerEntity ? "player" : currentUid)}";
+
+                        var view = spawnedModel.GetComponent<UnitView>();
+                        if (view != null)
+                        {
+                            view.uid = currentUid;
+                            view.unitId = unitIdStr;
+                            view.IsLinked = true;
+                            view.entity = entity; 
+                        }
+
+                        var syncTransform = spawnedModel.GetComponent<SyncTransformWithEntity>();
+                        if (syncTransform != null)
+                        {
+                            syncTransform.Initialize(entity);
+                        }
+
+                        // 🎥 🦾 АВТО-ПРИВЯЗКА КАМЕРЫ ДЛЯ ИГРОКА ПРИ МАТЕРИАЛИЗАЦИИ:
+                        // Перенесено из фабрики! Камера мягко подхватит визуал героя, 
+                        // как только он появится на экране симуляции!
+                        if (isPlayerEntity)
+                        {
+                            var orbitCam = Object.FindAnyObjectByType<Unity.Cinemachine.CinemachineCamera>();
+                            if (orbitCam != null)
+                            {
+                                orbitCam.Follow = spawnedModel.transform;
+                                orbitCam.LookAt = spawnedModel.transform;
+                                Debug.Log("🎥 [VisibilitySystem]: Cinemachine успешно захватила материализованного Игрока!");
+                            }
+                        }
+
+                        ecb.AddComponent<VisualizedTag>(entity);
+                    }
+                }
+            }
+
+
+            // =========================================================================
+            // 💀 [РАЗДЕЛ ЮНИТОВ] КЕЙС Б: ТЕХНИЧЕСКИЙ КУЛЛИНГ МОНСТРОВ (Ушли далеко)
+            // =========================================================================
+            foreach (var (transform, entity) in 
+                     SystemAPI.Query<RefRO<LocalTransform>>()
+                     .WithAll<UnitComponent, VisualizedTag>() // Ищем тех, кто в мире и имеет 3D-тело
+                     .WithEntityAccess())
+            {
+                if (math.distance(playerPos, transform.ValueRO.Position) > 55f)
+                {
+                    var views = Object.FindObjectsByType<UnitView>(FindObjectsInactive.Exclude);
+                    foreach (var view in views)
+                    {
+                        if (view.entity == entity)
+                        {
+                            Debug.Log($"[Visibility-Culling]: Сношу 3D-тело монстра {view.gameObject.name} по дистанции.");
                             Object.Destroy(view.gameObject);
                             break;
                         }

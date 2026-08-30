@@ -27,6 +27,11 @@ namespace ProjectTowerRpg.ECS.Actions
         ActionBarAssign = 10
     }
 
+    public static class BaseActions 
+    {
+        public const ActionKind None = ActionKind.None;
+    }
+
     public static class ItemActions
     {
         public const ActionKind Loot = ActionKind.Loot;

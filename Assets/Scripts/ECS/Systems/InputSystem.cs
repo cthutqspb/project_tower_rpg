@@ -72,8 +72,10 @@ namespace ProjectTowerRpg.ECS.Systems
                         SystemAPI.TryGetSingletonEntity<PlayerTag>(out var playerEntity))
                     {
                         var combatState = SystemAPI.GetComponent<CombatStateComponent>(playerEntity);
-
-                        if (hover.HasTarget)
+                        
+                        bool isUnit = EntityManager.HasComponent<UnitComponent>(hover.CurrentEntity);
+                            
+                        if (hover.HasTarget && isUnit)
                         {
                             Entity targetEntity = hover.CurrentEntity;
 
@@ -85,7 +87,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
                             var command = ActionResolver.Resolve(playerEntity, targetEntity, em);
 
-                            if (command.Action != Actions.ActionKind.None)
+                            if (command.Action != BaseActions.None)
                             {
                                 command.SourceEntity = playerEntity; // ← ЭТА СТРОКА БЫЛА ПРОПУЩЕНА
 

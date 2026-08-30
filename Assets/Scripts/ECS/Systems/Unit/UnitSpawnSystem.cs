@@ -290,48 +290,29 @@ namespace ProjectTowerRpg.ECS.Systems
                 // =========================================================================
                 // 🏗️ 4. ДИНАМИЧЕСКИЙ СПАВН 3D-ВИЗУАЛА ИЗ ПАПКИ RESOURCES/UNITS/
                 // =========================================================================
-                var visualPrefab = Resources.Load<GameObject>($"Units/{uId}");
-                if (visualPrefab != null)
-                {
-                    var spawnedModel = Object.Instantiate(visualPrefab, spawnPos, Quaternion.identity);
-                    spawnedModel.name = $"{uId}_{(isPlayer ? "player" : generatedUid)}";
+                // =========================================================================
+// 🦾 ИСТИННАЯ КАНOНИЧНАЯ ФАБРИКА ЮНИТОВ (Без лишней графической лапши):
+// Рождаем только "душу" монстра в ОЗУ симуляции через живой EntityManager!
+// =========================================================================
 
-                    // Инициализируем скрипт синхронизации (Оживляем LateUpdate и анимации Эми!)
-                    var syncScript = spawnedModel.GetComponent<SyncTransformWithEntity>();
-                    if (syncScript != null)
-                    {
-                        syncScript.Initialize(unitEntity);
-                    }
+// Запекаем плоские unmanaged-компоненты данных в чанк памяти
+em.AddComponentData(unitEntity, LocalTransform.FromPosition(spawnPos));
+em.AddComponentData(unitEntity, new UnitComponent 
+{ 
+    Uid = isPlayer ? "player" : generatedUid, 
+    UnitId = uId 
+});
 
-                    // Настраиваем паспорт UnitView
-                    var viewScript = spawnedModel.GetComponent<UnitView>();
-                    if (viewScript != null)
-                    {
-                        viewScript.uid = isPlayer ? "player" : generatedUid;
-                        viewScript.unitId = uId;
-                        viewScript.entity = unitEntity;
-                        viewScript.IsLinked = true;
-                    }
+// Если это сущность игрока — обязательно вешаем пустой МАРКЕР PlayerTag,
+// чтобы системы куллинга зряче знали, под кого настраивать камеру!
+if (isPlayer)
+{
+    em.AddComponent<PlayerTag>(unitEntity);
+}
 
-                    // 🎥 Авто-привязка камеры Cinemachine для управляемого Игрока
-                    if (isPlayer)
-                    {
-                        var orbitCam = Object.FindAnyObjectByType<Unity.Cinemachine.CinemachineCamera>();
-                        if (orbitCam != null)
-                        {
-                            orbitCam.Follow = spawnedModel.transform;
-                            orbitCam.LookAt = spawnedModel.transform;
-                            Debug.Log("🎥 [ФАБРИКА]: Камера Cinemachine успешно захватила цель!");
-                        }
-                    }
-                }
-                else
-                {
-                    Debug.LogError($"🚨 ФАБРИКА: Не удалось найти 3D-префаб по пути Assets/Prefabs/Resources/Units/{uId}.prefab!");
-                }
+// Уничтожаем сущность кубика-метки прямо через EntityManager
+em.DestroyEntity(markerEntity);
 
-                // Уничтожаем сущность кубика-метки
-                em.DestroyEntity(markerEntity);
 
             }
 

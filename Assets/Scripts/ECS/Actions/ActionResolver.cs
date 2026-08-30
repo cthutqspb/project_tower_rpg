@@ -12,7 +12,7 @@ namespace ProjectTowerRpg.ECS.Actions
         {
             // 1. Если нет цели — возвращаем пустую команду
             if (target == Entity.Null)
-                return new ActionCommand { Action = ActionKind.None };
+                return new ActionCommand { Action = BaseActions.None };
 
             // 2. Получаем дистанцию до цели
             float distance = PositionUtils.GetDistance(actor, target, em);
@@ -77,7 +77,7 @@ namespace ProjectTowerRpg.ECS.Actions
             }
 
             // 6. Если ничего не подошло
-            return new ActionCommand { Action = ActionKind.None };
+            return new ActionCommand { Action = BaseActions.None };
         }
     }
 }
