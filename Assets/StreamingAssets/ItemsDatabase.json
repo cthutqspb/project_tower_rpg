@@ -56,7 +56,7 @@
     }
   },
   "chest_common": {
-    "action_type": "container_item",
+    "action_type": "item_container",
     "identity": {
       "name_key": "container_chest_common_name",
       "desc_key": "container_chest_common_desc",

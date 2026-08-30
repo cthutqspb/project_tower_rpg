@@ -4,9 +4,9 @@ using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
 
-namespace ProjectTowerRpg.ECS.Actions
+namespace ProjectTowerRpg.ECS.Reducers
 {
-    public static class ItemActions
+    public static class ItemReducer
     {
         // ================================================================
         // ОЧИСТКА СЛОТОВ

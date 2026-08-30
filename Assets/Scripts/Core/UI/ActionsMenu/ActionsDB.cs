@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.ECS.Actions;
 
 namespace ProjectTowerRpg.Core.UI
 {
@@ -10,8 +11,8 @@ namespace ProjectTowerRpg.Core.UI
         // ================================================================
         private static readonly List<MenuAction> SharedItemActions = new List<MenuAction>
         {
-            new MenuAction { NameKey = "menu_drop", ActionType = "item_drop" },
-            new MenuAction { NameKey = "menu_examine", ActionType = "object_examine" },
+            new MenuAction { NameKey = "menu_drop", Action = ItemActions.Drop },
+            //new MenuAction { NameKey = "menu_examine", Action = ItemActions.Examine },
         };
 
         // ================================================================
@@ -21,28 +22,28 @@ namespace ProjectTowerRpg.Core.UI
         {
             ["weapon"] = new List<MenuAction>
             {
-                new MenuAction { NameKey = "menu_equip", ActionType = "item_transfer" },
-                new MenuAction { NameKey = "menu_repair", ActionType = "item_repair" },
-                new MenuAction { NameKey = "menu_sharpen", ActionType = "item_sharpen" },
+                new MenuAction { NameKey = "menu_equip", Action = ItemActions.Transfer },
+                //new MenuAction { NameKey = "menu_repair", ActionType = "item_repair" },
+                //new MenuAction { NameKey = "menu_sharpen", ActionType = "item_sharpen" },
             },
             ["armor"] = new List<MenuAction>
             {
-                new MenuAction { NameKey = "menu_equip", ActionType = "item_transfer" },
-                new MenuAction { NameKey = "menu_repair", ActionType = "item_repair" },
+                new MenuAction { NameKey = "menu_equip", Action = ItemActions.Transfer },
+                //new MenuAction { NameKey = "menu_repair", ActionType = "item_repair" },
             },
             ["scroll"] = new List<MenuAction>
             {
-                new MenuAction { NameKey = "menu_use", ActionType = "item_use" },
-                new MenuAction { NameKey = "menu_learn", ActionType = "item_learn" },
+                //new MenuAction { NameKey = "menu_use", ActionType = "item_use" },
+                //new MenuAction { NameKey = "menu_learn", ActionType = "item_learn" },
             },
             ["container"] = new List<MenuAction>
             {
-                new MenuAction { NameKey = "menu_open", ActionType = "container_open" },
-                new MenuAction { NameKey = "menu_examine", ActionType = "object_examine" },
+                new MenuAction { NameKey = "menu_open", Action = ContainerActions.Open },
+                //new MenuAction { NameKey = "menu_examine", ActionType = "object_examine" },
             },
             ["potion"] = new List<MenuAction>
             {
-                new MenuAction { NameKey = "menu_use", ActionType = "item_use" },
+                //new MenuAction { NameKey = "menu_use", ActionType = "item_use" },
             },
         };
 
@@ -53,21 +54,22 @@ namespace ProjectTowerRpg.Core.UI
         {
             ["item"] = new List<MenuAction>
             {
-                new MenuAction { NameKey = "menu_pickup", ActionType = "item_pickup" },
-                new MenuAction { NameKey = "menu_examine", ActionType = "object_examine" },
+                // Меч, броня, зелье на земле -> кнопка "Поднять"
+                new MenuAction { NameKey = "menu_pickup", Action = ItemActions.Loot }
             },
             ["container_item"] = new List<MenuAction>
             {
-                new MenuAction { NameKey = "menu_open", ActionType = "container_open" },
-                new MenuAction { NameKey = "menu_lockpick", ActionType = "container_lockpick" },
-                new MenuAction { NameKey = "menu_disarm", ActionType = "container_disarm" },
-                new MenuAction { NameKey = "menu_take_container", ActionType = "item_pickup", Data = new Dictionary<string, object> { ["is_take_box_action"] = true } },
+                // Сундук/бочка на сцене -> кнопка "Открыть"
+                new MenuAction { NameKey = "menu_open", Action = ContainerActions.Open },
+                
+                // Поднять сундук целиком (если на нем будет разрешающий тег)
+                new MenuAction { NameKey = "menu_take_container", Action = ItemActions.Loot }
             },
         };
 
         private static readonly List<MenuAction> DefaultActions = new List<MenuAction>
         {
-            new MenuAction { NameKey = "menu_examine", ActionType = "object_examine" },
+            //new MenuAction { NameKey = "menu_examine", ActionType = "object_examine" },
         };
 
         // ================================================================
@@ -85,9 +87,9 @@ namespace ProjectTowerRpg.Core.UI
             
             if (GuiActions.TryGetValue(itemType, out var baseActions))
             {
-                foreach (var action in baseActions)
+                foreach (var menuItem in baseActions)
                 {
-                    if (action.ActionType == "item_transfer")
+                    if (menuItem.Action == ItemActions.Transfer)
                     {
                         if (isEquipped)
                         {
@@ -95,7 +97,7 @@ namespace ProjectTowerRpg.Core.UI
                             result.Add(new MenuAction
                             {
                                 NameKey = "menu_unequip",
-                                ActionType = "item_transfer",
+                                Action = ItemActions.Transfer,
                                 Data = new Dictionary<string, object> { ["target_type"] = "inventory" }
                             });
                         }
@@ -105,35 +107,35 @@ namespace ProjectTowerRpg.Core.UI
                             result.Add(new MenuAction
                             {
                                 NameKey = "menu_equip",
-                                ActionType = "item_transfer",
+                                Action = ItemActions.Transfer,
                                 Data = new Dictionary<string, object> { ["target_type"] = "paperdoll" }
                             });
                         }
                     }
                     else
                     {
-                        result.Add(action);
+                        result.Add(menuItem);
                     }
                 }
             }
 
             if (canSplit && !isEquipped)
             {
-                result.Add(new MenuAction { NameKey = "menu_split", ActionType = "execute_split" });
+                //result.Add(new MenuAction { NameKey = "menu_split", ActionType = "execute_split" });
             }
 
-            foreach (var action in SharedItemActions)
+            foreach (var menuItem in SharedItemActions)
             {
-                if (isEquipped && action.ActionType == "item_drop")
+                if (isEquipped && menuItem.Action == ItemActions.Drop)
                     continue;
 
-                if (sourceUrl.Contains("container_window") && action.ActionType == "item_drop")
+                if (sourceUrl.Contains("container_window") && menuItem.Action == ItemActions.Drop)
                 {
-                    result.Add(new MenuAction { NameKey = "menu_take", ActionType = "item_loot" });
+                    result.Add(new MenuAction { NameKey = "menu_take", Action = ItemActions.Loot });
                 }
                 else
                 {
-                    result.Add(action);
+                    result.Add(menuItem);
                 }
             }
 
@@ -145,10 +147,17 @@ namespace ProjectTowerRpg.Core.UI
             if (itemConfig == null)
                 return DefaultActions;
 
-            string actionType = itemConfig.action_type ?? "default";
+            // Если у тебя в JSON сундука забито identity.type = "container",
+            // мы зряче мапим его на "container_item" для UI мира.
+            // А всё остальное (weapon, armor, potion) — это обычный лут ("item").
+            string identityType = itemConfig.identity?.type ?? "default";
+            string worldKey = (identityType == "container") ? "container_item" : "item";
 
-            if (WorldActions.TryGetValue(actionType, out var actions))
-                return actions;
+            // Выуживаем готовый плоский список из матрицы
+            if (WorldActions.TryGetValue(worldKey, out var baseActions))
+            {
+                return baseActions;
+            }
 
             return DefaultActions;
         }

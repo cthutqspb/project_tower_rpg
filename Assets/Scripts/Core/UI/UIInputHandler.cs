@@ -262,7 +262,7 @@ namespace ProjectTowerRpg.Core.UI
                     var actionEntity = em.CreateEntity();
                     em.AddComponentData(actionEntity, new ActionCommand
                     {
-                        ActionType = "disable_aura",
+                        //Action = UnitActions.DisableAura,
                         SourceEntity = context.ContextEntity,
                         SourceSlot = context.SlotIndex,
                         ItemId = context.TargetId
@@ -291,7 +291,7 @@ namespace ProjectTowerRpg.Core.UI
             var actionEntity = em.CreateEntity();
             em.AddComponentData(actionEntity, new ActionCommand
             {
-                ActionType = "item_transfer",
+                Action = ItemActions.Transfer,
                 SourceEntity = source,
                 SourceSlot = sourceSlot,
                 TargetEntity = target,

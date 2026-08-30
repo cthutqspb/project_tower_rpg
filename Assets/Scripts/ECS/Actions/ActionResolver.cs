@@ -1,7 +1,5 @@
 using UnityEngine;
 using Unity.Entities;
-using Unity.Transforms;
-using Unity.Mathematics;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Utils;
@@ -14,7 +12,7 @@ namespace ProjectTowerRpg.ECS.Actions
         {
             // 1. Если нет цели — возвращаем пустую команду
             if (target == Entity.Null)
-                return new ActionCommand { ActionType = "none" };
+                return new ActionCommand { Action = ActionKind.None };
 
             // 2. Получаем дистанцию до цели
             float distance = PositionUtils.GetDistance(actor, target, em);
@@ -26,26 +24,25 @@ namespace ProjectTowerRpg.ECS.Actions
                 if (em.HasComponent<MonsterTag>(target))
                 {
                     if (distance <= 1.5f) // TODO: брать дистанцию атаки из оружия
-                        return new ActionCommand { ActionType = "attack", TargetEntity = target };
+                        return new ActionCommand { Action = CombatActions.Attack, TargetEntity = target };
                     else
-                        return new ActionCommand { ActionType = "move_to", TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
+                        return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
                 }
 
                 // 🧑‍💼 NPC (интеракт)
                 if (em.HasComponent<NpcTag>(target))
                 {
-                    return new ActionCommand { ActionType = "interact", TargetEntity = target };
+                    return new ActionCommand { Action = PlayerActions.Interact, TargetEntity = target };
                 }
 
                 // 👤 ИГРОК (PvP)
                 if (em.HasComponent<PlayerTag>(target))
                 {
                     // TODO: проверка на PvP флаг
-                    return new ActionCommand { ActionType = "attack", TargetEntity = target };
+                    return new ActionCommand { Action = CombatActions.Attack, TargetEntity = target };
                 }
             }
 
-            // 4. Проверяем, является ли цель предметом (Item)
             // 4. Проверяем, является ли цель предметом (Item)
             if (em.HasComponent<ItemComponent>(target))
             {
@@ -59,16 +56,16 @@ namespace ProjectTowerRpg.ECS.Actions
                 if (itemConfig != null && itemConfig.identity.type == "container")
                 {
                     if (distance <= 0.72f)
-                        return new ActionCommand { ActionType = "open_container", TargetEntity = target }; // ← target — сущность!
+                        return new ActionCommand { Action = ContainerActions.Open, TargetEntity = target }; // ← target — сущность!
                     else
-                        return new ActionCommand { ActionType = "move_to", TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
+                        return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
                 }
 
                 // 💎 ОБЫЧНЫЙ ПРЕДМЕТ (лут) — ЛУТАЕМ СУЩНОСТЬ, А НЕ ПОИСК ПО ID!
                 if (distance <= 0.72f)
-                    return new ActionCommand { ActionType = "loot", TargetEntity = target }; // ← target — сущность!
+                    return new ActionCommand { Action = ItemActions.Loot, TargetEntity = target }; // ← target — сущность!
                 else
-                    return new ActionCommand { ActionType = "move_to", TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
+                    return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
             }
 
             // 5. Проверяем, является ли цель объектом (Object)
@@ -76,11 +73,11 @@ namespace ProjectTowerRpg.ECS.Actions
             {
                 // TODO: логика для объектов (двери, рычаги, ловушки)
                 // Пока просто интеракт
-                return new ActionCommand { ActionType = "interact", TargetEntity = target };
+                return new ActionCommand { Action = PlayerActions.Interact, TargetEntity = target };
             }
 
             // 6. Если ничего не подошло
-            return new ActionCommand { ActionType = "none" };
+            return new ActionCommand { Action = ActionKind.None };
         }
     }
 }

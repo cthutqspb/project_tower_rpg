@@ -123,7 +123,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
             // Накатываем параметры команды — диспетчер шёлково поймает её в следующем кадре!
             worldEntityManager.AddComponentData(commandEntity, new ActionCommand 
             { 
-                ActionType = "container_take_all", 
+                Action = ContainerActions.TakeAll, 
                 SourceEntity = activePlayerEntity, // Кто грабит (Игрок)
                 TargetEntity = _containerEntity     // Что грабим (Сумка сундука/трупа)
             });

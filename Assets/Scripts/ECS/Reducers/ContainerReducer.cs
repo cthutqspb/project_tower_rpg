@@ -6,9 +6,9 @@ using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core;
 using ProjectTowerRpg.Core.Loot;
 
-namespace ProjectTowerRpg.ECS.Actions
+namespace ProjectTowerRpg.ECS.Reducers
 {
-    public static class ContainerActions
+    public static class ContainerReducer
     {
         public static void Open(Entity containerEntity, EntityCommandBuffer ecb)
         {

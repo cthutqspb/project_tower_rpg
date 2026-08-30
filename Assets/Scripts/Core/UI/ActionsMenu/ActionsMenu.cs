@@ -209,7 +209,7 @@ namespace ProjectTowerRpg.Core.UI
             var actionEntity = em.CreateEntity();
             em.AddComponentData(actionEntity, new ActionCommand
             {
-                ActionType = action.ActionType,
+                Action = action.Action,
                 SourceEntity = data.ContainerEntity,
                 SourceSlot = data.SlotIndex,
                 TargetEntity = targetEntity,
@@ -218,7 +218,7 @@ namespace ProjectTowerRpg.Core.UI
                 Amount = data.Amount,
             });
 
-            Debug.Log($"[ActionsMenu] Команда: {action.ActionType}, Source: {data.ContainerEntity.Index}, Target: {targetEntity.Index}");
+            Debug.Log($"[ActionsMenu] Команда: {action.Action}, Source: {data.ContainerEntity.Index}, Target: {targetEntity.Index}");
         }
 
         // ================================================================

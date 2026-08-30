@@ -4,8 +4,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.UI;
-using Unity.Transforms;
-using ProjectTowerRpg.Core;
 using ProjectTowerRpg.ECS.Actions; // Добавляем для ActionResolver
 
 namespace ProjectTowerRpg.ECS.Systems
@@ -87,7 +85,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
                             var command = ActionResolver.Resolve(playerEntity, targetEntity, em);
 
-                            if (command.ActionType != "none")
+                            if (command.Action != Actions.ActionKind.None)
                             {
                                 command.SourceEntity = playerEntity; // ← ЭТА СТРОКА БЫЛА ПРОПУЩЕНА
 
@@ -97,7 +95,7 @@ namespace ProjectTowerRpg.ECS.Systems
                                 var cmdEntity = ecb.CreateEntity();
                                 ecb.AddComponent(cmdEntity, command);
 
-                                Debug.Log($"[InputSystem] Создана команда '{command.ActionType}' для цели {targetEntity.Index}");
+                                Debug.Log($"[InputSystem] Создана команда '{command.Action}' для цели {targetEntity.Index}");
                             }
                         }
                         else

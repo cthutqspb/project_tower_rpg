@@ -136,7 +136,7 @@ namespace ProjectTowerRpg.Core.UI
             // Вместо создания сущностей на месте, мы просто стреляем ивентом в глобальную шину!
             UIEvents.TriggerMenuActionSelected(action, data);
 
-            Debug.Log($"[ActionsMenuVisual] Действие '{action.ActionType}' отправлено наверх в контроллер.");
+            Debug.Log($"[ActionsMenuVisual] Действие '{action.Action}' отправлено наверх в контроллер.");
         }
     }
 }

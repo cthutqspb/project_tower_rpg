@@ -162,7 +162,7 @@ namespace ProjectTowerRpg.Core.UI
                     // WoW-канон: Шлём команду со сквозным SourceSlot и TargetSlot = -1 на зачистку ярлыка!
                     em.AddComponentData(actionEntity, new ActionCommand
                     {
-                        ActionType = "action_bar_assign",
+                        Action = PlayerActions.ActionBarAssign,
                         SourceEntity = sourceEntity,
                         SourceSlot = sourceSlotElement.SlotIndex, // Прилетит честное сквозное число 0..23!
                         TargetEntity = sourceEntity, 
@@ -180,7 +180,7 @@ namespace ProjectTowerRpg.Core.UI
                     
                     em.AddComponentData(actionEntity, new ActionCommand
                     {
-                        ActionType = "item_drop",
+                        Action = ItemActions.Drop,
                         SourceEntity = sourceEntity,
                         SourceSlot = sourceSlotElement.SlotIndex,
                         TargetEntity = Entity.Null,
@@ -248,7 +248,7 @@ namespace ProjectTowerRpg.Core.UI
                         return; // Наглухо блокируем транзакцию
                     }
 
-                    string actionType = isTargetBar ? "action_bar_assign" : "item_transfer";
+                    ActionKind action = isTargetBar ? PlayerActions.ActionBarAssign : ItemActions.Transfer;
                     // 🦾 ММО-РАЗВОД ИНДЕКСОВ:
                     // Если цель — боевая панель хоткеев, берём её готовый сквозной ММО-индекс из ОЗУ (0..23).
                     // Если цель — инвентарь или кукла, берём локальный targetSlot (0..11 или 0..71) для трансфера шмота!
@@ -256,7 +256,7 @@ namespace ProjectTowerRpg.Core.UI
 
                     em.AddComponentData(actionEntity, new ActionCommand
                     {
-                        ActionType = actionType,
+                        Action = action,
                         SourceEntity = sourceEntity,
                         SourceSlot = sourceSlotElement.SlotIndex,
                         TargetEntity = targetEntity,
@@ -265,7 +265,7 @@ namespace ProjectTowerRpg.Core.UI
                         Amount = _activeDrag.Amount
                     });
 
-                    Debug.Log($"[DragManager]: Спавн ECS-команды {actionType} -> Слот #{targetSlot}");
+                    Debug.Log($"[DragManager]: Спавн ECS-команды {action} -> Слот #{targetSlot}");
                 }
             }
 

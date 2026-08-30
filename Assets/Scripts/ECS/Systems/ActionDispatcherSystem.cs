@@ -1,9 +1,9 @@
 using UnityEngine;
 using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Collections;
+
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.ECS.Actions;
+using ProjectTowerRpg.ECS.Reducers;
 using ProjectTowerRpg.Core.UI;
 
 namespace ProjectTowerRpg.ECS.Systems
@@ -27,57 +27,57 @@ namespace ProjectTowerRpg.ECS.Systems
             _slotDataLookup.Update(ref CheckedStateRef);
 
             // ================================================================
-            // ИСПОЛНЕНИЕ КОМАНД (ActionCommand)
+            // ИСПОЛНЕНИЕ КОМАНД (Сверхзвуковой unmanaged switch по байту)
             // ================================================================
             foreach (var (cmd, entity) in 
                      SystemAPI.Query<RefRO<ActionCommand>>().WithEntityAccess())
             {
-                var actionType = cmd.ValueRO.ActionType.ToString();
-
-                switch (actionType)
+                // 🦾 ПРОЦЕССОРНЫЙ ДЗЕН: Никаких ToString() и скрытых аллокаций!
+                // Прямой switch по твоему новому полю Action, содержащему ActionKind!
+                switch (cmd.ValueRO.Action)
                 {
-                    case "loot":
+                    case ActionKind.Loot:
                         ExecuteLoot(cmd.ValueRO, ecb);
                         break;
 
-                    case "open_container":
+                    case ActionKind.OpenContainer:
                         ExecuteOpenContainer(cmd.ValueRO, ecb);
                         break;
 
-                    case "container_take_all":
+                    case ActionKind.ContainerTakeAll:
                         ExecuteContainerTakeAll(cmd.ValueRO);
                         break;
 
-                    case "attack":
+                    case ActionKind.Attack:
                         ExecuteAttack(cmd.ValueRO);
                         break;
 
-                    case "interact":
+                    case ActionKind.Interact:
                         ExecuteInteract(cmd.ValueRO);
                         break;
 
-                    case "move_to":
+                    case ActionKind.MoveTo:
                         ExecuteMoveTo(cmd.ValueRO);
                         break;
 
-                    case "item_transfer":
+                    case ActionKind.ItemTransfer:
                         ExecuteItemTransfer(cmd.ValueRO);
                         break;
 
-                    case "item_drop":
+                    case ActionKind.ItemDrop:
                         ExecuteItemDrop(cmd.ValueRO, ecb);
                         break;
 
-                    case "item_use":
+                    case ActionKind.ItemUse:
                         ExecuteItemUse(cmd.ValueRO);
                         break;
 
-                    case "action_bar_assign":
+                    case ActionKind.ActionBarAssign:
                         ExecuteActionBarAssign(cmd.ValueRO);
                         break;
 
                     default:
-                        Debug.LogWarning($"[ActionDispatcher]: Неизвестная команда '{actionType}'");
+                        Debug.LogWarning($"[ActionDispatcher]: Неизвестный экшен '{cmd.ValueRO.Action}'");
                         break;
                 }
 
@@ -102,13 +102,13 @@ namespace ProjectTowerRpg.ECS.Systems
                 return;
             }
 
-            ItemActions.Loot(ref _slotDataLookup, ecb, cmd.TargetEntity, targetInventory);
+            ItemReducer.Loot(ref _slotDataLookup, ecb, cmd.TargetEntity, targetInventory);
             Debug.Log($"[ActionDispatcher] Лут {cmd.TargetEntity.Index} -> {targetInventory.Index}");
         }
 
         private void ExecuteOpenContainer(ActionCommand cmd, EntityCommandBuffer ecb)
         {
-            ContainerActions.Open(cmd.TargetEntity, ecb);
+            ContainerReducer.Open(cmd.TargetEntity, ecb);
             Debug.Log($"[ActionDispatcher] Открыт контейнер {cmd.TargetEntity.Index}");
         }
 
@@ -142,7 +142,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     // Создаем промежуточную подкоманду на перенос конкретного слота
                     var singleTransferCommand = new ActionCommand
                     {
-                        ActionType = "item_transfer",
+                        Action = ItemActions.Transfer,
                         SourceEntity = sourceBagEntity, // Скормили Entity самого мешка сундука!
                         SourceSlot = i,
                         TargetEntity = targetBagEntity, // Скормили Entity самого рюкзака игрока!
@@ -235,13 +235,13 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
-            ItemActions.Transfer(source, cmd.SourceSlot, target, finalTargetSlot);
+            ItemReducer.Transfer(source, cmd.SourceSlot, target, finalTargetSlot);
             Debug.Log($"[ActionDispatcher] Трансфер {cmd.ItemId} [{cmd.SourceSlot}] -> [{finalTargetSlot}]");
         }
 
         private void ExecuteItemDrop(ActionCommand cmd, EntityCommandBuffer ecb)
         {
-            ItemActions.Drop(
+            ItemReducer.Drop(
                 ref _slotDataLookup,
                 ecb,
                 cmd.SourceEntity,
@@ -254,7 +254,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
         private void ExecuteItemUse(ActionCommand cmd)
         {
-            ItemActions.Use(
+            ItemReducer.Use(
                 ref _slotDataLookup,
                 cmd.SourceEntity,
                 cmd.SourceSlot,
@@ -267,66 +267,8 @@ namespace ProjectTowerRpg.ECS.Systems
 
         private void ExecuteActionBarAssign(ActionCommand cmd)
         {
-            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-            
-            if (!em.HasBuffer<ActionBarSlot>(cmd.TargetEntity)) return;
-            var barBuffer = em.GetBuffer<ActionBarSlot>(cmd.TargetEntity);
-
-            // =========================================================================
-            // 🦾 КЕЙС 0: ДРОП В ПУСТОЙ МИР (Удаление ярлыка с панели в молоко)
-            // =========================================================================
-            if (cmd.TargetSlot == -1)
-            {
-                // Стирать ячейку экшен-бара можно только если изначально взяли её С экшен-бара Игрока
-                if (em.HasComponent<PlayerTag>(cmd.SourceEntity) && cmd.SourceSlot >= 0 && cmd.SourceSlot < barBuffer.Length)
-                {
-                    var sourceSlotData = barBuffer[cmd.SourceSlot];
-                    sourceSlotData.AbilityId = "";
-                    barBuffer[cmd.SourceSlot] = sourceSlotData;
-                }
-                return;
-            }
-
-            // =========================================================================
-            // 🦾 КЕЙС 1: АТОМАРНАЯ ЗАПИСЬ ЯРЛЫКА В ЦЕЛЬ (Работает ВСЕГДА, индекс 0..23)
-            // =========================================================================
-            var targetSlot = barBuffer[cmd.TargetSlot];
-            
-            // Бережно придерживаем старый ID цели (только на случай рокировки кнопок панели)
-            var tmpAbilityId = targetSlot.AbilityId;
-
-            // Записываем ID того, что притащили (хоть спелл, хоть манапот) в ОЗУ панели хоткеев
-            targetSlot.AbilityId = cmd.ItemId;
-            barBuffer[cmd.TargetSlot] = targetSlot; // Ссылка на меч успешно вшита в 5-й слот!
-
-            // =========================================================================
-            // 🦾 КЕЙС 2: РОКИРОВКА (СВОП) КНОПОК ПАНЕЛИ
-            // =========================================================================
-            // 🚨 ЖЕЛЕЗОБЕТОННЫЙ СЛEПОЙ ГВАРД: Мы лезем в исходный слот экшен-бара ТОЛЬКО если 
-            // утащили ярлык С экшен-бара Игрока (PlayerTag)!
-            // Если вещь прилетела из инвентаря (InventoryTag) — мы СЮДА ВООБЩЕ НЕ ЗАХОДИМ! 
-            // Экшен-бару глубоко насрать на 43-й индекс сумки, билд застрахован от падений на 100%!
-            if (em.HasComponent<PlayerTag>(cmd.SourceEntity))
-            {
-                var sourceSlot = barBuffer[cmd.SourceSlot]; // Индекс гарантированно легитимен 0..23
-
-                // Если на кнопке-цели что-то сидело — шлёпаем рокировку (СВОП) на старое место панели
-                if (!tmpAbilityId.IsEmpty)
-                {
-                    sourceSlot.AbilityId = tmpAbilityId;
-                }
-                else
-                {
-                    // Если кнопка-цель была пустой — просто стираем ярлык со старой кнопки (ПЕРЕНОС)
-                    sourceSlot.AbilityId = "";
-                }
-
-                barBuffer[cmd.SourceSlot] = sourceSlot;
-                Debug.Log($"[ActionDispatcher]: Перенос ярлыков внутри панелей успешно завершен.");
-            }
+            PlayerReducer.ActionBarAssign(EntityManager, cmd);
         }
-
-
 
         private ISlotContainer CreateContainer(Entity entity)
         {
