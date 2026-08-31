@@ -10,10 +10,12 @@ namespace ProjectTowerRpg.Core.UI.Windows
     {
         [Header("UI Components")]
         [SerializeField] private VisualTreeAsset _paperdollUxml;
+        [SerializeField] private VisualTreeAsset _statsUxml;
 
         private HeaderComponent _header;
         private StaticGrid _inventoryGrid;
         private Paperdoll _paperdoll;
+        private UnitStats _unitStats;
 
         private void OnEnable()
         {
@@ -44,6 +46,23 @@ namespace ProjectTowerRpg.Core.UI.Windows
             if (playerEntity == Entity.Null) return;
 
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+            
+            // ================================================================
+            // 📊 ИНИЦИАЛИЗАЦИЯ И ОТРИСОВКА СТАТОВ И АТРИБУТОВ ИГРОКА
+            // ================================================================
+            var statsContainer = root.Q<VisualElement>("stats-container");
+            if (statsContainer != null && _statsUxml != null)
+            {
+                // Создаем компонент характеристик, скармливая ему ассет шаблона статов
+                _unitStats = new UnitStats(_statsUxml);
+                
+                // Привязываем к сущности игрока: он СРАЗУ вытянет стартовые Атрибуты из ECS!
+                _unitStats.BindToEntity(playerEntity);
+                
+                // Шёлково добавляем готовый элемент в левую колонку окна
+                statsContainer.Add(_unitStats);
+                UIRegistry.Register(playerEntity, _unitStats);
+            }
 
             // Инвентарь
             var inventoryEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(playerEntity, em);

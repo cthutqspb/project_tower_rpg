@@ -43,7 +43,7 @@ namespace ProjectTowerRpg.ECS.Authoring
                 baseSpeed = dbCfg.parameters.base_speed;
                 hitboxRadius = dbCfg.parameters.hitbox_radius;
 
-                float levelModifier = Mathf.Pow(dbCfg.progression.health_growth, authoring.unitLevel - 1);
+                float levelModifier = Mathf.Pow(dbCfg.progression.growth_health, authoring.unitLevel - 1);
                 calculatedMaxHealth = Mathf.FloorToInt(dbCfg.parameters.base_health * levelModifier);
 
                 float rankMultiplier = 1.0f;
@@ -70,23 +70,20 @@ namespace ProjectTowerRpg.ECS.Authoring
 
             // Компонент движения и физики
             AddComponent(entity, new MovementComponent
-            {
-                speed = baseSpeed,
-                direction = float3.zero,
-                isGrounded = true,
-                jumpRequested = false
+            {   
+                HitboxRadius = hitboxRadius,
+                BaseSpeed = baseSpeed,
+                CurrentSpeed = baseSpeed,
+                Direction = float3.zero,
+                IsGrounded = true,
+                JumpRequested = false
             });
 
             // Боевой паспорт здоровья
             AddComponent(entity, new CombatStateComponent
             {
                 IsDead = false,
-                IsInCombat = false,
-                CurrentHp = calculatedMaxHealth,
-                MaxHp = calculatedMaxHealth,
-                BaseSpeed = baseSpeed,
-                CurrentSpeed = baseSpeed,
-                HitboxRadius = hitboxRadius
+                IsInCombat = false, 
             });
 
             // Память ИИ (по умолчанию включен, фабрика выключит его, если это Игрок)

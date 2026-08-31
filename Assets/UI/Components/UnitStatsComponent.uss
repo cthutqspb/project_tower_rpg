@@ -1,0 +1,36 @@
+/* =========================================================================
+   📊 СТИЛИ ДЛЯ ИЗОЛИРОВАННОГО КОНТЕЙНЕРА ХАРАКТЕРИСТИК ЮНИТА
+   ========================================================================= */
+
+.unit-stats {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Группы: блок атрибутов и блок боевых параметров */
+.unit-stats-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 5px;
+}
+
+/* Элементы списков */
+.unit-combat-stat-label {
+    font-size: 13px;
+    color: #E0E0E0;
+    margin-bottom: 4px;
+    text-shadow: 1px 1px 0 #000000;
+}
+
+/* Красивая ММО-линия разделителя */
+.stats-divider {
+    height: 1px;
+    background-color: #3C3C3C;
+    margin-top: 8px;
+    margin-bottom: 12px;
+    opacity: 0.6;
+}
+

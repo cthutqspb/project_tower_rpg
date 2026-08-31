@@ -19,7 +19,7 @@ namespace ProjectTowerRpg.ECS.Systems
             // 🌍 Кверим вообще всех юнитов (и игрока, и скелетов)
             foreach (var (transform, movement, entity) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<MovementComponent>>().WithEntityAccess())
             {
-                float3 inputDir = movement.ValueRO.direction;
+                float3 inputDir = movement.ValueRO.Direction;
                 bool isPlayer = SystemAPI.HasComponent<PlayerTag>(entity);
 
                 // =========================================================================
@@ -33,8 +33,8 @@ namespace ProjectTowerRpg.ECS.Systems
                 // Если мы НЕ прыгали сами (jumpRequested == false), НЕ летим вверх от старого импульса (direction.y <= 0.1f),
                 // но из-за уклона пологих холмов оказались чуть выше земли в воздухе (в пределах 0.3 метра)
                 float distanceToGround = transform.ValueRO.Position.y - groundY;
-                bool isDescendingHill = hitGround && !movement.ValueRO.jumpRequested && 
-                                        (movement.ValueRO.direction.y <= 0.1f) && 
+                bool isDescendingHill = hitGround && !movement.ValueRO.JumpRequested && 
+                                        (movement.ValueRO.Direction.y <= 0.1f) && 
                                         (distanceToGround > 0f && distanceToGround <= 0.3f);
 
                 if (isDescendingHill)
@@ -47,28 +47,28 @@ namespace ProjectTowerRpg.ECS.Systems
                 // Допуск на стыки расширен до 0.1м для исключения покадровых иканий.
                 bool structurallyGrounded = hitGround && 
                                            (transform.ValueRO.Position.y <= groundY + 0.1f) && 
-                                           (movement.ValueRO.direction.y <= 0.1f);
+                                           (movement.ValueRO.Direction.y <= 0.1f);
 
                 // =========================================================================
                 // 2. ТВОЯ РОДНАЯ ФИЗИКА: ГРАВИТАЦИЯ И ИМПУЛЬС ПРЫЖКА
                 // =========================================================================
                 if (!structurallyGrounded)
                 {
-                    movement.ValueRW.direction.y += Gravity * dt;
-                    movement.ValueRW.isGrounded = false;
+                    movement.ValueRW.Direction.y += Gravity * dt;
+                    movement.ValueRW.IsGrounded = false;
                 }
                 else
                 {
                     // На земле вертикальная скорость мертво стоит в нуле
-                    movement.ValueRW.direction.y = 0f;
-                    movement.ValueRW.isGrounded = true;
+                    movement.ValueRW.Direction.y = 0f;
+                    movement.ValueRW.IsGrounded = true;
                 }
 
-                if (movement.ValueRO.jumpRequested && movement.ValueRO.isGrounded)
+                if (movement.ValueRO.JumpRequested && movement.ValueRO.IsGrounded)
                 {
-                    movement.ValueRW.direction.y = JumpForce;
-                    movement.ValueRW.isGrounded = false;
-                    movement.ValueRW.jumpRequested = false; 
+                    movement.ValueRW.Direction.y = JumpForce;
+                    movement.ValueRW.IsGrounded = false;
+                    movement.ValueRW.JumpRequested = false; 
                 }
 
                 float3 horizontalDir = new float3(inputDir.x, 0f, inputDir.z);
@@ -81,14 +81,14 @@ namespace ProjectTowerRpg.ECS.Systems
                 // =========================================================================
                 if (isPlayer)
                 {
-                    float3 cameraForward = new float3(math.sin(movement.ValueRO.cameraAngle), 0f, math.cos(movement.ValueRO.cameraAngle));
+                    float3 cameraForward = new float3(math.sin(movement.ValueRO.CameraAngle), 0f, math.cos(movement.ValueRO.CameraAngle));
                     float3 cameraRight = new float3(cameraForward.z, 0f, -cameraForward.x); 
 
-                    float finalSpeed = movement.ValueRO.speed;
+                    float finalSpeed = movement.ValueRO.CurrentSpeed;
 
-                    if (movement.ValueRO.isRmbOrMmbPressed)
+                    if (movement.ValueRO.IsRmbOrMmbPressed)
                     {
-                        quaternion cameraRotation = quaternion.AxisAngle(math.up(), movement.ValueRO.cameraAngle);
+                        quaternion cameraRotation = quaternion.AxisAngle(math.up(), movement.ValueRO.CameraAngle);
                         transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, cameraRotation, dt * 18f);
 
                         flatMoveVector = (cameraForward * inputDir.z) + (cameraRight * inputDir.x);
@@ -98,7 +98,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         if (inputDir.z < 0f)
                         {
-                            quaternion lookAwayRotation = quaternion.AxisAngle(math.up(), movement.ValueRO.cameraAngle);
+                            quaternion lookAwayRotation = quaternion.AxisAngle(math.up(), movement.ValueRO.CameraAngle);
                             transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookAwayRotation, dt * 14f);
 
                             flatMoveVector = (-cameraForward) + (cameraRight * inputDir.x);
@@ -126,7 +126,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     // 💀 СКЕЛЕТЫ / МОНСТРЫ
                     if (isMovingHorizontally)
                     {
-                        flatMoveVector = math.normalize(horizontalDir) * movement.ValueRO.speed;
+                        flatMoveVector = math.normalize(horizontalDir) * movement.ValueRO.CurrentSpeed;
 
                         quaternion lookRotation = quaternion.LookRotation(math.normalize(horizontalDir), math.up());
                         transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookRotation, dt * 8f);
@@ -153,16 +153,16 @@ namespace ProjectTowerRpg.ECS.Systems
                 // =========================================================================
                 // 5. СБОРКА ВЕКТОРА И КОЛЛИЖЕН С ЛАНДШАФТОМ
                 // =========================================================================
-                float3 finalMoveVector = new float3(flatMoveVector.x, movement.ValueRO.direction.y, flatMoveVector.z);
+                float3 finalMoveVector = new float3(flatMoveVector.x, movement.ValueRO.Direction.y, flatMoveVector.z);
 
                 transform.ValueRW.Position += finalMoveVector * dt;
 
                 // Финальная жесткая страховка (если провалились под холм на высокой скорости)
-                if (hitGround && transform.ValueRO.Position.y <= groundY && movement.ValueRO.direction.y <= 0.1f)
+                if (hitGround && transform.ValueRO.Position.y <= groundY && movement.ValueRO.Direction.y <= 0.1f)
                 {
                     transform.ValueRW.Position = new float3(transform.ValueRO.Position.x, groundY, transform.ValueRO.Position.z);
-                    movement.ValueRW.direction.y = 0f; 
-                    movement.ValueRW.isGrounded = true;    
+                    movement.ValueRW.Direction.y = 0f; 
+                    movement.ValueRW.IsGrounded = true;    
                 }
             }
         }

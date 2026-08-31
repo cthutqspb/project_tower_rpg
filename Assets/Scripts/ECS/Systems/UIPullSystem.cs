@@ -19,6 +19,9 @@ namespace ProjectTowerRpg.ECS.Systems
 
             var combatLookup = SystemAPI.GetComponentLookup<CombatStateComponent>(true);
 
+            var unitCurrentAttributesLookup = SystemAPI.GetComponentLookup<UnitCurrentAttributesComponent>(true);
+            var unitCombatStatsLookup = SystemAPI.GetComponentLookup<UnitCombatStatsComponent>(true);
+
             // 🔄 2. ЕДИНЫЙ ЦИКЛ ПО ВСЕМУ АКТИВНОМУ ИНТЕРФЕЙСУ ИГРЫ
             foreach (var entity in UIRegistry.GetActiveEntities())
             {
@@ -97,6 +100,38 @@ namespace ProjectTowerRpg.ECS.Systems
                         if (receiver is IEcsUiComponentReceiver<UnitComponent> unitUi)
                         {   
                             unitUi.UpdateFromComponent(ref unitData);
+                        }
+                    }
+                }
+
+                // ================================================================
+                // 🌟 СЛАЙС Д: РЕАКТИВНОЕ ОБНОВЛЕНИЕ ТЕКУЩИХ АТРИБУТОВ ЮНИТА (UnitStats)
+                // ================================================================
+                if (unitCurrentAttributesLookup.HasComponent(entity) && unitCurrentAttributesLookup.DidChange(entity, LastSystemVersion))
+                {   
+                    var unitCurrentAttributesData = unitCurrentAttributesLookup[entity];
+
+                    foreach (var receiver in receivers)
+                    {
+                        if (receiver is IEcsUiComponentReceiver<UnitCurrentAttributesComponent> unitStatsUi)
+                        {   
+                            unitStatsUi.UpdateFromComponent(ref unitCurrentAttributesData);
+                        }
+                    }
+                }
+
+                // ================================================================
+                // 🌟 СЛАЙС E: РЕАКТИВНОЕ ОБНОВЛЕНИЕ СТАТОВ ЮНИТА (UnitStats)
+                // ================================================================
+                if (unitCombatStatsLookup.HasComponent(entity) && unitCombatStatsLookup.DidChange(entity, LastSystemVersion))
+                {   
+                    var unitCombatStatsData = unitCombatStatsLookup[entity];
+
+                    foreach (var receiver in receivers)
+                    {
+                        if (receiver is IEcsUiComponentReceiver<UnitCombatStatsComponent> unitStatsUi)
+                        {   
+                            unitStatsUi.UpdateFromComponent(ref unitCombatStatsData);
                         }
                     }
                 }

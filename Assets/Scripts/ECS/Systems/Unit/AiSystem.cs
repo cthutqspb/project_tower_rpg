@@ -2,7 +2,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using ProjectTowerRpg.ECS.Components;
-using UnityEngine;
+using ProjectTowerRpg.Core.Units; // Возвращаем доступ к UnitsDatabase для строкового поиска
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -24,11 +24,14 @@ namespace ProjectTowerRpg.ECS.Systems
             float currentTime = (float)SystemAPI.Time.ElapsedTime;
             float dt = SystemAPI.Time.DeltaTime;
 
+            // Обновляем состояние рандома от времени кадра, чтобы сид не зацикливался внутри partial-системы
+            _random = new Unity.Mathematics.Random((uint)(currentTime * 10000) + 1);
+
             // 🚀 СОВРЕМЕННЫЙ DOTS-КОНВЕЙЕР ИИ (Чистый, быстрый и без ошибок компиляции!):
             // Перебираем твои новые компоненты стейта, твой родной MovementComponent
             // и стандартный LocalTransform через нативный SystemAPI.Query
-             foreach (var (ai, move, combat, transform) in 
-                     SystemAPI.Query<RefRW<AiComponent>, RefRW<MovementComponent>, RefRO<CombatStateComponent>, RefRW<LocalTransform>>())
+            foreach (var (ai, move, combat, transform, unitData) in 
+                     SystemAPI.Query<RefRW<AiComponent>, RefRW<MovementComponent>, RefRO<CombatStateComponent>, RefRW<LocalTransform>, RefRO<UnitComponent>>())
             {
                 // 🛡️ WOW-КАНОН ОПТИМИЗАЦИИ (Твой оригинальный Lua-гвард):
                 // Если этот юнит не из фабрики (например, игрок или редакторный призрак) —
@@ -38,12 +41,19 @@ namespace ProjectTowerRpg.ECS.Systems
                 // 🛡️ ПУЛЕНЕПРОБИВАЕМЫЙ ГВАРД СМЕРТИ (Твой оригинальный Lua-контур):
                 if (combat.ValueRO.IsDead)
                 {
-                    move.ValueRW.direction = float3.zero;
+                    move.ValueRW.Direction = float3.zero;
                     continue; // В цикле foreach вместо return пишем continue, чтобы идти к следующему мобу!
                 }
 
                 // // TODO: WoW-Канон Боевой фазы на будущее (Utility AI, CHASE / ATTACK, Кайтинг магов)
                 // if (combat.ValueRO.IsInCombat) { continue; }
+
+                // ================================================================
+                // СТАБИЛЬНЫЙ СТРОКОВЫЙ ПОИСК КОНФИГА ИЗ ТВОЕЙ БАЗЫ ДАННЫХ
+                // ================================================================
+                string uIdStr = unitData.ValueRO.UnitId.ToString().ToLower().Trim();
+                var dbCfg = UnitsDatabase.GetUnit(uIdStr);
+                if (dbCfg == null) continue;
 
                 // ================================================================
                 // ФАЗА ПАССИВНОГО МИРНОГО ПОКОЯ (Твой unit_ai.lua один в один)
@@ -77,7 +87,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     // Успешно пришли в точку патрулирования? (Допуск 0.4 метра)
                     if (distance < 0.4f)
                     {
-                        move.ValueRW.direction = float3.zero; // Обнуляем вектор в твоем компоненте
+                        move.ValueRW.Direction = float3.zero; // Обнуляем вектор в твоем компоненте
                         ai.ValueRW.HasTarget = false;
                         ai.ValueRW.IsPatrolling = false;
                         
@@ -88,15 +98,16 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     // 2. Теперь нормализуем АБСОЛЮТНО ПЛОСКИЙ вектор и пушим в твой MovementComponent!
                     // move.direction.y гарантированно станет равен СТРОГО 0.0000f!
-                    move.ValueRW.direction = math.normalize(vectorToTarget);
+                    move.ValueRW.Direction = math.normalize(vectorToTarget);
 
-                    // Задаем скорость из боевого паспорта существа (2.0 м/с или 1.0 м/с в патруле)
-                    float workingSpeed = combat.ValueRO.CurrentSpeed;
+                    // 🦾 ИСПРАВЛЕНИЕ СКОРОСТИ ДЛЯ ПАТРУЛЯ: 
+                    // Задаем скорость напрямую из стабильного JSON-конфига юнита!
+                    float workingSpeed = dbCfg.parameters.base_speed;
                     if (ai.ValueRO.IsPatrolling)
                     {
                         workingSpeed = workingSpeed * 0.5f; 
                     }
-                    move.ValueRW.speed = workingSpeed;
+                    move.ValueRW.CurrentSpeed = workingSpeed;
 
                     // ❌ СДВИГ КООРДИНАТ (transform.Position += ...) ОТСЮДА УДАЛЕН НАВСЕГДА!
                     // Твоя родная монолитная MovementSystem сама шёлково передвинет тушу в ОЗУ.

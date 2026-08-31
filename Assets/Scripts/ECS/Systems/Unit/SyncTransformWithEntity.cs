@@ -49,7 +49,7 @@ public class SyncTransformWithEntity : MonoBehaviour
             if (_animator != null)
             {
                 // Проверяем, движется ли юнит вообще (по квадрату длины)
-                bool isMoving = math.lengthsq(moveData.direction) > 0.001f;
+                bool isMoving = math.lengthsq(moveData.Direction) > 0.001f;
 
                 if (isMoving)
                 {
@@ -61,11 +61,11 @@ public class SyncTransformWithEntity : MonoBehaviour
                         // нам нужно пересчитать направление движения относительно текущего разворота туловища!
                         
                         // Считаем вектор бега игрока относительно камеры (копируем логику из MovementSystem)
-                        float cameraAngleInRadians = moveData.cameraAngle;
+                        float cameraAngleInRadians = moveData.CameraAngle;
                         float3 cameraForward = new float3(math.sin(cameraAngleInRadians), 0f, math.cos(cameraAngleInRadians));
                         float3 cameraRight = new float3(cameraForward.z, 0f, -cameraForward.x);
                         
-                        float3 worldMoveVector = (cameraForward * moveData.direction.z) + (cameraRight * moveData.direction.x);
+                        float3 worldMoveVector = (cameraForward * moveData.Direction.z) + (cameraRight * moveData.Direction.x);
                         
                         // Переводим этот мировой вектор движения в локальное пространство "носа" персонажа
                         float3 localDir = math.mul(math.inverse(transformData.Rotation), worldMoveVector);
@@ -78,7 +78,7 @@ public class SyncTransformWithEntity : MonoBehaviour
                     else
                     {
                         // 💀 МОНСТРЫ И NPC: Оставляем ваш рабочий вариант (он написан идеально)
-                        float3 localDir = math.mul(math.inverse(transformData.Rotation), moveData.direction);
+                        float3 localDir = math.mul(math.inverse(transformData.Rotation), moveData.Direction);
 
                         _animator.SetFloat("VelocityX", localDir.x);
                         _animator.SetFloat("VelocityZ", localDir.z);
@@ -91,8 +91,8 @@ public class SyncTransformWithEntity : MonoBehaviour
                     _animator.SetFloat("VelocityZ", 0f);
                 }
 
-                _animator.SetFloat("VelocityY", moveData.direction.y);
-                _animator.SetBool("IsGrounded", moveData.isGrounded);
+                _animator.SetFloat("VelocityY", moveData.Direction.y);
+                _animator.SetBool("IsGrounded", moveData.IsGrounded);
             }
         }        
     }

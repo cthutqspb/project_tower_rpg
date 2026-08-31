@@ -111,13 +111,14 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
-            // ================================================================
-            // 4. ПРЫЖОК (ТЕСТОВАЯ ТРАТА МАНЫ)
+                        // ================================================================
+            // 4. ПРЫЖОК (ТЕСТОВАЯ ТРАТА МАНЫ + УРОН ТАРГЕТУ)
             // ================================================================
             if (!isUiBlocked && _jumpAction != null && _jumpAction.triggered)
             {
                 if (SystemAPI.TryGetSingletonEntity<PlayerTag>(out var playerEntity))
                 {
+                    // --- ТРАТА МАНЫ ИГРОКА ---
                     if (SystemAPI.HasComponent<ResourceComponent>(playerEntity))
                     {
                         var resource = SystemAPI.GetComponent<ResourceComponent>(playerEntity);
@@ -127,8 +128,31 @@ namespace ProjectTowerRpg.ECS.Systems
                             .CreateCommandBuffer(World.Unmanaged);
 
                         ecb.SetComponent(playerEntity, resource);
-
                         Debug.Log($"[InputSystem] Мана потрачена! Осталось: {resource.Current}/{resource.Max}");
+
+                        // --- ⚔️ ХАК: КУСАЕМ ТАРГЕТ НА 10% ОТ МАКС ХП ---
+                        if (SystemAPI.HasComponent<CombatStateComponent>(playerEntity))
+                        {
+                            var combatState = SystemAPI.GetComponent<CombatStateComponent>(playerEntity);
+                            Entity targetEntity = combatState.CurrentTarget; // Наш текущий прицел (выбранный скелет)
+
+                            // Проверяем железно: цель вообще выбрана, существует ли она в ОЗУ симуляции и есть ли у неё ХП?
+                            if (targetEntity != Entity.Null && EntityManager.Exists(targetEntity) && SystemAPI.HasComponent<HealthComponent>(targetEntity))
+                            {
+                                var targetHealth = SystemAPI.GetComponent<HealthComponent>(targetEntity);
+                                
+                                // Вычисляем 10% от МАКСИМАЛЬНОГО здоровья цели
+                                float damageAmount = targetHealth.Max * 0.10f;
+                                
+                                // Нагло срезаем текущее ХП, не падая ниже нуля
+                                targetHealth.Current = math.max(0f, targetHealth.Current - damageAmount);
+
+                                // Безопасно пихаем апдейт здоровья цели в тот же unmanaged-конвейер ECB!
+                                ecb.SetComponent(targetEntity, targetHealth);
+
+                                Debug.Log($"💥 [InputSystem]: Нанесено {damageAmount} урона цели {targetEntity.Index} при прыжке! Осталось ХП: {targetHealth.Current}/{targetHealth.Max}");
+                            }
+                        }
                     }
                 }
             }
@@ -138,24 +162,24 @@ namespace ProjectTowerRpg.ECS.Systems
             // ================================================================
             foreach (var movement in SystemAPI.Query<RefRW<MovementComponent>>().WithAll<PlayerTag>())
             {
-                movement.ValueRW.direction.x = inputDirection.x;
-                movement.ValueRW.direction.z = inputDirection.z;
+                movement.ValueRW.Direction.x = inputDirection.x;
+                movement.ValueRW.Direction.z = inputDirection.z;
 
-                movement.ValueRW.isLookAroundMode = isLmbPressed && !isRmbPressed;
-                movement.ValueRW.isRmbOrMmbPressed = isRmbPressed;
+                movement.ValueRW.IsLookAroundMode = isLmbPressed && !isRmbPressed;
+                movement.ValueRW.IsRmbOrMmbPressed = isRmbPressed;
 
                 if (Camera.main != null)
                 {
-                    if (!movement.ValueRW.isLookAroundMode)
+                    if (!movement.ValueRW.IsLookAroundMode)
                     {
                         float cameraRotationYInRadians = Camera.main.transform.eulerAngles.y * math.TORADIANS;
-                        movement.ValueRW.cameraAngle = cameraRotationYInRadians;
+                        movement.ValueRW.CameraAngle = cameraRotationYInRadians;
                     }
                 }
 
-                if (_jumpAction.triggered && movement.ValueRO.isGrounded)
+                if (_jumpAction.triggered && movement.ValueRO.IsGrounded)
                 {
-                    movement.ValueRW.jumpRequested = true;
+                    movement.ValueRW.JumpRequested = true;
                 }
             }
 

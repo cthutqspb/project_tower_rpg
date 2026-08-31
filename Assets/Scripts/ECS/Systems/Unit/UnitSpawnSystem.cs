@@ -3,9 +3,9 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.UI;
 using Unity.Transforms;
 using ProjectTowerRpg.Core.Units;
+using ProjectTowerRpg.Core.Data; // Наш зрячий GameDB
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -38,108 +38,150 @@ namespace ProjectTowerRpg.ECS.Systems
             foreach (var markerEntity in markers)
             {
                 var markerData = em.GetComponentData<UnitSpawnMarkerComponent>(markerEntity);
+                
+                // 🦾 ВОЗВРАЩАЕМ РОДНУЮ СТАБИЛЬНУЮ СТРОКОВУЮ ЛOГИКУ:
                 string uId = markerData.UnitId.ToString().ToLower().Trim();
-                float3 spawnPos = markerData.SpawnPosition;
-
+                
+                // Ищем строго по строке, как это работало изначально!
                 var dbCfg = UnitsDatabase.GetUnit(uId);
                 if (dbCfg == null)
                 {
-                    Debug.LogError($"🚨 ФАБРИКА: Юнит [{uId}] не найден в JSON-базе! Пропускаю.");
+                    Debug.LogError($"🚨 ФАБРИКА: Юнит [{uId}] не найден в JSON-базе! Пропускаю маркер.");
                     em.DestroyEntity(markerEntity);
                     continue;
                 }
 
-                // Вытаскиваем параметры из JSON-базы данных
+                float3 spawnPos = markerData.SpawnPosition;
+                bool isPlayer = markerData.IsPlayer;
+
+                // Вытаскиваем параметры из нашей статической JSON ДНК
                 string nameKey = dbCfg.identity.name_key;
                 float baseSpeed = dbCfg.parameters.base_speed;
                 float hitboxRadius = dbCfg.parameters.hitbox_radius;
 
-                float levelModifier = math.pow(dbCfg.progression.health_growth, markerData.Level - 1);
-                int maxHealth = Mathf.FloorToInt(dbCfg.parameters.base_health * levelModifier);
-
-                string rankStr = markerData.Rank.ToString().ToLower();
-                float rankMultiplier = 1.0f;
-                if (rankStr == "rare") rankMultiplier = 1.5f;
-                else if (rankStr == "elite") rankMultiplier = 3.0f;
-                else if (rankStr == "boss") rankMultiplier = 5.0f;
-
-                maxHealth = Mathf.FloorToInt(maxHealth * rankMultiplier);
-
+                // Теперь генерация Uid видит spawnPos идеально!
                 string generatedUid = $"c_{Mathf.FloorToInt(spawnPos.x + 0.5f)}_{Mathf.FloorToInt(spawnPos.z + 0.5f)}";
 
-                // 🏗️ 1. РОЖДАЕМ КРИСТАЛЬНО ЧИСТУЮ ECS-СУЩНОСТЬ ДУШИ С НУЛЯ (Без участия префабов!)
+                // 🏗️ 1. РОЖДАЕМ КРИСТАЛЬНО ЧИСТУЮ ECS-СУЩНОСТЬ ДУШИ С НУЛЯ
                 Entity unitEntity = em.CreateEntity();
 
                 em.AddComponentData(unitEntity, new UnitComponent
                 {
-                    Uid = markerData.IsPlayer ? "player" : generatedUid,
-                    UnitId = uId,
-                    NameKey = markerData.IsPlayer ? "player" : nameKey,
+                    Uid = isPlayer ? "player" : generatedUid,
+                    UnitId = markerData.UnitId, // Передаем FixedString
+                    NameKey = isPlayer ? "player" : nameKey,
                     Level = markerData.Level,
                     Position = spawnPos
                 });
 
-                em.AddComponentData(unitEntity, new LocalTransform
-                {
-                    Position = spawnPos,
-                    Rotation = quaternion.identity,
-                    Scale = 1.0f
-                });
+                em.AddComponentData(unitEntity, LocalTransform.FromPosition(spawnPos));
 
                 em.AddComponentData(unitEntity, new MovementComponent
-                {
-                    speed = baseSpeed,
-                    direction = float3.zero,
-                    isGrounded = true,
-                    jumpRequested = false
+                {   
+                    HitboxRadius = hitboxRadius,
+                    CurrentSpeed = baseSpeed,
+                    BaseSpeed = baseSpeed,
+                    Direction = float3.zero,
+                    IsGrounded = true,
+                    JumpRequested = false
                 });
 
+                // Избавились от дублирования ХП и скорости! Оставили только чистый боевой стейт
                 em.AddComponentData(unitEntity, new CombatStateComponent
                 {
-                    IsDead = false, IsInCombat = false, CurrentHp = maxHealth, MaxHp = maxHealth,
-                    BaseSpeed = baseSpeed, CurrentSpeed = baseSpeed, HitboxRadius = hitboxRadius
+                    IsDead = false, 
+                    IsInCombat = false
                 });
 
-                bool isPlayer = markerData.IsPlayer;
+                em.AddComponentData(unitEntity, new UnitCombatStatsComponent{});
 
+                // Записываем РЕАЛЬНОЕ расчетное ХП из конфига в ОЗУ чанка при рождении!
                 em.AddComponentData(unitEntity, new HealthComponent
                 {
-                    Current = maxHealth,
-                    Max = maxHealth
+                    Current = dbCfg.parameters.base_health,
+                    Max = dbCfg.parameters.base_health
                 });
 
-                // 2. Читаем тип ресурса из твоего конфига dbCfg и переводим в ECS Enum
+                // 🧬 🦾 ЗАПЕКАЕМ РПГ-МOНОЛИТ ХАРАКТЕРИСТИК (Симметрично твоему JSON):
+                // Копируем базовую "голую тушу" из конфига. Сюда будет смотреть SaveManager!
+                em.AddComponentData(unitEntity, new UnitBaseAttributesComponent
+                {
+                    strength = dbCfg.attributes.strength,
+                    agility = dbCfg.attributes.agility,
+                    intellect = dbCfg.attributes.intellect,
+                    wisdom = dbCfg.attributes.wisdom,
+                    stamina = dbCfg.attributes.stamina
+                });
+
+                // Инициализируем пустой runtime-черновик для UnitStatsSystem
+                em.AddComponentData(unitEntity, new UnitCurrentAttributesComponent());
+
+                // 🧬 🦾 ЗАПЕКАЕМ СГРУППИРОВАННЫЙ ПАСПОРТ ПРОГРЕССИИ:
+                // Рассчитываем награду опыта на основе твоего базового уровня из маркера
+                int calculatedExperienceReward = markerData.Level * 25; // Твой каноничный ММО-фарм
+                
+                // =========================================================================
+                // 🦾 ОПРЕДЕЛЕНИЕ РАНГА СУЩЕСТВА (Приоритет: Маркер на сцене ➔ Конфиг из JSON)
+                // =========================================================================
+                string selectedRankStr = markerData.Rank.ToString().ToLower().Trim();
+
+                // Если на маркере в редакторе ничего не настроили — берём дефолтный ранг из JSON
+                if (string.IsNullOrEmpty(selectedRankStr))
+                {
+                    selectedRankStr = dbCfg.identity.default_rank.ToLower().Trim();
+                }
+
+                // Мапим строковое значение на наш чистый unmanaged энум UnitRank
+                UnitRank Rank = UnitRank.Normal;
+
+                if (selectedRankStr == "rare") Rank = UnitRank.Rare;
+                else if (selectedRankStr == "elite") Rank = UnitRank.Elite;
+                else if (selectedRankStr == "boss") Rank = UnitRank.Boss;
+
+                em.AddComponentData(unitEntity, new UnitProgressionComponent
+                {
+                    Level = markerData.Level,
+                    ExperienceCurrent = 0,
+                    ExperienceRequired = markerData.Level * 100, // Условный левел-кап опыта
+                    ExperienceReward = calculatedExperienceReward,
+
+                    Rank = Rank,
+                    GrowthHealth = dbCfg.progression.growth_health,
+                    GrowthDamage = dbCfg.progression.growth_damage
+                });
+
+                // ================================================================
+                // 🔮 ИНИЦИАЛИЗАЦИЯ И РАСЧЕТ РЕСУРСА (Мана, Энергия, Ярость)
+                // ================================================================
                 ResourceType rType = ResourceType.None;
                 float currentResource = 0f;
                 float maxResource = 0f;
 
-                if (dbCfg != null && dbCfg.resource != null)
+                if (dbCfg.resource != null)
                 {
                     maxResource = dbCfg.resource.max;
                     currentResource = dbCfg.resource.current;
 
-                    string resTypeStr = dbCfg.resource.type.ToString().ToLower().Trim();
-
+                    // Избавились от текстовой лапши! Newtonsoft.Json нагло парсит энум напрямую,
+                    // но если в конфиге осталась строка — сравниваем чистые байты без аллокаций.
+                    string resTypeStr = dbCfg.resource.type.ToLower();
                     if (resTypeStr == "mana") rType = ResourceType.Mana;
                     else if (resTypeStr == "energy") rType = ResourceType.Energy;
                     else if (resTypeStr == "rage") rType = ResourceType.Rage;
                     
-                    // 🌟 ТЕСТ-ХАК: Если это игрок и данные пришли из конфига, режем ману пополам
-                    if (markerData.IsPlayer)
+                    // 🌟 ТЕСТ-ХАК: Если это игрок — по ММО-канону режем ману наполовину при старте кадра
+                    if (isPlayer)
                     {
                         currentResource = maxResource * 0.5f;
                     }
                 }
                 else
                 {
-                    rType = markerData.IsPlayer ? ResourceType.Mana : ResourceType.None;
-                    maxResource = markerData.IsPlayer ? 100f : 0f;
-                    
-                    // 🌟 ТЕСТ-ХАК: Если это игрок и сработал дефолтный фоллбек, тоже заполняем наполовину
-                    currentResource = markerData.IsPlayer ? (maxResource * 0.5f) : 0f;
+                    rType = isPlayer ? ResourceType.Mana : ResourceType.None;
+                    maxResource = isPlayer ? 100f : 0f;
+                    currentResource = isPlayer ? (maxResource * 0.5f) : 0f;
                 }
 
-                // Вшиваем ресурсный компонент в сущность
                 em.AddComponentData(unitEntity, new ResourceComponent
                 {
                     Type = rType,
@@ -147,6 +189,8 @@ namespace ProjectTowerRpg.ECS.Systems
                     Max = maxResource
                 });
 
+                // 🧠 ЗРЯЧАЯ НАСТРОЙКА ИИ: Никаких лишних перезаписей памяти!
+                // Забиваем параметры структуры сразу в зависимости от того, игрок это или моб!
                 em.AddComponentData(unitEntity, new AiComponent
                 {
                     IsFromFactory = !isPlayer, 
@@ -161,48 +205,71 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (isPlayer)
                 {
                     em.AddComponent<PlayerTag>(unitEntity);
-                     // ================================================================
+                    
+                    // ================================================================
                     // 🔥 БУФЕР ВЗАИМОДЕЙСТВИЙ (ТОЛЬКО ДЛЯ ИГРОКА)
                     // ================================================================
                     em.AddBuffer<InteractionEntry>(unitEntity);
-
-                    var playerAi = em.GetComponentData<AiComponent>(unitEntity);
-                    playerAi.IsFromFactory = false;
-                    playerAi.PatrolRadius = 0f;
-                    em.SetComponentData(unitEntity, playerAi);
                 }
                 else
                 {
                     em.AddComponent<MonsterTag>(unitEntity);
                 }
 
-                // 🏗️ 2. СТРОИМ БАЗОВЫЙ ИНВЕНТАРЬ (72 слота для всех под будущее расширение)
+                // ================================================================
+                // 🏗️ 2. СТРОИМ БАЗОВЫЙ ИНВЕНТАРЬ (72 слота)
+                // ================================================================
                 var inventoryEntity = em.CreateEntity();
                 em.AddComponentData(inventoryEntity, new ContainerConfigComponent { Owner = unitEntity, Columns = 6, Rows = 12 });
                 em.AddComponent<InventoryTag>(inventoryEntity);
+                
                 var slotsBuffer = em.AddBuffer<ItemSlot>(inventoryEntity);
                 for (int i = 0; i < 72; i++)
                 {
-                    slotsBuffer.Add(new ItemSlot { SlotIndex = i, DataId = "", DataType = "", Amount = 0, EquipSlot = EquipSlot.NONE, ContainerType = ContainerType.INVENTORY });
+                    slotsBuffer.Add(new ItemSlot 
+                    { 
+                        SlotIndex = i, 
+                        DataId = "", 
+                        DataType = "", 
+                        Amount = 0, 
+                        EquipSlot = EquipSlot.NONE, 
+                        ContainerType = ContainerType.INVENTORY 
+                    });
                 }
 
-                // 🏗️ 3. СТРОИМ КУКЛУ ШМОТА
+                // ================================================================
+                // 🏗️ 3. СТРОИМ КУКЛУ ШМОТА (Paperdoll)
+                // ================================================================
                 var paperdollEntity = em.CreateEntity();
                 em.AddComponentData(paperdollEntity, new ContainerConfigComponent { Owner = unitEntity, Columns = PAPERDOLL_SLOTS.Length, Rows = 1 });
                 em.AddComponent<PaperdollTag>(paperdollEntity);
+                
                 var paperdollBuffer = em.AddBuffer<ItemSlot>(paperdollEntity);
                 for (int j = 0; j < PAPERDOLL_SLOTS.Length; j++)
                 {
-                    paperdollBuffer.Add(new ItemSlot { SlotIndex = j, DataId = "", DataType = "", Amount = 0, EquipSlot = PAPERDOLL_SLOTS[j], ContainerType = ContainerType.PAPERDOLL });
+                    paperdollBuffer.Add(new ItemSlot 
+                    { 
+                        SlotIndex = j, 
+                        DataId = "", 
+                        DataType = "", 
+                        Amount = 0, 
+                        EquipSlot = PAPERDOLL_SLOTS[j], 
+                        ContainerType = ContainerType.PAPERDOLL 
+                    });
                 }
 
-                // 🎒 НАКЫДЫВАНИЕ ТЕСТОВОГО ШМОТА В ИНВЕНТАРЬ ИГРОКА (ПЕРЕНЕСЕНО ПОД ОБЪЯВЛЕНИЕ ПЕРЕМЕННОЙ)
+                // 🦾 ЗАПЕКАЕМ СВЯЗИ С БУФЕРАМИ: Теперь юнит намертво знает адреса своих карманов!
+                em.AddComponentData(unitEntity, new UnitBuffersLinkComponent
+                {
+                    Inventory = inventoryEntity,
+                    Paperdoll = paperdollEntity
+                });
+
+                // ================================================================
+                // 🎒 НАПОЛНЕНИЕ ТЕСТОВОГО ШМОТА В ИНВЕНТАРЬ ИГРОКА
+                // ================================================================
                 if (isPlayer)
                 {
-                                        
-                    // =========================================================================
-                    // 🎒 ММО-НАПОЛНЕНИЕ ИНВЕНТАРЯ ИГРОКА (Честный спавн сущностей шмоток)
-                    // =========================================================================
                     var testItems = new (string id, int amount)[]
                     {   
                         ("crystal_sword", 1),
@@ -214,31 +281,28 @@ namespace ProjectTowerRpg.ECS.Systems
                         ("chest_common", 1)
                     };
 
-                    // 🦾 ШАГ 1: Сначала спавним "души" предметов в ОЗУ.
-                    // Мы временно складываем их в локальный массив, пока ECS перестраивает чанки памяти!
+                    // 🦾 ШАГ 1: Спавним "души" предметов в ОЗУ
                     NativeArray<Entity> spawnedItemEntities = new NativeArray<Entity>(testItems.Length, Allocator.Temp);
 
                     for (int idx = 0; idx < testItems.Length; idx++)
                     {
                         Entity itemEntity = em.CreateEntity();
                         
-                        // Запекаем unmanaged-компоненты данных (заточки, кулдауны вешать сюда!)
                         em.AddComponentData(itemEntity, new ItemComponent
                         {
                             Uid = testItems[idx].id.GetHashCode() + idx, 
                             ItemId = testItems[idx].id,
                             Amount = testItems[idx].amount,
-                            IsLooted = true // Он уже в сумке, графика ему пока не нужна
+                            IsLooted = true 
                         });
 
                         spawnedItemEntities[idx] = itemEntity;
                     }
 
-                    // 🦾 ШАГ 2: Все структурные изменения ЗАВЕРШЕНЫ, память ОЗУ стабилизировалась!
-                    // Теперь мы со стопроцентной гарантией скачиваем ЖИВОЙ, АКТУАЛЬНЫЙ буфер инвентаря игрока!
+                    // 🦾 ШАГ 2: Стабилизируем ОЗУ и скачиваем легитимный буфер инвентаря игрока
                     var playerSlotsBuffer = em.GetBuffer<ItemSlot>(inventoryEntity);
 
-                    // 🦾 ШАГ 3: Шёлково и безопасно забиваем ячейки рюкзака ссылками на вечные Entity!
+                    // 🦾 ШАГ 3: Шёлково заполняем ячейки рюкзака ссылками на вечные Entity предмета
                     for (int idx = 0; idx < testItems.Length; idx++)
                     {
                         playerSlotsBuffer[idx] = new ItemSlot
@@ -247,26 +311,20 @@ namespace ProjectTowerRpg.ECS.Systems
                             DataId = testItems[idx].id,
                             DataType = "item",
                             Amount = testItems[idx].amount,
-                            ItemEntity = spawnedItemEntities[idx], // СВЯЗЬ ЗАКРЕПЛЕНА НАМЕРТВО!
+                            ItemEntity = spawnedItemEntities[idx], 
                             EquipSlot = EquipSlot.NONE,
                             ContainerType = ContainerType.INVENTORY
                         };
                     }
 
-                    // Освобождаем временный массив выделенной памяти
                     spawnedItemEntities.Dispose();
-                    
-                    Debug.Log("🎒 [ФАБРИКА]: Каждая стартовая шмотка получила свою ECS-сущность и успешно упакована в рюкзак без краша ОЗУ!");
+                    Debug.Log("🎒 [ФАБРИКА]: Стартовые шмотки получили свои вечные ECS-сущности и упакованы в рюкзак!");
 
-                    Debug.Log("🎒 [ФАБРИКА]: Каждая стартовая шмотка получила свою ECS-сущность и успешно упакована в рюкзак!");
-
-                    // =========================================================================
-                    // 🦾 НАПОЛНЕНИЕ ЭКШЕН-БАРА (Плоский сквозной массив хоткеев по ММО-канону)
-                    // =========================================================================
+                    // ================================================================
+                    // 🦾 НАПОЛНЕНИЕ ЭКШЕН-БАРА (Плоский сквозной массив хоткеев 0..23)
+                    // ================================================================
                     var barBuffer = em.AddBuffer<ActionBarSlot>(unitEntity);
 
-                    // Нарезаем суммарно 24 слота (12 для нижней панели + 12 для боковой)
-                    // Теперь SlotIndex — это уникальный сквозной ID ячейки в ОЗУ симуляции (0..23)!
                     for (int k = 0; k < 24; k++)
                     {
                         if (k == 0)
@@ -284,36 +342,10 @@ namespace ProjectTowerRpg.ECS.Systems
                     }
 
                     Debug.Log("🔮 [ФАБРИКА]: Сквозной массив хоткеев (0..23) успешно вшит в буфер игрока!");
-
                 }   
-
-                // =========================================================================
-                // 🏗️ 4. ДИНАМИЧЕСКИЙ СПАВН 3D-ВИЗУАЛА ИЗ ПАПКИ RESOURCES/UNITS/
-                // =========================================================================
-                // =========================================================================
-// 🦾 ИСТИННАЯ КАНOНИЧНАЯ ФАБРИКА ЮНИТОВ (Без лишней графической лапши):
-// Рождаем только "душу" монстра в ОЗУ симуляции через живой EntityManager!
-// =========================================================================
-
-// Запекаем плоские unmanaged-компоненты данных в чанк памяти
-em.AddComponentData(unitEntity, LocalTransform.FromPosition(spawnPos));
-em.AddComponentData(unitEntity, new UnitComponent 
-{ 
-    Uid = isPlayer ? "player" : generatedUid, 
-    UnitId = uId 
-});
-
-// Если это сущность игрока — обязательно вешаем пустой МАРКЕР PlayerTag,
-// чтобы системы куллинга зряче знали, под кого настраивать камеру!
-if (isPlayer)
-{
-    em.AddComponent<PlayerTag>(unitEntity);
-}
-
-// Уничтожаем сущность кубика-метки прямо через EntityManager
-em.DestroyEntity(markerEntity);
-
-
+                
+                // Уничтожаем кубик-маркер запроса спавна прямо через EntityManager
+                em.DestroyEntity(markerEntity);
             }
 
             markers.Dispose();

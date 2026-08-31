@@ -15,10 +15,11 @@
 
   "level": "Level",
 
-  "stat_strength": "Strength",
-  "stat_agility": "Aglitity",
-  "stat_intellect": "Intellect",
-  "stat_stamina": "Stamina",
+  "attribute_strength": "Strength",
+  "attribute_agility": "Aglitity",
+  "attribute_intellect": "Intellect",
+  "attribute_stamina": "Stamina",
+  "attribute_wisdom": "Wisdom",
 
   "_comment_Container_window": "",
   "btn_take_all": "Take all",

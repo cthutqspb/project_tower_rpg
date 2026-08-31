@@ -11,20 +11,28 @@ namespace ProjectTowerRpg.ECS.Reducers
         // ================================================================
         // ОЧИСТКА СЛОТОВ
         // ================================================================
-
+        
         public static void ClearSlot(DynamicBuffer<ItemSlot> slots, int index)
         {
+            if (index < 0 || index >= slots.Length) return;
+
+            // Выдергиваем родной тип слота ("MAIN_HAND", "CHEST" или "NONE" для рюкзака)
+            EquipSlot originalEquipSlot = slots[index].EquipSlot;
+
+            // Заменяем в ОЗУ чанка только изменяемый контент, сохраняя паспорт слота!
             slots[index] = new ItemSlot
             {
                 SlotIndex = index,
-                ContainerType = slots[index].ContainerType, // Сохраняем тип контейнера (например, Inventory)
+                ContainerType = slots[index].ContainerType, // Сохранили Inventory или Paperdoll
                 DataId = "",
                 DataType = "",
                 Amount = 0,
-                EquipSlot = EquipSlot.NONE // Используем универсальный enum
+                EquipSlot = originalEquipSlot // 🔥 СВОЙСТВО АНАТОМИИ СПАСЕНО ОТ ЗАТИРАНИЯ В NONE!
             };
+            
+            Debug.Log($"🎒 [ItemReducer]: Слот #{index} успешно очищен. Тип экипировки '{originalEquipSlot}' неприкосновенен.");
         }
-
+        
         // ================================================================
         // УНИВЕРСАЛЬНЫЙ ТРАНСФЕР (ПОЛИМОРФНЫЙ)
         // ================================================================

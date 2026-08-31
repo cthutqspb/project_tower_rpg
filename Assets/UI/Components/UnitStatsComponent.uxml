@@ -1,0 +1,26 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- Изолированный контейнер характеристик -->
+    <ui:VisualElement class="unit-stats" name="stats-block-root">
+        
+        <!-- Группа Первичных Атрибутов (Текущие статы из ECS) -->
+        <ui:VisualElement class="unit-stats-group" name="unit-attributes">
+            <!-- Сюда C#-код шёлково вставит список атрибутов при отрисовке -->
+        </ui:VisualElement>
+
+        <!-- Разделитель для красоты -->
+        <ui:VisualElement class="stats-divider" name="stats-divider" />
+        
+        <!-- Группа Вторичных Боевых Характеристик -->
+        <ui:VisualElement class="unit-stats-group" name="unit-combat-stats">
+            <ui:Label class="unit-combat-stat-label" name="crit-chance" />
+            <ui:Label class="unit-combat-stat-label" name="hit-chance" />
+            <ui:Label class="unit-combat-stat-label" name="attack-speed" />
+            <ui:Label class="unit-combat-stat-label" name="dodge-chance" />
+            <ui:Label class="unit-combat-stat-label" name="parry-chance" />
+            <ui:Label class="unit-combat-stat-label" name="armor" />
+            <ui:Label class="unit-combat-stat-label" name="magic-resist" />
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>
+

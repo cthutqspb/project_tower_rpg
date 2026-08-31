@@ -9,14 +9,6 @@ namespace ProjectTowerRpg.ECS.Components
     {
         public bool IsDead;              // unit.combat.is_dead
         public bool IsInCombat;          // unit.combat.is_in_combat
-        
-        public int CurrentHp;            // health_resource.current
-        public int MaxHp;                // health_resource.max
-        
-        public float BaseSpeed;          // parameters.base_speed
-        public float CurrentSpeed;       // parameters.current_speed
-        public float HitboxRadius;       // parameters.hitbox_radius
-
         // 🌟 СЕТЕВОЙ ЗАДЕЛ: Персональная цель конкретно ЭТОГО существа
         // (Игрок хранит тут скелета, а скелет в своей памяти будет хранить игрока!)
         public Entity CurrentTarget;

@@ -33,13 +33,14 @@ namespace ProjectTowerRpg.Core.Units
 
                 foreach (var pair in _database)
                 {
-                    string idStr = pair.Key;
+                    // 🦾 ПРИНУДИТЕЛЬНАЯ САНАЦИЯ КЛЮЧА JSON: Срезаем пробелы и роняем в нижний регистр!
+                    string idStr = pair.Key.ToLower().Trim();
                     UnitConfig cfg = pair.Value;
 
-                    // Записываем строковый ID внутрь самого конфига
+                    // Записываем чистый строковый ID внутрь самого конфига
                     cfg.id = idStr;
 
-                    // ГЕНЕРИРУЕМ ХЭШ: Берем строку "skeleton_warrior", делаем из нее инт
+                    // ХЭШ ГЕНЕРИРУЕТСЯ ОТ ИДЕАЛЬНО ОЧИЩЕННОЙ СТРОКИ!
                     int numericHash = idStr.GetHashCode();
                     _hashedDatabase[numericHash] = cfg;
                 }

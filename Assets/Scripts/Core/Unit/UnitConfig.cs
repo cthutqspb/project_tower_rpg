@@ -24,6 +24,7 @@ namespace ProjectTowerRpg.Core.Units
         public int strength;
         public int agility;
         public int intellect;
+        public int wisdom;
         public int stamina;
     }
 
@@ -38,8 +39,8 @@ namespace ProjectTowerRpg.Core.Units
     [Serializable]
     public class UnitProgression
     {
-        public float health_growth;
-        public float damage_growth;
+        public float growth_health;
+        public float growth_damage;
     }
 
     [Serializable]

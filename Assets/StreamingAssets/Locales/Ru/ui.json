@@ -15,10 +15,11 @@
 
   "level": "Уровень",
 
-  "stat_strength": "Сила",
-  "stat_agility": "Ловкость",
-  "stat_intellect": "Интеллект",
-  "stat_stamina": "Выносливость",
+  "attribute_strength": "Сила",
+  "attribute_agility": "Ловкость",
+  "attribute_intellect": "Интеллект",
+  "attribute_stamina": "Выносливость",
+  "attribute_wisdom": "Мудрость",
 
   "_comment_Container_window": "",
   "btn_take_all": "Взять всё",

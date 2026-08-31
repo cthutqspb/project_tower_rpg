@@ -6,5 +6,6 @@
     <Style src="project://database/Assets/UI/HUD.uss?fileID=7433441132597879392&amp;guid=3c74269fe87347e3b8a6f0feb6e7272b&amp;type=3#HUD"/>
     <Style src="project://database/Assets/UI/Components/ProgressBar.uss?fileID=7433441132597879392&amp;guid=40122c9d90b3219a3b0728d955ab2952&amp;type=3#ProgressBar"/>
     <Style src="project://database/Assets/UI/Windows/ContainerWindow/ContainerWindow.uss?fileID=7433441132597879392&amp;guid=ee15e9423035f2c3ab35f488a4c6d692&amp;type=3#ContainerWindow"/>
+    <Style src="project://database/Assets/UI/Components/UnitStatsComponent.uss?fileID=7433441132597879392&amp;guid=56f9782b5d1451492a10c9d350d01cd3&amp;type=3#UnitStatsComponent"/>
     <ui:VisualElement picking-mode="Ignore" name="VisualElement" class="ui-layer"/>
 </ui:UXML>

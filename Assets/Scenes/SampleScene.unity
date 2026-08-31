@@ -3005,6 +3005,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.Windows.CharacterWindow
   _windowUxml: {fileID: 9197481963319205126, guid: 80b5602470cc869418acf44714520a33, type: 3}
   _paperdollUxml: {fileID: 9197481963319205126, guid: b895659d0edc20a559f1044afec3beae, type: 3}
+  _statsUxml: {fileID: 9197481963319205126, guid: 838137debcb943e93934fd3e96824bc5, type: 3}
 --- !u!1 &1902308764
 GameObject:
   m_ObjectHideFlags: 0

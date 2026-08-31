@@ -55,6 +55,8 @@ namespace ProjectTowerRpg.Core.Items
         public int strength;
         public int agility;
         public int intellect;
+        public int stamina;
+        public int wisdom;
         public string resource; // "mana" или null
     }
 
@@ -72,6 +74,7 @@ namespace ProjectTowerRpg.Core.Items
         public int intellect;
         public int agility;
         public int stamina;
+        public int wisdom;
     }
 
     [Serializable]

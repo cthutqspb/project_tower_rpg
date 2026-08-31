@@ -191,7 +191,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
             int finalTargetSlot = cmd.TargetSlot;
 
-                        if (finalTargetSlot == -1)
+            if (finalTargetSlot == -1)
             {
                 var targetSlotsBuffer = _slotDataLookup[cmd.TargetEntity];
                 var incomingContent = new ItemSlot

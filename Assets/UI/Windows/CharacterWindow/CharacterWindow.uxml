@@ -12,10 +12,6 @@
             
             <!-- Статы (левая колонка) -->
             <ui:VisualElement class="stats-column" name="stats-container">
-                <ui:Label text="Сила: 10" />
-                <ui:Label text="Ловкость: 12" />
-                <ui:Label text="Интеллект: 14" />
-                <!-- TODO: динамические статы -->
             </ui:VisualElement>
             
             <!-- Кукла (центр) -->
