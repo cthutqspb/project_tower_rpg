@@ -188,12 +188,13 @@ namespace ProjectTowerRpg.Core.UI
             if (isContainer)
             {
                 Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
-                if (playerEntity != Entity.Null)
+                if (playerEntity != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntity))
                 {
-                    targetContainerEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(playerEntity, em);
+                    var links = em.GetComponentData<BuffersLinkComponent>(playerEntity);
+                    targetContainerEntity = links.Inventory;
                 }
 
-                if (targetContainerEntity != Entity.Null)
+                if (targetContainerEntity != Entity.Null && em.Exists(targetContainerEntity))
                 {
                     CreateTransferCommand(
                         em,

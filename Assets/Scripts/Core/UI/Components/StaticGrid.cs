@@ -89,20 +89,18 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
 
-                // =========================================================================
+        // =========================================================================
         // ⚔️ ПОТОК ИНВЕНТАРЯ (Вызывается автоматически для DynamicBuffer<ItemSlot>)
         // =========================================================================
         public void UpdateFromBuffer(DynamicBuffer<ItemSlot> slots)
         {
             Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} предметов инвентаря.");
             
-            // Кристально чистая зачистка визуала экрана
             foreach (var slot in _slots)
             {
                 slot.ClearVisual();
             }
 
-            // Слепо и быстро выводим предметы. Никаких ContainerHelper и подсчетов банок!
             for (int i = 0; i < slots.Length && i < _slots.Count; i++)
             {
                 var slotData = slots[i];
@@ -124,7 +122,19 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (world == null) return;
             var em = world.EntityManager;
 
-            // 🔥 ИСПОЛЬЗУЕМ _startIndex ДЛЯ СМЕЩЕНИЯ
+            DynamicBuffer<ItemSlot> inventorySlots = default;
+            bool hasValidInventory = false;
+
+            if (_boundEntity != Entity.Null && em.Exists(_boundEntity) && em.HasComponent<BuffersLinkComponent>(_boundEntity))
+            {
+                Entity invEntity = em.GetComponentData<BuffersLinkComponent>(_boundEntity).Inventory;
+                if (invEntity != Entity.Null && em.Exists(invEntity) && em.HasComponent<ItemSlot>(invEntity))
+                {
+                    inventorySlots = em.GetBuffer<ItemSlot>(invEntity);
+                    hasValidInventory = true;
+                }
+            }
+
             for (int i = 0; i < _slots.Count && (i + _startIndex) < slots.Length; i++)
             {
                 int absoluteIndex = i + _startIndex;
@@ -138,14 +148,12 @@ namespace ProjectTowerRpg.Core.UI.Components
                 if (slotData.SlotType == "item")
                 {
                     displayAmount = 0;
-                    Entity invEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(_boundEntity, em);
 
-                    if (invEntity != Entity.Null && em.HasBuffer<ItemSlot>(invEntity))
+                    if (hasValidInventory)
                     {
-                        var inventorySlots = em.GetBuffer<ItemSlot>(invEntity);
                         for (int idx = 0; idx < inventorySlots.Length; idx++)
                         {
-                            if (inventorySlots[idx].DataId == abilityId)
+                            if (inventorySlots[idx].DataId == slotData.AbilityId)
                             {
                                 displayAmount += inventorySlots[idx].Amount;
                             }
@@ -153,7 +161,6 @@ namespace ProjectTowerRpg.Core.UI.Components
                     }
                 }
 
-                // ✅ ПЕРЕДАЕМ ГЛОБАЛЬНЫЙ ИНДЕКС (absoluteIndex) ДЛЯ БИНДОВ
                 _slots[i].SetData(abilityId, config, absoluteIndex, displayAmount, true);
             }
         }

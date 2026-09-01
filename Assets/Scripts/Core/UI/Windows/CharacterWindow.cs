@@ -64,33 +64,33 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 UIRegistry.Register(playerEntity, _unitStats);
             }
 
-            // Инвентарь
-            var inventoryEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(playerEntity, em);
-            var inventoryContainer = root.Q<VisualElement>("inventory-container");
-            
-            if (inventoryContainer != null && inventoryEntity != Entity.Null)
+            // 🦾 НАВЕДЕНА КРИСТАЛЬНАЯ ЧИСТОТА: Забираем прямые адреса карманов из паспорта связей за 0 наносекунд!
+            if (playerEntity != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntity))
             {
-                var world = World.DefaultGameObjectInjectionWorld;
-                if (world != null)
+                var links = em.GetComponentData<BuffersLinkComponent>(playerEntity);
+                Entity inventoryEntity = links.Inventory;
+                Entity paperdollEntity = links.Paperdoll;
+
+                // Инвентарь
+                var inventoryContainer = root.Q<VisualElement>("inventory-container");
+                if (inventoryContainer != null && inventoryEntity != Entity.Null)
                 {
-                    var inventoryComp = world.EntityManager.GetComponentData<ContainerConfigComponent>(inventoryEntity);
+                    var inventoryComp = em.GetComponentData<ContainerConfigComponent>(inventoryEntity);
                     _inventoryGrid = new StaticGrid(inventoryComp.Columns, inventoryComp.Rows);
                     
                     _inventoryGrid.BindToEntity(inventoryEntity); 
                     inventoryContainer.Add(_inventoryGrid);
                 }
-            }
 
-            // Кукла
-            var paperdollEntity = ContainerHelper.GetContainerForUnit<PaperdollTag>(playerEntity, em);
-            var paperdollContainer = root.Q<VisualElement>("paperdoll-container");
-            
-            if (paperdollContainer != null && paperdollEntity != Entity.Null)
-            {
-                _paperdoll = new Paperdoll(_paperdollUxml);
-                
-                _paperdoll.BindToEntity(paperdollEntity); 
-                paperdollContainer.Add(_paperdoll);
+                // Кукла
+                var paperdollContainer = root.Q<VisualElement>("paperdoll-container");
+                if (paperdollContainer != null && paperdollEntity != Entity.Null)
+                {
+                    _paperdoll = new Paperdoll(_paperdollUxml);
+                    
+                    _paperdoll.BindToEntity(paperdollEntity); 
+                    paperdollContainer.Add(_paperdoll);
+                }
             }
         }
     }

@@ -168,44 +168,33 @@ namespace ProjectTowerRpg.Core.UI
             if (_entityManager == null) return;
             var em = _entityManager;
 
-            // 🔥 ОПРЕДЕЛЯЕМ ЦЕЛЕВУЮ СУЩНОСТЬ НА ОСНОВЕ action.Data
             Entity targetEntity = Entity.Null;
 
             if (action.Data != null && action.Data.TryGetValue("target_type", out var typeObj))
             {
                 string targetType = typeObj.ToString();
-                
-                if (targetType == "paperdoll")
+                Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+
+                if (playerEntity != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntity))
                 {
-                    // Ищем куклу игрока
-                    var playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
-                    if (playerEntity != Entity.Null)
+                    var links = em.GetComponentData<BuffersLinkComponent>(playerEntity);
+
+                    if (targetType == "paperdoll")
                     {
-                        targetEntity = ContainerHelper.GetContainerForUnit<PaperdollTag>(playerEntity, em);
+                        targetEntity = links.Paperdoll;
                     }
-                }
-                else if (targetType == "inventory")
-                {
-                    // Ищем инвентарь игрока
-                    var playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
-                    if (playerEntity != Entity.Null)
+                    else if (targetType == "inventory" || targetType == "player_inventory")
                     {
-                        targetEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(playerEntity, em);
+                        targetEntity = links.Inventory;
                     }
-                }
-                else if (targetType == "player_inventory")
-                {
-                    targetEntity = PlayerUtils.GetEntityByTag<InventoryTag>(em);
                 }
             }
             
-            // 🔥 Если targetEntity всё ещё Null — используем fallback (data.TargetEntity)
             if (targetEntity == Entity.Null)
             {
                 targetEntity = data.TargetEntity;
             }
 
-            // Создаём ActionCommand
             var actionEntity = em.CreateEntity();
             em.AddComponentData(actionEntity, new ActionCommand
             {

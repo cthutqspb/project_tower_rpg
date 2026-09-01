@@ -22,11 +22,16 @@ namespace ProjectTowerRpg.ECS.Reducers
                 return;
             }
 
-            // 1. ПРОВЕРЯЕМ, ЕСТЬ ЛИ УЖЕ МЕШОК
-            var bagEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(containerEntity, em);
+            // 🦾 СВЕРХЗВУКОВОЙ ТРЕКИНГ МЕШКА: Прямой адрес из ОЗУ чанка вместо ContainerHelper!
+            Entity bagEntity = Entity.Null;
 
-            // 2. ЕСЛИ МЕШКА НЕТ — СОЗДАЁМ ЧЕРЕЗ ECB
-            if (bagEntity == Entity.Null)
+            if (em.HasComponent<BuffersLinkComponent>(containerEntity))
+            {
+                bagEntity = em.GetComponentData<BuffersLinkComponent>(containerEntity).Inventory;
+            }
+
+            // Если мешка нет или он стерт — шёлково запускаем твой генератор лута
+            if (bagEntity == Entity.Null || !em.Exists(bagEntity))
             {
                 CreateBag(containerEntity, ecb);
                 Debug.Log($"[ContainerActions] Создан мешок для {containerEntity.Index} через ECB");
@@ -37,7 +42,7 @@ namespace ProjectTowerRpg.ECS.Reducers
             }
 
             // ================================================================
-            // 🔥 ДОБАВЛЯЕМ ВЗАИМОДЕЙСТВИЕ В БУФЕР ИГРОКА
+            // 🦾 ВЗАИМОДЕЙСТВИЕ В БУФЕР ИГРОКА (По твоему канону!)
             // ================================================================
             Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
             if (playerEntity != Entity.Null)
@@ -50,7 +55,6 @@ namespace ProjectTowerRpg.ECS.Reducers
                 Debug.Log($"[ContainerActions] Добавлено взаимодействие с {containerEntity.Index} в буфер игрока");
             }
 
-            // 3. ОТКРЫВАЕМ ОКНО
             UIEvents.TriggerOpenContainerWindow(containerEntity);
         }
 
@@ -71,7 +75,7 @@ namespace ProjectTowerRpg.ECS.Reducers
             int rows = itemConfig.properties.rows ?? 4;
             int totalSlots = columns * rows;
 
-            // 🔥 ГЕНЕРАЦИЯ ЛУТА ЧЕРЕЗ LootService (единственное место!)
+            // 🔥 ГЕНЕРАЦИЯ ЛУТА ЧЕРЕЗ LootService
             var lootItems = LootService.GenerateLoot(itemComp.LootTableId.ToString());
 
             // ✅ СОЗДАЁМ МЕШОК ЧЕРЕЗ ECB
@@ -109,9 +113,17 @@ namespace ProjectTowerRpg.ECS.Reducers
                 slotIndex++;
             }
 
+            // 🦾 ЗАПЕКАЕМ СВЯЗЬ: Сундук намертво запоминает свой мешок за 0 наносекунд!
+            ecb.AddComponent(containerEntity, new BuffersLinkComponent
+            {
+                Inventory = bagEntity,
+                Paperdoll = Entity.Null
+            });
+
             // ПОМЕЧАЕМ КАК ОБЛУТАННЫЙ
             itemComp.IsLooted = true;
             ecb.SetComponent(containerEntity, itemComp);
         }
     }
 }
+

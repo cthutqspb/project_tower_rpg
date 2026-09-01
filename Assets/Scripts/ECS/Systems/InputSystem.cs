@@ -73,9 +73,10 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         var combatState = SystemAPI.GetComponent<CombatStateComponent>(playerEntity);
                         
-                        bool isUnit = EntityManager.HasComponent<UnitComponent>(hover.CurrentEntity);
+                        bool isTargetEntity = EntityManager.HasComponent<UnitComponent>(hover.CurrentEntity) || 
+                                             EntityManager.HasComponent<ItemComponent>(hover.CurrentEntity);
                             
-                        if (hover.HasTarget && isUnit)
+                        if (hover.HasTarget && isTargetEntity)
                         {
                             Entity targetEntity = hover.CurrentEntity;
 

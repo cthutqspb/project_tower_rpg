@@ -19,6 +19,27 @@ namespace ProjectTowerRpg.ECS.Components
         public ContainerType ContainerType;
         
         public bool IsEmpty => DataId.IsEmpty || Amount <= 0;
+
+        // 🦾 ТОЧЕЧНОЕ САМООЧИЩЕНИЕ: Паспорт и анатомия куклы ЗАЦЕМЕНТИРОВАНЫ!
+        public void ClearContent()
+        {
+            DataId = "";
+            DataType = "";
+            Amount = 0;
+            ItemEntity = Entity.Null;
+        }
+
+        // 🦾 ТОЧЕЧНЫЙ СЕТТЕР КОНТЕНТА: Заменяет строго живые Си-байты
+        public void SetContent(object content)
+        {
+            if (content is ItemSlot data)
+            {
+                DataId = data.DataId;
+                DataType = data.DataType;
+                Amount = data.Amount;
+                ItemEntity = data.ItemEntity;
+            }
+        }
     }
 }
 

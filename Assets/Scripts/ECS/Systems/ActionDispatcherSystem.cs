@@ -94,11 +94,19 @@ namespace ProjectTowerRpg.ECS.Systems
         private void ExecuteLoot(ActionCommand cmd, EntityCommandBuffer ecb)
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-            var targetInventory = ContainerHelper.GetContainerForUnit<InventoryTag>(cmd.SourceEntity, em);
 
-            if (targetInventory == Entity.Null)
+            if (!em.HasComponent<BuffersLinkComponent>(cmd.SourceEntity))
             {
-                Debug.LogError($"[ActionDispatcher] Инвентарь для актора {cmd.SourceEntity.Index} не найден!");
+                Debug.LogError($"[ActionDispatcher] У актора {cmd.SourceEntity.Index} отсутствует компонент связей буферов!");
+                return;
+            }
+
+            var links = em.GetComponentData<BuffersLinkComponent>(cmd.SourceEntity);
+            Entity targetInventory = links.Inventory;
+
+            if (targetInventory == Entity.Null || !em.Exists(targetInventory))
+            {
+                Debug.LogError($"[ActionDispatcher] Инвентарь для актора {cmd.SourceEntity.Index} пуст или уничтожен в ОЗУ!");
                 return;
             }
 
@@ -114,51 +122,60 @@ namespace ProjectTowerRpg.ECS.Systems
 
         private void ExecuteContainerTakeAll(ActionCommand cmd)
         {
-            var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
-            // 1. Узнаем Entity рантайм-мешка сундука, который мы грабим
-            Entity sourceBagEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(cmd.TargetEntity, entityManager);
-            
-            // 2. Узнаем Entity рантайм-мешка рюкзака игрока, куда переливаем вещи
-            Entity targetBagEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(cmd.SourceEntity, entityManager);
-
-            if (sourceBagEntity == Entity.Null || targetBagEntity == Entity.Null)
+            // 🦾 ИСПРАВЛЕНО НАМЕРТВО: Вытаскиваем адрес мешка сундука из паспорта связей!
+            // cmd.TargetEntity — это сам сундук из редактора. 
+            // Залазим в его паспорт и забираем реальный мешок с буфером шмоток!
+            if (!em.HasComponent<BuffersLinkComponent>(cmd.TargetEntity))
             {
-                Debug.LogWarning("[ActionDispatcher] 'ВЗЯТЬ ВСЁ' отменено: не найден мешок сундука или игрока.");
+                Debug.LogError($"[ActionDispatcher] У сундука {cmd.TargetEntity.Index} отсутствует паспорт связей буферов!");
                 return;
             }
 
-            // 3. Получаем доступ к буферу слотов сундука, чтобы узнать, сколько там ячеек
+            Entity sourceBagEntity = em.GetComponentData<BuffersLinkComponent>(cmd.TargetEntity).Inventory;
+            
+            // У Игрока вытаскиваем рюкзак за 0 наносекунд через его паспорт связей!
+            if (!em.HasComponent<BuffersLinkComponent>(cmd.SourceEntity))
+            {
+                Debug.LogError($"[ActionDispatcher] У актора {cmd.SourceEntity.Index} отсутствует паспорт связей буферов!");
+                return;
+            }
+
+            Entity targetBagEntity = em.GetComponentData<BuffersLinkComponent>(cmd.SourceEntity).Inventory;
+
+            if (sourceBagEntity == Entity.Null || targetBagEntity == Entity.Null || !em.Exists(sourceBagEntity) || !em.Exists(targetBagEntity))
+            {
+                Debug.LogWarning("[ActionDispatcher] 'ВЗЯТЬ ВСЁ' отменено: не найден легитимный мешок сундука или рюкзак игрока в ОЗУ.");
+                return;
+            }
+
+            // 🦾 Теперь буфер гарантированно найдется на sourceBagEntity (самом мешке сундука)!
             var sourceSlotsBuffer = _slotDataLookup[sourceBagEntity];
 
-            // 🔄 Бежим по ячейкам мешка сундука
             for (int i = 0; i < sourceSlotsBuffer.Length; i++)
             {
                 var slotData = sourceSlotsBuffer[i];
 
-                // 💰 Если в слоте сундука есть реальный предмет — шёлково скармливаем команду твоему трансферу!
                 if (!slotData.IsEmpty)
                 {
-                    // Создаем промежуточную подкоманду на перенос конкретного слота
                     var singleTransferCommand = new ActionCommand
                     {
                         Action = ItemActions.Transfer,
-                        SourceEntity = sourceBagEntity, // Скормили Entity самого мешка сундука!
+                        SourceEntity = sourceBagEntity, 
                         SourceSlot = i,
-                        TargetEntity = targetBagEntity, // Скормили Entity самого рюкзака игрока!
-                        TargetSlot = -1,                // Диспетчер сам найдет пустой слот по правилам CanPlaceContent
-                        ItemId = slotData.DataId,
+                        TargetEntity = targetBagEntity, 
+                        TargetSlot = -1,                
+                        ItemId = slotData.DataId, 
                         Amount = slotData.Amount
                     };
 
-                    // Нагло вызываем твой готовый метод! Он сам создаст BufferSlotContainer и сделает Transfer!
                     ExecuteItemTransfer(singleTransferCommand);
                 }
             }
 
             Debug.Log($"💰 [ActionDispatcher]: Экшен 'ВЗЯТЬ ВСЁ' шёлково перелил предметы из мешка {sourceBagEntity.Index} в рюкзак {targetBagEntity.Index}.");
         }
-
 
         private void ExecuteAttack(ActionCommand cmd)
         {

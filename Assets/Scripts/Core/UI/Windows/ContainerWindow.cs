@@ -88,11 +88,15 @@ namespace ProjectTowerRpg.Core.UI.Windows
         private void TryBuildGrid()
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-            Entity lootBagEntity = ContainerHelper.GetContainerForUnit<InventoryTag>(_containerEntity, em);
 
-            if (lootBagEntity != Entity.Null)
+            if (_containerEntity == Entity.Null || !em.Exists(_containerEntity) || !em.HasComponent<BuffersLinkComponent>(_containerEntity))
+                return;
+
+            var links = em.GetComponentData<BuffersLinkComponent>(_containerEntity);
+            Entity lootBagEntity = links.Inventory;
+
+            if (lootBagEntity != Entity.Null && em.Exists(lootBagEntity))
             {
-                // Мешок найден — строим сетку
                 var containerComp = em.GetComponentData<ContainerConfigComponent>(lootBagEntity);
                 _lootGrid = new StaticGrid(containerComp.Columns, containerComp.Rows);
                 _lootGrid.BindToEntity(lootBagEntity);
@@ -101,7 +105,6 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 _isWaitingForBag = false;
                 Debug.Log($"📦 [ContainerWindow] Сетка создана для мешка {lootBagEntity.Index}");
             }
-            // else — ждём следующий кадр, ECB ещё не применился
         }
 
         private void OnTakeAllClicked()

@@ -19,14 +19,13 @@ public class BufferSlotContainer : ISlotContainer
     public bool HasContent(int slot)
     {
         var slots = _slotLookup[_entity];
-        
-        // ВРЕМЕННЫЙ ПРИНТ ДЛЯ ОТЛАДКИ КУКЛЫ:
+        if (slot < 0 || slot >= slots.Length) return false;
+
         if (slots[slot].ContainerType == ContainerType.PAPERDOLL)
         {
-            Debug.Log($"[BufferSlotContainer] Проверка слота куклы #{slot}. Предмет в ECS: '{slots[slot].DataId}', Пустой? {slots[slot].IsEmpty}, Длина буфера: {slots.Length}");
+            Debug.Log($"[BufferSlotContainer] Проверка слота куклы #{slot}. Предмет in ECS: '{slots[slot].DataId}', Пустой? {slots[slot].IsEmpty}, Длина буфера: {slots.Length}");
         }
 
-        if (slot < 0 || slot >= slots.Length) return false;
         return !slots[slot].IsEmpty;
     }
 
@@ -44,17 +43,9 @@ public class BufferSlotContainer : ISlotContainer
 
         if (content is ItemSlot data)
         {
-            // 🦾 ЗРЯЧЕE ОБНОВЛЕНИЕ ЧАНКА ПАМЯТИ ECS:
-            // Берем текущую физическую ячейку, которая прямо сейчас выделена в ОЗУ
             var targetSlot = slots[slot];
-            
-            // Заменяем в ней ТОЛЬКО контент!
-            targetSlot.DataId = data.DataId;
-            targetSlot.DataType = data.DataType;
-            targetSlot.Amount = data.Amount;
-            
-            // 🚨 ПАСПОРТ СЛОТА (ContainerType и EquipSlot) ОСТАЮТСЯ НЕПРИКОСНОВЕННЫМИ ДЛЯ КУКЛЫ!
-            slots[slot] = targetSlot; // Применяем изменения обратно в буфер
+            targetSlot.SetContent(data);
+            slots[slot] = targetSlot;
         }
     }
 
@@ -74,19 +65,13 @@ public class BufferSlotContainer : ISlotContainer
     public void ClearSlot(int slot)
     {
         var slots = _slotLookup[_entity];
-        if (slot >= 0 && slot < slots.Length)
-        {
-            var originalEquipSlot = slots[slot].EquipSlot;
-            slots[slot] = new ItemSlot
-            {
-                SlotIndex = slot,
-                ContainerType = slots[slot].ContainerType,
-                DataId = "",
-                DataType = "",
-                Amount = 0,
-                EquipSlot = originalEquipSlot
-            };
-        }
+        if (slot < 0 || slot >= slots.Length) return;
+
+        var targetSlot = slots[slot];
+        targetSlot.ClearContent();
+        slots[slot] = targetSlot;
+
+        Debug.Log($"[BufferSlotContainer]: Точечно очищен контент слота #{slot}. Паспорт ячейки и анатомия '{targetSlot.EquipSlot}' неприкосновенны.");
     }
 
     public bool CanPlaceContent(int slot, object content)
@@ -98,23 +83,16 @@ public class BufferSlotContainer : ISlotContainer
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
-            // =========================================================================
-            // 🔥 ЗРЯЧАЯ ЗАЩИТА ОТ ВЛОЖЕННЫХ КОНТЕЙНЕРОВ (ГЛУБИНА = 1 по канону BG3)
-            // =========================================================================
-            // Если этот конкретный буфер ОЗУ принадлежит внешней бочке/мешку (ContainerTag),
-            // И игрок пытается запихать внутрь неё ЕЩЁ ОДИН контейнер (мешок в бочку) -> БЛОКИРУЕМ!
             if (em.HasComponent<ContainerTag>(_entity) && IsContainerItem(incomingData.DataId.ToString()))
             {
                 Debug.Log($"[BufferSlotContainer] Блокировка: нельзя класть контейнер '{incomingData.DataId}' внутрь другого контейнера!");
                 return false;
             }
 
-            var targetContainerType = slots[slot].ContainerType;
-
-            switch (targetContainerType)
+            switch (slots[slot].ContainerType)
             {
                 case ContainerType.INVENTORY:
-                    return true; // В личный рюкзак Игрока (InventoryTag) бочки теперь будут лететь со свистом!
+                    return true;
 
                 case ContainerType.PAPERDOLL:
                     if (incomingData.IsEmpty) return false;
@@ -129,11 +107,7 @@ public class BufferSlotContainer : ISlotContainer
 
         return false;
     }
- 
 
-    // ================================================================
-    // 🛠️ ВСПОМОГАТЕЛЬНЫЙ МЕТОД
-    // ================================================================
     private bool IsContainerItem(string itemId)
     {
         if (string.IsNullOrEmpty(itemId)) return false;

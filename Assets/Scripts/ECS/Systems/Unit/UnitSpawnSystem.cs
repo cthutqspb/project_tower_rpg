@@ -259,7 +259,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // 🦾 ЗАПЕКАЕМ СВЯЗИ С БУФЕРАМИ: Теперь юнит намертво знает адреса своих карманов!
-                em.AddComponentData(unitEntity, new UnitBuffersLinkComponent
+                em.AddComponentData(unitEntity, new BuffersLinkComponent
                 {
                     Inventory = inventoryEntity,
                     Paperdoll = paperdollEntity

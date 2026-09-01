@@ -7,32 +7,30 @@ using ProjectTowerRpg.Core.Items;
 namespace ProjectTowerRpg.ECS.Reducers
 {
     public static class ItemReducer
-    {
-        // ================================================================
-        // ОЧИСТКА СЛОТОВ
-        // ================================================================
-        
+    {        
+
+        // 🦾 СТЕРИЛЬНЫЙ unmanaged-ОЧИСТИТЕЛЬ СЛОТОВ В БЭКЕНДЕ (Иммутабельный канон):
+        // Работает напрямую с ECS-буфером чанка. Изменяет ТОЛЬКО живой контент!
         public static void ClearSlot(DynamicBuffer<ItemSlot> slots, int index)
         {
             if (index < 0 || index >= slots.Length) return;
 
-            // Выдергиваем родной тип слота ("MAIN_HAND", "CHEST" или "NONE" для рюкзака)
-            EquipSlot originalEquipSlot = slots[index].EquipSlot;
-
-            // Заменяем в ОЗУ чанка только изменяемый контент, сохраняя паспорт слота!
-            slots[index] = new ItemSlot
-            {
-                SlotIndex = index,
-                ContainerType = slots[index].ContainerType, // Сохранили Inventory или Paperdoll
-                DataId = "",
-                DataType = "",
-                Amount = 0,
-                EquipSlot = originalEquipSlot // 🔥 СВОЙСТВО АНАТОМИИ СПАСЕНО ОТ ЗАТИРАНИЯ В NONE!
-            };
+            // Выдергиваем мутабельную Си-ячейку памяти прямо из ОЗУ чанка ECS
+            var targetSlot = slots[index];
             
-            Debug.Log($"🎒 [ItemReducer]: Слот #{index} успешно очищен. Тип экипировки '{originalEquipSlot}' неприкосновенен.");
+            // НАГЛУХО СТИРАЕМ ТОЛЬКО ВЛОЖЕННЫЙ КОНТЕНТ!
+            targetSlot.DataId = "";
+            targetSlot.DataType = "";
+            targetSlot.Amount = 0;
+            targetSlot.ItemEntity = Unity.Entities.Entity.Null; // Ссылка на сущность в мире стёрта!
+            
+            // 🚨 ПАСПОРТ СЛОТА (SlotIndex, ContainerType, EquipSlot) ОСТАЕТСЯ АБСОЛЮТНО НЕПРИКОСНОВЕННЫМ!
+            // Кукла железно сохранит свой "MAIN_HAND" / "CHEST", инвентарь сохранит свой индекс!
+            slots[index] = targetSlot; 
+            
+            Debug.Log($"🎒 [ItemReducer.ClearSlot]: Точечно очищен контент чанка в слоте #{index}. Паспорт ячейки и анатомия '{targetSlot.EquipSlot}' неприкосновенны.");
         }
-        
+
         // ================================================================
         // УНИВЕРСАЛЬНЫЙ ТРАНСФЕР (ПОЛИМОРФНЫЙ)
         // ================================================================

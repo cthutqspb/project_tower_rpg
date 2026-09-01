@@ -17,9 +17,9 @@ namespace ProjectTowerRpg.ECS.Systems
             var em = EntityManager;
             var itemSlotLookup = SystemAPI.GetBufferLookup<ItemSlot>(true);
 
-            // Кверим плоские чанки через твой новый UnitBuffersLinkComponent
+            // Кверим плоские чанки через твой новый BuffersLinkComponent
             foreach (var (baseAttributes, currentAttributes, health, links, entity) in 
-                     SystemAPI.Query<RefRO<UnitBaseAttributesComponent>, RefRW<UnitCurrentAttributesComponent>, RefRO<HealthComponent>, RefRO<UnitBuffersLinkComponent>>()
+                     SystemAPI.Query<RefRO<UnitBaseAttributesComponent>, RefRW<UnitCurrentAttributesComponent>, RefRO<HealthComponent>, RefRO<BuffersLinkComponent>>()
                      .WithEntityAccess())
             {
                 Entity paperdollEntity = links.ValueRO.Paperdoll;
