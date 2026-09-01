@@ -5,6 +5,8 @@ namespace ProjectTowerRpg.ECS.Components
     // 🧙‍♂️ МАРКЕР ИГРОКА: Для перехвата контроля инпутом и обновления HUD
     public struct PlayerTag : IComponentData {}
 
+    public struct LeaderTag : IComponentData {}
+
     // 💀 МАРКЕР МОНСТРА: Для агрессивного ИИ, агро-ренжей и ротации боевых спеллов
     public struct MonsterTag : IComponentData {}
 
