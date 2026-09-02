@@ -2,7 +2,9 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Units;
-using System.Collections.Generic;
+using ProjectTowerRpg.Core.Localization;
+using Unity.Entities;
+using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -16,14 +18,11 @@ namespace ProjectTowerRpg.Core.UI.Components
             this.name = "global-tooltip";
             this.style.position = Position.Absolute;
             this.style.display = DisplayStyle.None;
-            this.pickingMode = PickingMode.Ignore; // Пропускаем мышь насквозь
+            this.pickingMode = PickingMode.Ignore;
 
-            // Базовый MMO-контейнер шириной 320 пикселей из Defold
             _background = new VisualElement();
             _background.style.width = 320;
             _background.style.backgroundColor = new Color(0.06f, 0.06f, 0.06f, 0.95f);
-            
-            // Благородная рамка
             _background.style.borderTopWidth = 1;
             _background.style.borderBottomWidth = 1;
             _background.style.borderLeftWidth = 1;
@@ -33,7 +32,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             _background.style.borderBottomColor = borderColor;
             _background.style.borderLeftColor = borderColor;
             _background.style.borderRightColor = borderColor;
-            
             _background.style.paddingTop = 10;
             _background.style.paddingBottom = 10;
             _background.style.paddingLeft = 12;
@@ -41,30 +39,23 @@ namespace ProjectTowerRpg.Core.UI.Components
             Add(_background);
         }
 
-        // ================================================================
-        // 🧱 АНАЛОГ ТВОЕГО МЕТОДА add_line ИЗ DEFOLD
-        // ================================================================
         private void AddLine(string leftText, string rightText = "", Color? color = null, bool isHeader = false)
         {
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
-            
-            // ИСПРАВЛЕНО: Вместо JustifyContent.SpaceBetween пишем Justify.SpaceBetween
-            row.style.justifyContent = Justify.SpaceBetween; 
+            row.style.justifyContent = Justify.SpaceBetween;
 
             var textColor = color ?? Color.white;
 
-            // ЛЕВЫЙ ТЕКСТ
             var labelLeft = new Label(leftText);
             labelLeft.style.color = textColor;
-            labelLeft.style.whiteSpace = WhiteSpace.Normal; // Автоперенос длинных строк
+            labelLeft.style.whiteSpace = WhiteSpace.Normal;
             labelLeft.style.flexGrow = 1;
             labelLeft.style.flexShrink = 1;
 
             if (isHeader)
             {
-                // ИСПРАВЛЕНО: Вместо JustifyContent.Center пишем Justify.Center
-                row.style.justifyContent = Justify.Center; 
+                row.style.justifyContent = Justify.Center;
                 labelLeft.style.fontSize = 17;
                 labelLeft.style.unityFontStyleAndWeight = FontStyle.Bold;
                 labelLeft.style.unityTextAlign = TextAnchor.UpperCenter;
@@ -78,7 +69,6 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             row.Add(labelLeft);
 
-            // ПРАВЫЙ ТЕКСТ (Если передан — улетает вправо)
             if (!string.IsNullOrEmpty(rightText) && !isHeader)
             {
                 var labelRight = new Label(rightText);
@@ -86,7 +76,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 labelRight.style.fontSize = 13;
                 labelRight.style.flexGrow = 0;
                 labelRight.style.flexShrink = 0;
-                labelRight.style.marginLeft = 15; // Тот самый зазор для воздуха
+                labelRight.style.marginLeft = 15;
                 labelRight.style.unityTextAlign = TextAnchor.UpperRight;
                 row.Add(labelRight);
             }
@@ -94,14 +84,10 @@ namespace ProjectTowerRpg.Core.UI.Components
             _background.Add(row);
         }
 
-        // ================================================================
-        // 🎯 ТВОЙ РОДНОЙ МЕТОД update(self, dt) ИЗ DEFOLD ОДИН В ОДИН
-        // ================================================================
         public void UpdateTick()
         {
             var payload = TooltipManager.GetCurrent();
 
-            // Если сессии нет или мы зажали и тащим шмотку — гасим визуал
             if (payload == null || DragManager.Instance.IsDragging)
             {
                 if (this.style.display == DisplayStyle.Flex)
@@ -113,33 +99,25 @@ namespace ProjectTowerRpg.Core.UI.Components
                 return;
             }
 
-            // ПОЗИЦИОНИРОВАНИЕ (mouse_x + 20, mouse_y - 20)
             this.style.left = TooltipManager.MouseX + 20;
             this.style.top = Screen.height - TooltipManager.MouseY + 20;
 
-            // Если данные ховера не менялись — выходим (0 тактов процессора)
             if (payload == _payloadRef)
             {
                 return;
             }
 
             _payloadRef = payload;
-            _background.Clear(); // Полностью очищаем старые строки
+            _background.Clear();
             this.style.display = DisplayStyle.Flex;
-
             this.BringToFront();
 
-            // Разруливаем слои ховера
             switch (payload.Domain)
             {
                 case TooltipDomain.INTERFACE:
                     if (payload.Kind == TooltipKind.ITEM && payload.Info is ItemConfig guiItem)
                     {
                         RenderItem(guiItem, isInInventory: true);
-                    }
-                    else if (payload.Kind == TooltipKind.ABILITY)
-                    {
-                        // RenderAbility(payload.Info);
                     }
                     break;
 
@@ -156,25 +134,19 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
 
-        // ================================================================
-        // ⚔️ ЗРЯЧИЙ ААА-РЕНДЕР ТВОЕЙ ЛАПШИ ХАРАКТЕРИСТИК ИЗ DEFOLD
-        // ================================================================
         private void RenderItem(ItemConfig cfg, bool isInInventory)
         {
-            int amount = 1; // В будущем можно прокидывать реальный стак через payload.Context
+            int amount = 1;
 
-            // 1. БЛОК ШАПКИ
-            // ИСПРАВЛЕНО: Читаем через твой живой локализатор!
-            string nameText = ProjectTowerRpg.Core.Localization.LocalizationManager.Get(cfg.identity.name_key).ToUpper(); 
+            string nameText = LocalizationManager.Get(cfg.identity.name_key).ToUpper();
             Color nameColor = GetQualityColor(cfg.identity.quality);
-            
+
             if (cfg.properties.stackable && amount > 1)
             {
                 nameText += $" (x{amount})";
             }
             AddLine(nameText, color: nameColor, isHeader: true);
 
-            // 🛡️ ГВАРД ДИКОГО ЛУТА: Если вещь на земле — скрываем лапшу характеристик по твоему канону
             if (!isInInventory)
             {
                 return;
@@ -182,72 +154,126 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             string typeKey = !string.IsNullOrEmpty(cfg.properties.weapon_type) ? cfg.properties.weapon_type : cfg.properties.armor_type;
             if (string.IsNullOrEmpty(typeKey)) typeKey = cfg.identity.type;
-            
-            // ИСПРАВЛЕНО: Локализуем тип шмотки и слот экипировки из твоих JSON-файлов
-            string localizedType = ProjectTowerRpg.Core.Localization.LocalizationManager.Get(typeKey);
-            string localizedSlot = ProjectTowerRpg.Core.Localization.LocalizationManager.Get(cfg.properties.equip_slot);
-            
+
+            string localizedType = LocalizationManager.Get(typeKey);
+            string localizedSlot = LocalizationManager.Get(cfg.properties.equip_slot);
+
             string subHeader = $"{localizedType.ToUpper()} ({localizedSlot})";
             AddLine(subHeader, color: new Color(0.5f, 0.5f, 0.5f, 1f));
 
-            // 2. БЛОК ТРЕБОВАНИЙ
+            // ================================================================
+            // 🔥 БЛОК ТРЕБОВАНИЙ С ПРОВЕРКОЙ
+            // ================================================================
             if (cfg.requirements != null)
             {
-                // ИСПРАВЛЕНО: Локализуем заголовки и статы
-                string reqHeader = ProjectTowerRpg.Core.Localization.LocalizationManager.Get("required") + ":";
+                string reqHeader = LocalizationManager.Get("required") + ":";
                 AddLine(reqHeader.ToUpper(), color: Color.white);
 
-                if (cfg.requirements.level > 0) 
-                    AddLine($"  {ProjectTowerRpg.Core.Localization.LocalizationManager.Get("level")}: {cfg.requirements.level}", color: Color.white);
-                if (cfg.requirements.strength > 0) 
-                    AddLine($"  {ProjectTowerRpg.Core.Localization.LocalizationManager.Get("stat_strength")}: {cfg.requirements.strength}", color: Color.white);
-                if (cfg.requirements.agility > 0) 
-                    AddLine($"  {ProjectTowerRpg.Core.Localization.LocalizationManager.Get("stat_agility")}: {cfg.requirements.agility}", color: Color.white);
-                if (cfg.requirements.intellect > 0) 
-                    AddLine($"  {ProjectTowerRpg.Core.Localization.LocalizationManager.Get("stat_intellect")}: {cfg.requirements.intellect}", color: Color.white);
+                // Получаем сущность игрока
+                var playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+                if (playerEntity != Entity.Null)
+                {
+                    var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+                    var result = ItemRequirementsChecker.CheckRequirements(cfg, playerEntity, em);
+
+                    // Выводим каждое требование с цветом (красный если не выполнено)
+                    if (cfg.requirements.level > 0)
+                    {
+                        bool isOk = cfg.requirements.level <= GetUnitLevel(playerEntity, em);
+                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
+                        AddLine($"  {LocalizationManager.Get("level")}: {cfg.requirements.level}", color: reqColor);
+                    }
+
+                    if (cfg.requirements.strength > 0)
+                    {
+                        var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
+                        bool isOk = cfg.requirements.strength <= attrs.strength;
+                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
+                        AddLine($"  {LocalizationManager.Get("stat_strength")}: {cfg.requirements.strength}", color: reqColor);
+                    }
+
+                    if (cfg.requirements.agility > 0)
+                    {
+                        var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
+                        bool isOk = cfg.requirements.agility <= attrs.agility;
+                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
+                        AddLine($"  {LocalizationManager.Get("stat_agility")}: {cfg.requirements.agility}", color: reqColor);
+                    }
+
+                    if (cfg.requirements.intellect > 0)
+                    {
+                        var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
+                        bool isOk = cfg.requirements.intellect <= attrs.intellect;
+                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
+                        AddLine($"  {LocalizationManager.Get("stat_intellect")}: {cfg.requirements.intellect}", color: reqColor);
+                    }
+
+                    if (cfg.requirements.stamina > 0)
+                    {
+                        var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
+                        bool isOk = cfg.requirements.stamina <= attrs.stamina;
+                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
+                        AddLine($"  {LocalizationManager.Get("stat_stamina")}: {cfg.requirements.stamina}", color: reqColor);
+                    }
+
+                    if (cfg.requirements.wisdom > 0)
+                    {
+                        var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
+                        bool isOk = cfg.requirements.wisdom <= attrs.wisdom;
+                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
+                        AddLine($"  {LocalizationManager.Get("stat_wisdom")}: {cfg.requirements.wisdom}", color: reqColor);
+                    }
+
+                    if (!string.IsNullOrEmpty(cfg.requirements.resource))
+                    {
+                        var resource = em.GetComponentData<ResourceComponent>(playerEntity);
+                        bool isOk = resource.Type.ToString().ToLower() == cfg.requirements.resource.ToLower();
+                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
+                        string resName = LocalizationManager.Get(cfg.requirements.resource);
+                        AddLine($"  {LocalizationManager.Get("resource")}: {resName}", color: reqColor);
+                    }
+                }
             }
 
-            // 3. БОЕВЫЕ ХАРАКТЕРИСТИКИ (Крупно и ярко)
+            // ================================================================
+            // БОЕВЫЕ ХАРАКТЕРИСТИКИ
+            // ================================================================
             if (cfg.combat_stats != null)
             {
-                // Урон
                 if (cfg.combat_stats.damage != null)
                 {
-                    string dmgTypeName = ProjectTowerRpg.Core.Localization.LocalizationManager.Get(cfg.combat_stats.damage.type);
+                    string dmgTypeName = LocalizationManager.Get(cfg.combat_stats.damage.type);
                     string dmgText = $"{cfg.combat_stats.damage.min}-{cfg.combat_stats.damage.max} {dmgTypeName.ToUpper()} УРОН";
                     AddLine(dmgText, color: new Color(1f, 0.85f, 0.2f, 1f));
                 }
 
-                // Броня
                 if (cfg.combat_stats.armor_rating > 0)
                 {
-                    string armorName = ProjectTowerRpg.Core.Localization.LocalizationManager.Get("armor_rating");
+                    string armorName = LocalizationManager.Get("armor_rating");
                     string armorText = $"{cfg.combat_stats.armor_rating} {armorName.ToUpper()}";
                     AddLine(armorText, color: new Color(0.7f, 0.8f, 1f, 1f));
                 }
 
-                // Параметры статов (+3 Сила, +5 Выносливость)
                 if (cfg.combat_stats.attributes != null)
                 {
                     var attrs = cfg.combat_stats.attributes;
-                    if (attrs.strength != 0) AddLine($"{(attrs.strength > 0 ? "+" : "")}{attrs.strength} {ProjectTowerRpg.Core.Localization.LocalizationManager.Get("stat_strength")}", color: new Color(0.4f, 0.6f, 1f, 1f));
-                    if (attrs.agility != 0) AddLine($"{(attrs.agility > 0 ? "+" : "")}{attrs.agility} {ProjectTowerRpg.Core.Localization.LocalizationManager.Get("stat_agility")}", color: new Color(0.4f, 0.6f, 1f, 1f));
-                    if (attrs.intellect != 0) AddLine($"{(attrs.intellect > 0 ? "+" : "")}{attrs.intellect} {ProjectTowerRpg.Core.Localization.LocalizationManager.Get("stat_intellect")}", color: new Color(0.4f, 0.6f, 1f, 1f));
-                    if (attrs.stamina != 0) AddLine($"{(attrs.stamina > 0 ? "+" : "")}{attrs.stamina} {ProjectTowerRpg.Core.Localization.LocalizationManager.Get("stat_stamina")}", color: new Color(0.4f, 0.6f, 1f, 1f));
+                    if (attrs.strength != 0) AddLine($"{(attrs.strength > 0 ? "+" : "")}{attrs.strength} {LocalizationManager.Get("stat_strength")}", color: new Color(0.4f, 0.6f, 1f, 1f));
+                    if (attrs.agility != 0) AddLine($"{(attrs.agility > 0 ? "+" : "")}{attrs.agility} {LocalizationManager.Get("stat_agility")}", color: new Color(0.4f, 0.6f, 1f, 1f));
+                    if (attrs.intellect != 0) AddLine($"{(attrs.intellect > 0 ? "+" : "")}{attrs.intellect} {LocalizationManager.Get("stat_intellect")}", color: new Color(0.4f, 0.6f, 1f, 1f));
+                    if (attrs.stamina != 0) AddLine($"{(attrs.stamina > 0 ? "+" : "")}{attrs.stamina} {LocalizationManager.Get("stat_stamina")}", color: new Color(0.4f, 0.6f, 1f, 1f));
+                    if (attrs.wisdom != 0) AddLine($"{(attrs.wisdom > 0 ? "+" : "")}{attrs.wisdom} {LocalizationManager.Get("stat_wisdom")}", color: new Color(0.4f, 0.6f, 1f, 1f));
                 }
             }
 
-            // 4. БЛОК ОПИСАНИЯ (Красивый золотисто-коричневый цвет)
             if (!string.IsNullOrEmpty(cfg.identity.desc_key))
             {
-                string localizedDesc = ProjectTowerRpg.Core.Localization.LocalizationManager.Get(cfg.identity.desc_key);
+                string localizedDesc = LocalizationManager.Get(cfg.identity.desc_key);
                 AddLine(localizedDesc, color: new Color(0.8f, 0.7f, 0.5f, 1f));
             }
 
-            // 5. ТЕХНИЧЕСКАЯ ИНФО (Вес слева, Цена справа)
-            string weightName = ProjectTowerRpg.Core.Localization.LocalizationManager.Get("weight");
-            string priceName = ProjectTowerRpg.Core.Localization.LocalizationManager.Get("price");
-            
+            string weightName = LocalizationManager.Get("weight");
+            string priceName = LocalizationManager.Get("price");
+
             string weightLabel = $"{weightName}: {cfg.identity.weight:F1}";
             string priceLabel = $"{priceName}: {cfg.identity.price}";
             AddLine(weightLabel, priceLabel, color: new Color(0.5f, 0.5f, 0.5f, 1f));
@@ -255,17 +281,15 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         private void RenderUnit(UnitConfig cfg)
         {
-            // Нативно переводим ключ из JSON и бахаем по центру как заголовок!
-            string nameText = ProjectTowerRpg.Core.Localization.LocalizationManager.Get(cfg.identity.name_key).ToUpper(); 
-            
-            // Базовый белый MMO-цвет для шапки существа
+            string nameText = LocalizationManager.Get(cfg.identity.name_key).ToUpper();
             AddLine(nameText, color: Color.white, isHeader: true);
         }
 
-        private void ClearTooltip()
+        private int GetUnitLevel(Entity unitEntity, EntityManager em)
         {
-            // Метод очищает бэкграунд перед каждым новым рендером, 
-            // так как в UI Toolkit мы просто вызываем _background.Clear();
+            return em.HasComponent<UnitComponent>(unitEntity)
+                ? em.GetComponentData<UnitComponent>(unitEntity).Level
+                : 1;
         }
 
         private Color GetQualityColor(string quality)
@@ -279,4 +303,3 @@ namespace ProjectTowerRpg.Core.UI.Components
         }
     }
 }
-

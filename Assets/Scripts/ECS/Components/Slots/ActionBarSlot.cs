@@ -12,16 +12,20 @@ namespace ProjectTowerRpg.ECS.Components
         public FixedString64Bytes AbilityId; // "frostbolt", "melee_attack" или "crystal_sword"
         public FixedString64Bytes SlotType;  // "spell" или "item"
         
+        // 🦾 ММО-КАНОН WOW: Физическая клавиша привязки хранится прямо на сервере в ОЗУ чанка!
+        // По умолчанию при создании персонажа сервер запекает сюда дефолты ("1", "2", ... "-", "="),
+        // а если игрок меняет настройки в меню — сервер просто точечно перезаписывает эту Си-строку!
+        public FixedString32Bytes KeyBinding; 
+
         public bool IsEmpty => AbilityId.IsEmpty;
 
-        // 🦾 ТОЧЕЧНОЕ САМООЧИЩЕНИЕ ПАНЕЛИ: Индексы кнопок 1..12 никогда не собирутся
         public void ClearContent()
         {
             AbilityId = "";
             SlotType = "";
+            // KeyBinding МЫ НЕ СТИРАЕМ! Кнопка "1" остается привязанной к слоту, даже если мы убрали оттуда фаербол!
         }
 
-        // 🦾 ТОЧЕЧНЫЙ СЕТТЕР КОНТЕНТА: Междоменный драг (забирает и шмотку, и спелл!)
         public void SetContent(object content)
         {
             if (content is ItemSlot item)
@@ -33,6 +37,8 @@ namespace ProjectTowerRpg.ECS.Components
             {
                 AbilityId = bar.AbilityId;
                 SlotType = bar.SlotType;
+                // При драг-энд-дропе скилла из ячейки в ячейку бинд кнопки ("1") остается на месте, 
+                // мы переносим только контент!
             }
         }
     }

@@ -1,6 +1,7 @@
 using Unity.Entities;
 using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core.Utils;
 using ProjectTowerRpg.Core.Items;
 
 public class BufferSlotContainer : ISlotContainer
@@ -83,6 +84,7 @@ public class BufferSlotContainer : ISlotContainer
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
+            // 1. Защита от матрёшек
             if (em.HasComponent<ContainerTag>(_entity) && IsContainerItem(incomingData.DataId.ToString()))
             {
                 Debug.Log($"[BufferSlotContainer] Блокировка: нельзя класть контейнер '{incomingData.DataId}' внутрь другого контейнера!");
@@ -96,9 +98,28 @@ public class BufferSlotContainer : ISlotContainer
 
                 case ContainerType.PAPERDOLL:
                     if (incomingData.IsEmpty) return false;
+
+                    // 2. Проверяем, что предмет вообще есть в БД
                     var config = ItemsDatabase.GetItem(incomingData.DataId.ToString());
                     if (config == null) return false;
-                    return config.properties.equip_slot == slots[slot].EquipSlot.ToString();
+
+                    // 3. Проверяем EquipSlot
+                    if (config.properties.equip_slot != slots[slot].EquipSlot.ToString())
+                        return false;
+
+                    // 4. 🔥 ПРОВЕРЯЕМ ТРЕБОВАНИЯ (УРОВЕНЬ, АТРИБУТЫ, РЕСУРС)
+                    var owner = em.GetComponentData<ContainerConfigComponent>(_entity).Owner;
+                    if (owner != Entity.Null && em.Exists(owner))
+                    {
+                        var result = ItemRequirementsChecker.CheckRequirements(config, owner, em);
+                        if (!result.IsOk)
+                        {
+                            Debug.Log($"[BufferSlotContainer] Блокировка: требования не выполнены для {incomingData.DataId} - {result.Reason}");
+                            return false;
+                        }
+                    }
+
+                    return true;
 
                 default:
                     return false;

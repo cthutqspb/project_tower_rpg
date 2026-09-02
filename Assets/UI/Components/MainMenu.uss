@@ -1,0 +1,51 @@
+.main-menu-root {
+    width: 100%;
+    height: 100%;
+    background-color: rgba(15, 15, 20, 0.85);
+    justify-content: center;
+    align-items: center;
+}
+
+.main-menu-container {
+    background-color: rgba(26, 27, 38, 0.95);
+    border-color: rgba(122, 162, 247, 0.3);
+    border-width: 1px;
+    border-radius: 8px;
+    padding: 32px;
+    min-width: 320px;
+    align-items: center;
+}
+
+.main-menu-title {
+    font-size: 28px;
+    color: #7aa2f7;
+    -unity-font-style: bold;
+    margin-bottom: 24px;
+}
+
+.menu-button {
+    width: 100%;
+    height: 42px;
+    background-color: rgba(36, 40, 59, 0.8);
+    border-color: rgba(122, 162, 247, 0.2);
+    border-width: 1px;
+    border-radius: 4px;
+    color: #c0caf5;
+    font-size: 16px;
+    margin-bottom: 12px;
+    transition-property: background-color, border-color, scale;
+    transition-duration: 0.15s;
+}
+
+.menu-button:hover {
+    background-color: #3d59a1;
+    border-color: #7aa2f7;
+    color: #ffffff;
+    scale: 1.02;
+}
+
+.menu-button:active {
+    background-color: #2e3c75;
+    scale: 0.98;
+}
+

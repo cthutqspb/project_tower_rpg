@@ -86,6 +86,31 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             var dragManipulator = new DragManipulator(this, DragMode.Slot);
             this.AddManipulator(dragManipulator);
+
+            UIEvents.OnFlashSlot += FlashSlot;
+        }
+
+        ~SlotElement()
+        {
+            UIEvents.OnFlashSlot -= FlashSlot;
+        }
+
+        /// <summary>
+        /// Универсальный метод вспышки ячейки (Wow-канон)
+        /// </summary>
+        public void FlashSlot(int targetGlobalIndex)
+        {
+            // Каждая ячейка на экране сама проверяет Си-паспорт. Не совпало — молча выходим!
+            if (this.SlotIndex != targetGlobalIndex) return;
+
+            // Сочно ужимаем и подсвечиваем рамку по нативному USS-классу
+            this.AddToClassList("slot-active-flash");
+
+            // Ровно через 100 мс стираем класс, возвращая анимацию сжатия назад
+            this.schedule.Execute(() => 
+            {
+                this.RemoveFromClassList("slot-active-flash");
+            }).ExecuteLater(100);
         }
 
         // ================================================================
@@ -111,7 +136,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         // Public Methods (Слот теперь просто принимает готовые данные)
         // ================================================================
 
-        public void SetData(string itemId, ItemConfig config, int index, int amount = 1, bool isActionBar = false)
+        public void SetData(string itemId, ItemConfig config, int index, int amount = 1, bool isActionBar = false, string bindingText = "")
         {
             _itemId = itemId;
             _amount = amount;
@@ -150,7 +175,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 _bindLabel.style.display = DisplayStyle.Flex;
                 // Передаем остаток от деления на 12 (всегда вернет локальный индекс 0..11)
-                _bindLabel.text = GetBindKey(index % 12);
+                _bindLabel.text = bindingText;
             }
 
             // КОЛИЧЕСТВО (ДЛЯ СТАКОВ)
@@ -216,17 +241,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             // Отправляем в единый канал
             UIEvents.TriggerUiClick(context);
             evt.StopPropagation();
-        }
-
-        private string GetBindKey(int index)
-        {
-            return index switch
-            {
-                9 => "0",
-                10 => "-",
-                11 => "=",
-                _ => (index + 1).ToString()
-            };
         }
         
         private void OnPointerOver(PointerOverEvent evt)

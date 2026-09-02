@@ -29,6 +29,10 @@ namespace ProjectTowerRpg.Core.UI
         public static event Action OnActionsMenuClosed;
 
         public static event Action<MenuAction, ActionsMenu.MenuActionData> OnMenuActionSelected;
+
+        public static System.Action OnToggleMainMenu;
+
+        public static System.Action<int> OnFlashSlot;
         
         public static void TriggerToggleCharacterWindow()
         {
@@ -60,6 +64,15 @@ namespace ProjectTowerRpg.Core.UI
         public static void TriggerMenuActionSelected(MenuAction action, ActionsMenu.MenuActionData data)
         {
             OnMenuActionSelected?.Invoke(action, data);
+        }
+
+        public static void TriggerToggleMainMenu()
+        {
+            OnToggleMainMenu?.Invoke();
+        }
+
+        public static void TriggerSlotFlash(int slotIndex) {
+            OnFlashSlot?.Invoke(slotIndex);
         }
     }
 }

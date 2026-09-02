@@ -3,6 +3,7 @@ using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.UI.Components;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core.Localization;
 
 namespace ProjectTowerRpg.Core.UI.Windows
 {
@@ -34,7 +35,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
             if (headerContainer != null)
             {
                 _header = new HeaderComponent();
-                _header.Title = "РЮКЗАК ПЕРСОНАЖА";
+                _header.Title = LocalizationManager.Get("character_window");
                 _header.OnClose += Close;
                 headerContainer.Add(_header);
 

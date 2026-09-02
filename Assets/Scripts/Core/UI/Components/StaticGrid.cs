@@ -160,8 +160,8 @@ namespace ProjectTowerRpg.Core.UI.Components
                         }
                     }
                 }
-
-                _slots[i].SetData(abilityId, config, absoluteIndex, displayAmount, true);
+                string bindingText = slotData.KeyBinding.ToString();
+                _slots[i].SetData(abilityId, config, absoluteIndex, displayAmount, true, bindingText);
             }
         }
     }

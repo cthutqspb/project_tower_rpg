@@ -67,16 +67,24 @@ namespace ProjectTowerRpg.Core.UI
         {
             if (_toggleCharacterAction.triggered) UIEvents.TriggerToggleCharacterWindow();
             
-            // ✅ ESC: СНАЧАЛА КОНТЕКСТНОЕ МЕНЮ, ПОТОМ ОКНА
+            // ✅ ESC: СНАЧАЛА КОНТЕКСТНОЕ МЕНЮ, ПОТОМ ОКНА, ПОТОМ ГЛАВНОЕ МЕНЮ
             if (_closeWindowAction.triggered)
             {
                 if (ActionsMenu.IsVisible())
                 {
                     ActionsMenu.Hide();
                 }
-                else
+                // Предполагаем, что твой WindowManager.CloseTop() возвращает bool:
+                // true — если он успешно закрыл окно из стека, false — если стек окон уже был пуст!
+                // Если у тебя метод void, то гвард пишется через проверку: WindowManager.HasOpenWindows
+                else if (WindowManager.IsAnyOpen)
                 {
                     WindowManager.CloseTop();
+                }
+                else
+                {
+                    // 🦾 ФИНАЛЬНЫЙ РУБЕЖ: Окон нет, меню скрыто — шёлково триггерим Главное Меню!
+                    UIEvents.TriggerToggleMainMenu();
                 }
             }
 
@@ -88,6 +96,7 @@ namespace ProjectTowerRpg.Core.UI
 
             if (_tooltipVisual != null) _tooltipVisual.UpdateTick();
         }
+
 
         // ================================================================
         // 🎯 УНИВЕРСАЛЬНЫЙ ДАБЛКЛИК (ЧЕРЕЗ ECS ТЕГИ)
@@ -242,6 +251,49 @@ namespace ProjectTowerRpg.Core.UI
             // ------------------------------------------------------------
             if (context.MouseButton == 0)
             {
+                // Одиночный клик ЛКМ — активация способности из буфера Экшенбара!
+                if (context.ClickCount == 1)
+                {
+                    var em = _entityManager;
+                    Entity unitEntity = context.ContextEntity; // Живая Entity Игрока/Юнита
+
+                    if (unitEntity != Entity.Null && em.Exists(unitEntity))
+                    {
+                        // 🦾 СИ-КАНОН: Проверяем наличие буфера хоткеев напрямую на сущности!
+                        // (Если у тебя в UiClickContext зашито поле типа слота, например context.IsActionBarSlot, 
+                        // добавь его в гвард, чтобы наглухо исключить пересечение с инвентарем)
+                        if (em.HasBuffer<ActionBarSlot>(unitEntity))
+                        {
+                            var actionBar = em.GetBuffer<ActionBarSlot>(unitEntity);
+                            int slotIdx = context.SlotIndex; // Точный индекс ячейки (0..11)
+
+                            if (slotIdx >= 0 && slotIdx < actionBar.Length)
+                            {
+                                var slot = actionBar[slotIdx];
+                                
+                                // Если в ячейке ОЗУ лежит валидный ID спелла — шлепаем ММО-запрос!
+                                if (!slot.AbilityId.IsEmpty)
+                                {
+                                    // Вытягиваем текущую цель из TargetComponent
+                                    // Entity playerTarget = em.HasComponent<TargetComponent>(unitEntity) 
+                                    //     ? em.GetComponentData<TargetComponent>(unitEntity).Value 
+                                    //     : Entity.Null;
+                                    //
+                                    // Рождаем слепой Си-пакет запроса на каст в память симуляции!
+                                    Entity requestEntity = em.CreateEntity();
+                                    // em.AddComponentData(requestEntity, new CastRequest 
+                                    //     _abilityId = slot.AbilityId,
+                                    //     _targetEntity = playerTarget
+                                    // });
+
+                                    Debug.Log($"[UIInputHandler]: ЛКМ по буферу хоткеев! Слот: {slotIdx + 1}, Спелл: {slot.AbilityId}");
+                                    return; // Поглощаем инпут, клик зафиксирован успешно!
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Нас интересует только Даблклик ЛКМ для трансфера предметов
                 if (context.ClickCount == 2)
                 {

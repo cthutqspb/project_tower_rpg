@@ -327,17 +327,27 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     for (int k = 0; k < 24; k++)
                     {
+                        // Вычисляем локальный Си-хоткей на базе сквозного индекса (0..23)
+                        int localIndex = k % 12;
+                        string defaultKey = localIndex switch
+                        {
+                            9 => "0",
+                            10 => "-",
+                            11 => "=",
+                            _ => (localIndex + 1).ToString()
+                        };
+
                         if (k == 0)
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "melee_attack", SlotType = "spell" });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "melee_attack", SlotType = "spell", KeyBinding = defaultKey });
                         }
                         else if (k == 1)
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "frostbolt", SlotType = "spell" });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "frostbolt", SlotType = "spell", KeyBinding = defaultKey });
                         }
                         else
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "", SlotType = "" });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "", SlotType = "", KeyBinding = defaultKey });
                         }
                     }
 

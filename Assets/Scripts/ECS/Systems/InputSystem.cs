@@ -112,7 +112,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
-                        // ================================================================
+            // ================================================================
             // 4. ПРЫЖОК (ТЕСТОВАЯ ТРАТА МАНЫ + УРОН ТАРГЕТУ)
             // ================================================================
             if (!isUiBlocked && _jumpAction != null && _jumpAction.triggered)
@@ -190,7 +190,7 @@ namespace ProjectTowerRpg.ECS.Systems
             bool isCameraRotatingNow = !isUiBlocked && (isLmbPressed || isRmbPressed);
             var axisController = UnityEngine.Object.FindAnyObjectByType<Unity.Cinemachine.CinemachineInputAxisController>();
 
-            if (axisController != null)
+            if (axisController != null && !DragManager.Instance.IsDragging)
             {
                 float baseSensitivity = 27f;
 
@@ -202,6 +202,81 @@ namespace ProjectTowerRpg.ECS.Systems
                         controller.Input.Gain = isCameraRotatingNow ? -baseSensitivity : 0f;
                 }
             }
+
+            // ================================================================
+            // 7. ОБРАБОТКА ХОТКЕЙ (1..=) — ЧИСТЫЙ ECS
+            // ================================================================
+            var keyboard = Keyboard.current;
+            if (keyboard != null)
+            {
+                // Проверяем клавиши 1..=
+                for (int i = 0; i < 12; i++)
+                {
+                    Key key = GetKeyForSlot(i);
+                    if (keyboard[key].wasPressedThisFrame)
+                    {
+                        // Находим игрока
+                        if (SystemAPI.TryGetSingletonEntity<PlayerTag>(out var playerEntity))
+                        {
+                            if (SystemAPI.HasBuffer<ActionBarSlot>(playerEntity))
+                            {
+                                var barSlots = SystemAPI.GetBuffer<ActionBarSlot>(playerEntity);
+                                if (i < barSlots.Length)
+                                {
+                                    var slot = barSlots[i];
+                                    if (!slot.AbilityId.IsEmpty)
+                                    {   
+                                        UIEvents.TriggerSlotFlash(i);
+                                        // 🦾 СОЗДАЁМ КОМАНДУ НА КАСТ (через ECB)
+                                        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+                                            .CreateCommandBuffer(World.Unmanaged);
+
+                                        var requestEntity = ecb.CreateEntity();
+                        
+                                        // Вытягиваем текущую зафиксированную цель игрока из его компонента целей
+                                        // (Подставь сюда точное имя твоего TargetComponent)
+                                        Entity playerTarget = SystemAPI.HasComponent<CombatStateComponent>(playerEntity)
+                                            ? SystemAPI.GetComponent<CombatStateComponent>(playerEntity).CurrentTarget
+                                            : Entity.Null;
+                                        // Накатываем структуру ММО-запроса копейка в копейку под наш компонент!
+                                        ecb.AddComponent(requestEntity, new CastRequest
+                                        {
+                                            Player = playerEntity,
+                                            SlotIndex = i,
+                                            AbilityId = slot.AbilityId,
+                                            TargetEntity = playerTarget // 🔥 Цель намертво зафиксирована!
+                                        });
+
+                                        Debug.Log($"[InputSystem] Хоткей {i + 1}: {slot.AbilityId} отправлен в ОЗУ. Фиксированный таргет: {playerTarget}");
+                                        break;
+                                   }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+        private Key GetKeyForSlot(int slot)
+        {
+            return slot switch
+            {
+                0 => Key.Digit1,
+                1 => Key.Digit2,
+                2 => Key.Digit3,
+                3 => Key.Digit4,
+                4 => Key.Digit5,
+                5 => Key.Digit6,
+                6 => Key.Digit7,
+                7 => Key.Digit8,
+                8 => Key.Digit9,
+                9 => Key.Digit0,
+                10 => Key.Minus,
+                11 => Key.Equals,
+                _ => Key.None
+            };
         }
     }
 }
