@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.Abilities;
 using ProjectTowerRpg.Core.Units;
 using ProjectTowerRpg.Core.Localization;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core.UI.Colors;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -119,6 +121,10 @@ namespace ProjectTowerRpg.Core.UI.Components
                     {
                         RenderItem(guiItem, isInInventory: true);
                     }
+                    if (payload.Kind == TooltipKind.ABILITY && payload.Info is AbilityConfig guiAbility)
+                    {
+                        RenderAbility(guiAbility);
+                    }
                     break;
 
                 case TooltipDomain.WORLD:
@@ -139,7 +145,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             int amount = 1;
 
             string nameText = LocalizationManager.Get(cfg.identity.name_key).ToUpper();
-            Color nameColor = GetQualityColor(cfg.identity.quality);
+            Color nameColor = SolarizedOsakaNight.GetQualityColor(cfg.identity.quality);
 
             if (cfg.properties.stackable && amount > 1)
             {
@@ -279,6 +285,11 @@ namespace ProjectTowerRpg.Core.UI.Components
             AddLine(weightLabel, priceLabel, color: new Color(0.5f, 0.5f, 0.5f, 1f));
         }
 
+        private void RenderAbility(AbilityConfig cfg) {
+            string nameText = LocalizationManager.Get(cfg.identity.name_key).ToUpper();
+            AddLine(nameText, color: Color.white, isHeader: true);
+        }
+
         private void RenderUnit(UnitConfig cfg)
         {
             string nameText = LocalizationManager.Get(cfg.identity.name_key).ToUpper();
@@ -290,16 +301,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             return em.HasComponent<UnitComponent>(unitEntity)
                 ? em.GetComponentData<UnitComponent>(unitEntity).Level
                 : 1;
-        }
-
-        private Color GetQualityColor(string quality)
-        {
-            return quality switch
-            {
-                "rare" => new Color(0.2f, 0.5f, 0.9f, 1f),
-                "uncommon" => new Color(0.12f, 0.75f, 0.23f, 1f),
-                _ => Color.white
-            };
         }
     }
 }

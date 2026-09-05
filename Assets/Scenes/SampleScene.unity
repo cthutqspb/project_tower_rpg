@@ -681,6 +681,7 @@ MonoBehaviour:
     DefaultTop: 84
   - DefaultLeft: 25
     DefaultTop: 92
+  _progressBarUxml: {fileID: 9197481963319205126, guid: 2e5709dea21d265dd9629eb57af791be, type: 3}
 --- !u!1 &840173799
 GameObject:
   m_ObjectHideFlags: 0

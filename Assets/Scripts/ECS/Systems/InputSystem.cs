@@ -209,56 +209,62 @@ namespace ProjectTowerRpg.ECS.Systems
             var keyboard = Keyboard.current;
             if (keyboard != null)
             {
-                // Проверяем клавиши 1..=
-                for (int i = 0; i < 12; i++)
+                // Находим сущность, КОТОРОЙ МЫ СЕЙЧАС УПРАВЛЯЕМ (это или Игрок, или Монстр под Mind Control)
+                if (SystemAPI.TryGetSingletonEntity<ControlledByPlayerTag>(out var controlledEntity))
                 {
-                    Key key = GetKeyForSlot(i);
-                    if (keyboard[key].wasPressedThisFrame)
+                    // 🦾 ЗРЯЧИЙ СИ-ГВАРД: Забираем Lookup буферов экшенбара СТРОГО на Read-Only (true)!
+                    // Теперь проверяем буфер той сущности, которой управляем! (У монстра должен быть свой ActionBarSlot буфер, либо читаем у игрока — см. архитектурное примечание ниже)
+                    var barLookup = SystemAPI.GetBufferLookup<ActionBarSlot>(true);
+
+                    if (barLookup.HasBuffer(controlledEntity))
                     {
-                        // Находим игрока
-                        if (SystemAPI.TryGetSingletonEntity<PlayerTag>(out var playerEntity))
+                        var barSlots = barLookup[controlledEntity];
+
+                        // Проверяем клавиши 1..=
+                        for (int i = 0; i < 12; i++)
                         {
-                            if (SystemAPI.HasBuffer<ActionBarSlot>(playerEntity))
+                            Key key = GetKeyForSlot(i);
+                            if (keyboard[key].wasPressedThisFrame)
                             {
-                                var barSlots = SystemAPI.GetBuffer<ActionBarSlot>(playerEntity);
                                 if (i < barSlots.Length)
                                 {
                                     var slot = barSlots[i];
                                     if (!slot.AbilityId.IsEmpty)
                                     {   
                                         UIEvents.TriggerSlotFlash(i);
+                                        
                                         // 🦾 СОЗДАЁМ КОМАНДУ НА КАСТ (через ECB)
                                         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
                                             .CreateCommandBuffer(World.Unmanaged);
 
                                         var requestEntity = ecb.CreateEntity();
                         
-                                        // Вытягиваем текущую зафиксированную цель игрока из его компонента целей
-                                        // (Подставь сюда точное имя твоего TargetComponent)
-                                        Entity playerTarget = SystemAPI.HasComponent<CombatStateComponent>(playerEntity)
-                                            ? SystemAPI.GetComponent<CombatStateComponent>(playerEntity).CurrentTarget
+                                        Entity target = SystemAPI.HasComponent<CombatStateComponent>(controlledEntity)
+                                            ? SystemAPI.GetComponent<CombatStateComponent>(controlledEntity).CurrentTarget
                                             : Entity.Null;
+                                            
                                         // Накатываем структуру ММО-запроса копейка в копейку под наш компонент!
                                         ecb.AddComponent(requestEntity, new CastRequest
                                         {
-                                            Player = playerEntity,
+                                            // ВНИМАНИЕ: Если ваши системы каста (CastSystem) используют поле "Player" просто как синоним "Кастер":
+                                            // Передавайте сюда controlledEntity. Тогда монстр сам скастует скилл.
+                                            // Если системе критически важно знать, какой именно ИГРОК это нажал (для Save/UI/Stats) — оставляем playerEntity.
+                                            Caster = controlledEntity, 
                                             SlotIndex = i,
                                             AbilityId = slot.AbilityId,
-                                            TargetEntity = playerTarget // 🔥 Цель намертво зафиксирована!
+                                            TargetEntity = target // 🔥 Цель зафиксирована с управляемого юнита!
                                         });
 
-                                        Debug.Log($"[InputSystem] Хоткей {i + 1}: {slot.AbilityId} отправлен в ОЗУ. Фиксированный таргет: {playerTarget}");
+                                        Debug.Log($"[InputSystem] Хоткей {i + 1}: {slot.AbilityId} отправлен. Управляемый: {controlledEntity}, Фиксированный таргет: {target}");
                                         break;
-                                   }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-
+            }        
         }
-
         private Key GetKeyForSlot(int slot)
         {
             return slot switch

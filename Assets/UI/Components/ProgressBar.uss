@@ -18,6 +18,9 @@
     /* 🦾 ВСТРОЕННАЯ СИ-АНИМАЦИЯ UNITY 7 (Замена gui.animate из Defold):
        Любое изменение ширины (width) или цвета (background-color) 
        автоматически сгладится движком за 0.3 секунды с мягким затуханием OutSine! */
+}
+
+.progress-bar-fill.smooth {
     transition-property: width, background-color;
     transition-duration: 0.3s, 0.3s;
     transition-timing-function: ease-out-sine, ease-out-sine;

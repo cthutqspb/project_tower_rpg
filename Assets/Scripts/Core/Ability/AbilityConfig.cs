@@ -62,6 +62,7 @@ namespace ProjectTowerRpg.Core.Abilities
         public bool triggers_gcd;
         public bool is_homing;
         public bool requires_target;
+        public bool is_channeling;
     }
 
     [Serializable]

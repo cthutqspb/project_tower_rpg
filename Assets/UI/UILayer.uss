@@ -1,3 +1,58 @@
+/* ================================================================
+   🎨 ПАЛИТРА ЦВЕТОВ (Solarized + OsakaNight)
+   ================================================================ */
+:root {
+    /* 🌞 SOLARIZED (основные) */
+    --solarized-base03: rgba(0, 43, 54, 1);
+    --solarized-base02: rgba(7, 54, 66, 1);
+    --solarized-base01: rgba(88, 110, 117, 1);
+    --solarized-base00: rgba(101, 123, 131, 1);
+    --solarized-base0: rgba(131, 148, 150, 1);
+    --solarized-base1: rgba(147, 161, 161, 1);
+    --solarized-base2: rgba(238, 232, 213, 1);
+    --solarized-base3: rgba(253, 246, 227, 1);
+    --solarized-yellow: rgba(181, 137, 0, 1);
+    --solarized-orange: rgba(203, 75, 22, 1);
+    --solarized-red: rgba(220, 50, 47, 1);
+    --solarized-magenta: rgba(211, 54, 130, 1);
+    --solarized-violet: rgba(108, 113, 196, 1);
+    --solarized-blue: rgba(38, 139, 210, 1);
+    --solarized-cyan: rgba(42, 161, 152, 1);
+    --solarized-green: rgba(133, 153, 0, 1);
+
+    /* 🌙 OSAKA NIGHT (акцентные) */
+    --osaka-bg: rgba(26, 27, 38, 1);
+    --osaka-surface: rgba(36, 40, 59, 1);
+    --osaka-surface-light: rgba(45, 47, 68, 1);
+    --osaka-text: rgba(192, 202, 245, 1);
+    --osaka-text-dim: rgba(86, 95, 137, 1);
+    --osaka-purple: rgba(187, 154, 247, 1);
+    --osaka-blue: rgba(122, 162, 247, 1);
+    --osaka-cyan: rgba(125, 207, 255, 1);
+    --osaka-green: rgba(158, 206, 106, 1);
+    --osaka-orange: rgba(255, 158, 100, 1);
+    --osaka-red: rgba(247, 118, 142, 1);
+    --osaka-yellow: rgba(224, 175, 104, 1);
+
+    /* 🧩 СЕМАНТИЧЕСКИЕ АЛИАСЫ */
+    --color-bg: var(--osaka-bg);
+    --color-surface: var(--osaka-surface);
+    --color-text: var(--osaka-text);
+    --color-text-dim: var(--osaka-text-dim);
+    --color-primary: var(--osaka-blue);
+    --color-success: var(--osaka-green);
+    --color-warning: var(--osaka-yellow);
+    --color-danger: var(--osaka-red);
+    --color-info: var(--osaka-cyan);
+    --color-accent: var(--osaka-purple);
+}
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
 .ui-layer {
     position: absolute;
     width: 100%;

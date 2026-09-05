@@ -43,6 +43,7 @@ namespace ProjectTowerRpg.Core.UI
             if (globalUiRoot == null || _root != null) return;
 
             _root = _windowUxml.CloneTree();
+            _root.style.position = Position.Absolute;
             _root.pickingMode = PickingMode.Position;
             globalUiRoot.Add(_root);
 

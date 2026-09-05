@@ -1,0 +1,14 @@
+{
+    "_comment_abilities": "",
+    "ability_melee_attack_name": "Melee attack",
+    "ability_melee_attack_desc": "Обычный урон по жепе",
+
+    "ability_frostbolt_name": "Frostbolt",
+    "ability_frostbolt_desc": "Морозит жепу",
+
+    "ability_lightning_bolt_key": "Lightning bolt",
+    "ability_lightning_bolt_desc": "Щекочет жепу",
+
+    "ability_frost_armor_name": "Frost armor",
+    "ability_frost_armor_desc": "Укрепляем жепу холодком"
+}

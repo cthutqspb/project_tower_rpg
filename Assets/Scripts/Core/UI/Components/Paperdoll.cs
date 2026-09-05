@@ -82,7 +82,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
         
-        public void UpdateFromBuffer(DynamicBuffer<ItemSlot> slots)
+        public void UpdateFromBuffer(DynamicBuffer<ItemSlot> slots, bool isOnlyValidation = true)
         {
             Debug.Log($"[Paperdoll] UpdateFromBuffer: {slots.Length} слотов экипировки");
             
@@ -93,7 +93,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 var config = !string.IsNullOrEmpty(itemId) ? ItemsDatabase.GetItem(itemId) : null;
                 
                 // ✅ ИСПРАВЛЕНО: убрали gridType
-                _slots[i].SetData(itemId, config, i, slotData.Amount);
+                _slots[i].SetData(itemId, i, slotData.Amount);
             }
         }
     }

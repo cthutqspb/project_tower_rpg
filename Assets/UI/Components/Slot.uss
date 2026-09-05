@@ -1,4 +1,22 @@
 /* Дублируем эффект для клавиатурного инпута */
+.slot {
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--osaka-bg);
+  box-sizing: border-box;
+}
+
+.slot-icon {
+  width: 100%;
+  height: 100%;
+  border-width: 2px;
+  border-style: solid;
+}
+
 .slot-active-flash {
     scale: 0.92;
     background-color: rgba(122, 162, 247, 0.4);

@@ -18,6 +18,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             
             // Ищем внутри рамки узел заливки по имени "fill"
             _fill = barRoot.Q<VisualElement>("fill") ?? barRoot;
+            _fill.AddToClassList("smooth");
 
             // Сбрасываем в дефолт (100% ХП)
             UpdateHealth(1.0f);

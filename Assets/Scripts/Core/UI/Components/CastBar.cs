@@ -1,36 +1,26 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.Localization;
+using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
-    public class CastBar
+    public class CastBar : IEcsUiComponentReceiver<CastComponent>
     {
         private readonly VisualElement _root;
         private readonly VisualElement _fill;
-        
-        // Динамические текстовые Си-ноды оверлея
         private Label _abilityNameLabel;
         private Label _timerLabel;
 
-        /// <summary>
-        /// Инициализация компонента полоски каста на базе твоего универсального ProgressBar!
-        /// </summary>
-        /// <param name="barRoot">Элемент с именем "progress-bar-root" из UXML</param>
+        private float _lastProgress = -1f;
+
         public CastBar(VisualElement barRoot)
         {
             _root = barRoot;
-            if (_root == null)
-            {
-                Debug.LogError("[CastBar] Передан пустой barRoot!");
-                return;
-            }
+            if (_root == null) return;
 
-            // Ищем внутри рамки узел заливки по твоему имени "fill"
             _fill = barRoot.Q<VisualElement>("fill") ?? barRoot;
 
-            // 🦾 ДИНАМИЧЕСКИЙ ОВЕРЛЕЙ ТЕКСТA (WoW-Канон):
-            // Чтобы не ломать твой чистый ProgressBar.uxml, мы рождаем текстовый слой прямо в ОЗУ!
             var textOverlay = new VisualElement();
             textOverlay.name = "cast-text-overlay";
             textOverlay.style.position = Position.Absolute;
@@ -41,79 +31,76 @@ namespace ProjectTowerRpg.Core.UI.Components
             textOverlay.style.alignItems = Align.Center;
             textOverlay.style.paddingLeft = 8;
             textOverlay.style.paddingRight = 8;
-            
-            // Наглухо отключаем реакцию на мышь, чтобы текст не мешал драгу и кликам под ним
-            textOverlay.pickingMode = PickingMode.Ignore; 
+            textOverlay.pickingMode = PickingMode.Ignore;
 
-            _abilityNameLabel = new Label("Unknown Spell");
+            _abilityNameLabel = new Label("");
             _abilityNameLabel.style.color = Color.white;
             _abilityNameLabel.style.fontSize = 11;
             _abilityNameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             _abilityNameLabel.pickingMode = PickingMode.Ignore;
 
-            _timerLabel = new Label("0.0s / 0.0s");
-            _timerLabel.style.color = new Color(0.8f, 0.8f, 0.8f, 1f); // Светло-серый
+            _timerLabel = new Label("");
+            _timerLabel.style.color = new Color(0.8f, 0.8f, 0.8f, 1f);
             _timerLabel.style.fontSize = 11;
             _timerLabel.pickingMode = PickingMode.Ignore;
 
             textOverlay.Add(_abilityNameLabel);
             textOverlay.Add(_timerLabel);
-            
-            // Вживляем оверлей в корень рамки
             _root.Add(textOverlay);
 
-            // Изначально кастбар полностью тушим с экрана, пока нет активного каста
+            // Убираем все transition
+            _fill.style.transitionProperty = StyleKeyword.Null;
+            _fill.style.transitionDuration = StyleKeyword.Null;
+            _fill.style.transitionTimingFunction = StyleKeyword.Null;
+
             SetVisible(false);
         }
 
-        /// <summary>
-        /// Реактивный ММО-апдейт полоски каста, вызываемый покадрово из UIPullSystem
-        /// </summary>
-        public void UpdateCast(bool isActive, string abilityId, float progress, float duration, bool isChanneling)
+        public void UpdateFromComponent(ref CastComponent cast)
         {
-            if (!isActive || duration <= 0f)
+            if (!cast.IsActive || cast.CastTime <= 0f)
             {
                 SetVisible(false);
+                _lastProgress = -1f;
                 return;
             }
 
             SetVisible(true);
 
-            // 1. Выводим локализованное имя заклинания по ключу
             if (_abilityNameLabel != null)
             {
-                _abilityNameLabel.text = LocalizationManager.Get($"spell_{abilityId.ToLower()}");
+                _abilityNameLabel.text = LocalizationManager.Get($"spell_{cast.AbilityId.ToString().ToLower()}");
             }
 
-            // 2. Рассчитываем процент заполнения Си-полоски
-            float percentage = Mathf.Clamp01(progress / duration);
-            
-            // Канон WoW: Потоковое заклинание (Channeling) сочно убывает справа налево!
-            if (isChanneling)
+            // ✅ ПРЯМОЕ ОБНОВЛЕНИЕ ПО ПРОГРЕССУ ИЗ ECS (без независимого таймера!)
+            float percentage = Mathf.Clamp01(cast.Progress / cast.CastTime);
+            if (cast.IsChanneling)
             {
                 percentage = 1f - percentage;
             }
 
-            if (_fill != null)
+            // Обновляем только если изменилось
+            if (!Mathf.Approximately(percentage, _lastProgress))
             {
                 _fill.style.width = Length.Percent(percentage * 100f);
-
-                // Нагло красим заливку в благородный каноничный WoW-золотой цвет каста
-                // (При потоковом заклинании можно перекрашивать в WoW-зеленый/бирюзовый, пока держим один)
-                _fill.style.backgroundColor = new Color(1f, 0.70f, 0.0f, 1f); 
+                _fill.style.backgroundColor = new Color(1f, 0.70f, 0.0f, 1f);
+                _lastProgress = percentage;
             }
 
-            // 3. Выводим цифры тикающего таймера кадра ("1.4s / 1.7s")
             if (_timerLabel != null)
             {
-                _timerLabel.text = $"{progress:F1}s / {duration:F1}s";
+                _timerLabel.text = $"{cast.Progress:F1}s / {cast.CastTime:F1}s";
             }
         }
 
-        public void SetVisible(bool visible)
+        private void SetVisible(bool visible)
         {
             _root.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!visible)
+            {
+                _lastProgress = -1f;
+                _fill.style.width = Length.Percent(0f);
+            }
         }
     }
 }
-

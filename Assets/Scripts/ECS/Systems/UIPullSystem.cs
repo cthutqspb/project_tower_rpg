@@ -22,6 +22,8 @@ namespace ProjectTowerRpg.ECS.Systems
             var unitCurrentAttributesLookup = SystemAPI.GetComponentLookup<UnitCurrentAttributesComponent>(true);
             var unitCombatStatsLookup = SystemAPI.GetComponentLookup<UnitCombatStatsComponent>(true);
 
+            var castLookup = SystemAPI.GetComponentLookup<CastComponent>(true);
+
             // 🔄 2. ЕДИНЫЙ ЦИКЛ ПО ВСЕМУ АКТИВНОМУ ИНТЕРФЕЙСУ ИГРЫ
             foreach (var entity in UIRegistry.GetActiveEntities())
             {
@@ -38,7 +40,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         if (receiver is IEcsUiBufferReceiver<ItemSlot> ui)
                         {
-                            ui.UpdateFromBuffer(slots);
+                            ui.UpdateFromBuffer(slots, false);
                         }
                     }
                 }
@@ -52,7 +54,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         // Ищем сетки, готовые принять и отрендерить новый буфер ярлыков!
                         if (receiver is IEcsUiBufferReceiver<ActionBarSlot> barUi)
                         {
-                            barUi.UpdateFromBuffer(barSlots);
+                            barUi.UpdateFromBuffer(barSlots, false);
                         }
                     }
                 }
@@ -132,6 +134,22 @@ namespace ProjectTowerRpg.ECS.Systems
                         if (receiver is IEcsUiComponentReceiver<UnitCombatStatsComponent> unitStatsUi)
                         {   
                             unitStatsUi.UpdateFromComponent(ref unitCombatStatsData);
+                        }
+                    }
+                }
+
+                // ================================================================
+                // 🌟 СЛАЙС Ж: РЕАКТИВНОЕ ОБНОВЛЕНИЕ КАСTА ЮНИТА (Wow-Канон)
+                // ================================================================
+                if (castLookup.HasComponent(entity))
+                {
+                    var castData = castLookup[entity];
+
+                    foreach (var receiver in receivers)
+                    {
+                        if (receiver is IEcsUiComponentReceiver<CastComponent> castUi)
+                        {
+                            castUi.UpdateFromComponent(ref castData);
                         }
                     }
                 }

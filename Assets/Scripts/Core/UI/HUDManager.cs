@@ -25,6 +25,11 @@ namespace ProjectTowerRpg.Core.UI
         [SerializeField] private VisualTreeAsset _actionBarUxml; // Наш единый UXML-шаблон панели на 12 слотов
         [SerializeField] private List<ActionBar> _actionBars = new List<ActionBar>(); // Список самих панелей
 
+        [Header("Настройки Кастбара")]
+        [SerializeField] private VisualTreeAsset _progressBarUxml; // Наш универсальный шаблон полоски!
+
+        private CastBar _castBar;
+
         private PanelRenderer _panelRenderer;
         private VisualElement _root;
         private bool _isUiReady = false;
@@ -32,6 +37,7 @@ namespace ProjectTowerRpg.Core.UI
         
         // ✅ Храним стейт последней цели, чтобы не спамить реестр перерегистрациями каждый кадр
         private Entity _lastTargetEntity = Entity.Null; 
+        private Entity _lastControlledEntity = Entity.Null;
 
         private void Awake()
         {
@@ -46,24 +52,63 @@ namespace ProjectTowerRpg.Core.UI
 
         private void Update()
         {
+            // 1. Вытаскиваем биологическую сущность игрока (для фиксированного фрейма)
             Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
             if (playerEntity == Entity.Null) return;
 
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
+            // Старая легальная привязка фрейма игрока (остается неизменной)
             if (_isUiReady && !_isPlayerBound)
             {
                 _playerFrame.BindToEntity(playerEntity);
                 _isPlayerBound = true;
             }
 
+            // =========================================================================
+            // 🦾 ДИНАМИЧЕСКИЙ СИ-МОСТ КАСTБАРA (Wow-Канон Майнд-контроля):
+            // Перевешиваем регистрацию кастбара строго на ту сущность, которой управляем!
+            // =========================================================================
+            if (_isUiReady)
+            {
+                // Находим в ОЗУ чанков, кем пальцы игрока управляют прямо сейчас
+                Entity currentControlled = PlayerUtils.GetEntityByTag<ControlledByPlayerTag>();
+
+                if (currentControlled != _lastControlledEntity)
+                {
+                    // Если раньше мы чем-то управляли — снимаем старый Си-адрес с учета в UIPullSystem
+                    if (_lastControlledEntity != Entity.Null && _castBar != null)
+                    {
+                        UIRegistry.Unregister(_lastControlledEntity, _castBar);
+                    }
+
+                    // Накатываем регистрацию кастбара на НОВУЮ управляемую тушу!
+                    if (currentControlled != Entity.Null && _castBar != null)
+                    {
+                        UIRegistry.Register(currentControlled, _castBar);
+                        
+                        // Сочно пушим начальный стейт каста, если существо уже что-то читало в этот кадр
+                        if (em.HasComponent<CastComponent>(currentControlled))
+                        {
+                            var castComp = em.GetComponentData<CastComponent>(currentControlled);
+                            _castBar.UpdateFromComponent(ref castComp);
+                        }
+                    }
+
+                    Debug.Log($"[HUDManager]: Кастбар перехвачен! Новый актор инпута: {currentControlled}");
+                    _lastControlledEntity = currentControlled;
+                }
+            }
+
+            // =========================================================================
+            // Твой старый отлаженный код трекинга Таргет-Фрейма (_targetFrame)...
+            // =========================================================================
             if (_isPlayerBound && em.HasComponent<CombatStateComponent>(playerEntity))
             {
                 Entity currentTarget = em.GetComponentData<CombatStateComponent>(playerEntity).CurrentTarget;
 
                 if (currentTarget != _lastTargetEntity)
                 {
-                    // Атомарно перевешиваем рельсы в реестре
                     _targetFrame.BindToEntity(currentTarget);
 
                     if (currentTarget == Entity.Null)
@@ -72,20 +117,15 @@ namespace ProjectTowerRpg.Core.UI
                     }
                     else
                     {
-                        // ✅ ВМЕСТО ПОРТЯНКИ IF:
-                        // Мы просто просим UIPullSystem (или пишем хелпер в UIRegistry), 
-                        // чтобы она прямо сейчас принудительно вызвала методы конвейера для этой новой Entity.
-                        // Нам не нужно руками читать компоненты! Мы говорим: "Эй, прогони по конвейеру компоненты скелета для _targetFrame"
-
                         PushInitialState(currentTarget, _targetFrame);
                         _targetFrame.SetVisible(true);
-                        
                     }
 
                     _lastTargetEntity = currentTarget;
                 }
             }
         }
+
 
         private void PushInitialState(Entity target, object receiver)
         {
@@ -210,6 +250,30 @@ namespace ProjectTowerRpg.Core.UI
                 }
             }
 
+            // 🦾 КАНOНИЧНАЯ СБOРКА КАСTБАРA ИГРОКА По центру экрана:
+            if (_progressBarUxml != null && _root != null)
+            {
+                // 1. Клонируем универсальный дефолтный ProgressBar в ОЗУ экрана!
+                var castBarVisual = _progressBarUxml.CloneTree();
+                
+                // Навешиваем на него имя ноды для отладки в UI Builder
+                castBarVisual.name = "CastBar"; 
+
+                // Позиционируем кастбар строго по центру экрана чуть ниже персонажа (WoW-стандарт)
+                castBarVisual.style.position = Position.Absolute;
+                castBarVisual.style.left = Length.Percent(42f); // Центрируем по горизонтали
+                castBarVisual.style.top = Length.Percent(70f);  // Сдвигаем на 70% вниз экрана
+
+                // 2. Обертываем склонированную ноду в наш реактивный CastBar
+                _castBar = new CastBar(castBarVisual);
+
+                // 3. Физически вживляем ноду в корень HUD, чтобы она появилась на мониторе!
+                _root.Add(castBarVisual);
+                
+                _isUiReady = true;
+                Debug.Log("[HUDManager]: Кастбар шёлково собран на базе универсального ProgressBar и выведен на экран!");
+            }
+
 
             _isUiReady = true;
             Debug.Log("[HUDManager]: Все фреймы шёлково собраны внутри своих слотов после релоада!");
@@ -228,6 +292,11 @@ namespace ProjectTowerRpg.Core.UI
             if (_lastTargetEntity != Entity.Null)
             {
                 UIRegistry.Unregister(_lastTargetEntity, _targetFrame);
+            }
+
+            if (_lastControlledEntity != Entity.Null && _castBar != null)
+            {
+                UIRegistry.Unregister(_lastControlledEntity, _castBar);
             }
         }     
     }

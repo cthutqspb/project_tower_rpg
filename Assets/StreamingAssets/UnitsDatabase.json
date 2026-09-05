@@ -13,7 +13,7 @@
     "parameters": {
       "base_health": 100,
       "base_speed": 5.0,
-      "hitbox_radius": 0.5
+      "hitbox_radius": 0.72
     },
     "progression": { "health_growth": 1.10, "damage_growth": 1.10 },
     "resource": { "type": "mana", "current": 100, "max": 100 },
@@ -46,7 +46,7 @@
     "parameters": {
       "base_health": 40,
       "base_speed": 2.7,
-      "hitbox_radius": 32.0
+      "hitbox_radius": 0.72
     },
     "progression": {
       "health_growth": 1.12,
@@ -93,7 +93,7 @@
     "parameters": {
       "base_health": 40,
       "base_speed": 2.4,
-      "hitbox_radius": 32.0
+      "hitbox_radius": 0.72
     },
     "progression": {
       "health_growth": 1.12,

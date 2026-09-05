@@ -6,6 +6,7 @@ using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.Core.UI.Components;
+using ProjectTowerRpg.Core.UI.Colors;
 
 namespace ProjectTowerRpg.Core.UI
 {
@@ -17,7 +18,7 @@ namespace ProjectTowerRpg.Core.UI
         private PanelRenderer _panelRenderer;
         private VisualElement _root;
         private IPanel _panel;
-        private VisualElement _ghost;
+        private Label _ghost;
         private Label _amountLabel;
         private DragData _activeDrag;
         private EntityManager _entityManager;
@@ -43,21 +44,19 @@ namespace ProjectTowerRpg.Core.UI
             _panel = root?.panel;
             if (_root == null) return;
 
-            _ghost = new VisualElement();
+            _ghost = new Label();
             _ghost.name = "drag-ghost";
-            _ghost.style.position = Position.Absolute;
+            _ghost.AddToClassList("slot");
+            _ghost.AddToClassList("slot-icon");
             _ghost.style.width = 48;
             _ghost.style.height = 48;
-            _ghost.style.backgroundColor = new Color(1, 1, 1, 0.9f);
+            _ghost.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _ghost.style.display = DisplayStyle.None;
+            _ghost.style.backgroundColor = SolarizedOsakaNight.Surface.SetAlpha(0.85f);
             _ghost.style.borderTopWidth = 2;
+            _ghost.style.borderRightWidth = 2;
             _ghost.style.borderBottomWidth = 2;
             _ghost.style.borderLeftWidth = 2;
-            _ghost.style.borderRightWidth = 2;
-            _ghost.style.borderTopColor = Color.white;
-            _ghost.style.borderBottomColor = Color.white;
-            _ghost.style.borderLeftColor = Color.white;
-            _ghost.style.borderRightColor = Color.white;
-            _ghost.style.display = DisplayStyle.None;
             _ghost.pickingMode = PickingMode.Ignore;
 
             _amountLabel = new Label();
@@ -65,7 +64,7 @@ namespace ProjectTowerRpg.Core.UI
             _amountLabel.style.bottom = 2;
             _amountLabel.style.right = 4;
             _amountLabel.style.fontSize = 14;
-            _amountLabel.style.color = Color.white;
+            _amountLabel.style.color = SolarizedOsakaNight.Text;
             _amountLabel.style.unityTextAlign = TextAnchor.MiddleRight;
             _ghost.Add(_amountLabel);
 
@@ -204,22 +203,42 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         public void StartDrag(DragData data)
-        {
-            if (_activeDrag != null) CancelDrag();
+{
+    if (_activeDrag != null) CancelDrag();
 
-            _activeDrag = data;
-            ClearGhost();
+    _activeDrag = data;
 
-            _ghost.style.display = DisplayStyle.Flex;
-            if (data.Icon != null)
-                _ghost.style.backgroundImage = new StyleBackground(data.Icon);
+    // ✅ ПОДНИМАЕМ НА ВЕРХ
+    _ghost.BringToFront();
+    _ghost.style.position = Position.Absolute;
 
-            _amountLabel.text = data.Amount > 1 ? data.Amount.ToString() : "";
-            _amountLabel.style.display = data.Amount > 1 ? DisplayStyle.Flex : DisplayStyle.None;
+    // ✅ СНАЧАЛА ОБНОВЛЯЕМ ПОЗИЦИЮ
+    var mouse = Mouse.current;
+    if (mouse != null)
+    {
+        Vector2 mousePos = mouse.position.ReadValue();
+        _ghost.style.left = mousePos.x - 24;
+        _ghost.style.top = Screen.height - mousePos.y - 24;
+    }
 
-            Debug.Log($"[DragManager]: Драг начат {data.ItemId} x{data.Amount}");
-        }
+    // ✅ ПОТОМ УСТАНАВЛИВАЕМ ДАННЫЕ
+    _ghost.text = data.Icon.Glyph;
+    _ghost.style.color = data.Icon.Color;
+    _ghost.style.fontSize = data.Icon.FontSize;
+    _ghost.style.borderTopColor = data.Icon.Color;
+    _ghost.style.borderRightColor = data.Icon.Color;
+    _ghost.style.borderBottomColor = data.Icon.Color;
+    _ghost.style.borderLeftColor = data.Icon.Color;
 
+    // ✅ ПОТОМ ПОКАЗЫВАЕМ
+    _ghost.style.display = DisplayStyle.Flex;
+    _ghost.style.opacity = 1;
+
+    _amountLabel.text = data.Amount > 1 ? data.Amount.ToString() : "";
+    _amountLabel.style.display = data.Amount > 1 ? DisplayStyle.Flex : DisplayStyle.None;
+
+    Debug.Log($"[DragManager]: Драг начат {data.ItemId} x{data.Amount}");
+}
         public void Finish(object targetComponent, int targetSlot)
         {
             if (_activeDrag == null) return;
@@ -268,7 +287,7 @@ namespace ProjectTowerRpg.Core.UI
                     Debug.Log($"[DragManager]: Спавн ECS-команды {action} -> Слот #{targetSlot}");
                 }
             }
-
+            
             _activeDrag = null;
         }
 
@@ -300,9 +319,8 @@ namespace ProjectTowerRpg.Core.UI
         private void ClearGhost()
         {
             if (_ghost == null) return;
-
             _ghost.style.display = DisplayStyle.None;
-            _ghost.style.backgroundImage = StyleKeyword.Null;
+            _ghost.text = "";
             _amountLabel.text = "";
             _amountLabel.style.display = DisplayStyle.None;
         }

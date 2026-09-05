@@ -1,6 +1,4 @@
 using Unity.Entities;
-using Unity.Transforms;
-using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using ProjectTowerRpg.ECS.Components;

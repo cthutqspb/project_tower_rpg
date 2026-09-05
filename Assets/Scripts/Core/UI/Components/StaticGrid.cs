@@ -4,6 +4,7 @@ using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.Abilities;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -92,7 +93,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         // =========================================================================
         // ⚔️ ПОТОК ИНВЕНТАРЯ (Вызывается автоматически для DynamicBuffer<ItemSlot>)
         // =========================================================================
-        public void UpdateFromBuffer(DynamicBuffer<ItemSlot> slots)
+        public void UpdateFromBuffer(DynamicBuffer<ItemSlot> slots, bool isOnlyValidation = true)
         {
             Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} предметов инвентаря.");
             
@@ -107,30 +108,36 @@ namespace ProjectTowerRpg.Core.UI.Components
                 var itemId = slotData.DataId.ToString();
                 var config = !string.IsNullOrEmpty(itemId) ? ItemsDatabase.GetItem(itemId) : null;
                 
-                _slots[i].SetData(itemId, config, i, slotData.Amount);
+                _slots[i].SetData(itemId, i, slotData.Amount);
             }
         }
 
         // =========================================================================
         // 🔮 РЕЛЬСЫ ЭКШЕН-БАРА (Слепо и реактивно рендерит ВСЕ хоткеи 0..23)
         // =========================================================================
-        public void UpdateFromBuffer(DynamicBuffer<ActionBarSlot> slots)
+        public void UpdateFromBuffer(DynamicBuffer<ActionBarSlot> slots, bool isOnlyValidation = false)
         {
-            foreach (var slot in _slots) slot.ClearVisual();
-
             var world = World.DefaultGameObjectInjectionWorld;
             if (world == null) return;
             var em = world.EntityManager;
 
+            // ✅ ЕСЛИ ТОЛЬКО ВАЛИДАЦИЯ — НЕ ЧИСТИМ ВИЗУАЛ
+            if (!isOnlyValidation)
+            {
+                foreach (var slot in _slots) slot.ClearVisual();
+            }
+
             DynamicBuffer<ItemSlot> inventorySlots = default;
             bool hasValidInventory = false;
 
-            if (_boundEntity != Entity.Null && em.Exists(_boundEntity) && em.HasComponent<BuffersLinkComponent>(_boundEntity))
+            // 🦾 СИ-ЗАЩИТА ОЗУ: Лезем в рюкзак СТРОГО в тяжелом потоке структуры!
+            // Дополнительно страхуем чанки через легальный Си-флаг isReadOnly: true.
+            if (!isOnlyValidation && _boundEntity != Entity.Null && em.Exists(_boundEntity) && em.HasComponent<BuffersLinkComponent>(_boundEntity))
             {
                 Entity invEntity = em.GetComponentData<BuffersLinkComponent>(_boundEntity).Inventory;
-                if (invEntity != Entity.Null && em.Exists(invEntity) && em.HasComponent<ItemSlot>(invEntity))
+                if (invEntity != Entity.Null && em.Exists(invEntity) && em.HasBuffer<ItemSlot>(invEntity))
                 {
-                    inventorySlots = em.GetBuffer<ItemSlot>(invEntity);
+                    inventorySlots = em.GetBuffer<ItemSlot>(invEntity, isReadOnly: true);
                     hasValidInventory = true;
                 }
             }
@@ -142,13 +149,23 @@ namespace ProjectTowerRpg.Core.UI.Components
                 var abilityId = slotData.AbilityId.ToString();
                 if (string.IsNullOrEmpty(abilityId)) continue;
 
-                var config = ItemsDatabase.GetItem(abilityId);
-                int displayAmount = 1; 
+                // ✅ ВАЛИДАЦИЯ (всегда)
+                var validationResult = AbilityValidator.CheckCastPossibility(abilityId, _boundEntity, em);
+
+                // ✅ ЕСЛИ ТОЛЬКО ВАЛИДАЦИЯ — ОБНОВЛЯЕМ ТОЛЬКО ЦВЕТ/ПРОЗРАЧНОСТЬ
+                // Процессор наглухо скипает весь тяжелый код ниже, инвентарь девственно чист!
+                if (isOnlyValidation)
+                {
+                    _slots[i].SetValidation(validationResult);
+                    continue;
+                }
+
+                // ✅ ПОЛНЫЙ РЕНДЕРИНГ (иконка, количество, бинд)
+                int displayAmount = 1;
 
                 if (slotData.SlotType == "item")
                 {
                     displayAmount = 0;
-
                     if (hasValidInventory)
                     {
                         for (int idx = 0; idx < inventorySlots.Length; idx++)
@@ -160,8 +177,9 @@ namespace ProjectTowerRpg.Core.UI.Components
                         }
                     }
                 }
+
                 string bindingText = slotData.KeyBinding.ToString();
-                _slots[i].SetData(abilityId, config, absoluteIndex, displayAmount, true, bindingText);
+                _slots[i].SetData(abilityId, absoluteIndex, displayAmount, true, bindingText, validationResult);
             }
         }
     }

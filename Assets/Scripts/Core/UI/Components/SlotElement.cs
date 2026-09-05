@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Abilities;
-using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core.UI.Colors;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -29,32 +29,20 @@ namespace ProjectTowerRpg.Core.UI.Components
         public SlotElement()
         {
             this.AddToClassList("slot");
-            this.style.width = 40;
-            this.style.height = 40;
-            this.style.marginLeft = 2;
-            this.style.marginRight = 2;
-            this.style.marginTop = 2;
-            this.style.marginBottom = 2;
-            this.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+            this.style.backgroundColor = SolarizedOsakaNight.Background;
             
-            //_icon = new VisualElement();
             _icon = new Label(); // ✅ Создаем как текстовый Label
             _icon.AddToClassList("slot-icon");
-            _icon.style.width = 40;
-            _icon.style.height = 40;
+            _icon.style.paddingLeft = 0;
+
+            _icon.style.width = Length.Percent(100f);
+            _icon.style.height = Length.Percent(100f);
             _icon.style.display = DisplayStyle.None;
 
             // 🦾 ФРОНТЕНД-ХАК: Идеально центрируем иконку-значок внутри ячейки
             _icon.style.unityTextAlign = TextAnchor.MiddleCenter;
             _icon.style.fontSize = 39; // Оптимальный размер для Nerd Font глифов в ячейке 40х40
-            
-            // Загружаем наш сгенерированный TMP Font Asset из папки Resources
-            // (Не забудь положить TerminessNerdFontMono-Regular SDF.asset в Assets/Resources/Fonts/)
-            // var nerdFont = Resources.Load<Font>("Fonts/TerminessNerdFontMono-Regular SDF");
-            // if (nerdFont != null)
-            // {
-            //     _icon.style.unityFontDefinition = new StyleFontDefinition(nerdFont);
-            // }
+            _icon.style.color = new Color(187, 154, 247, 1);
 
             Add(_icon);
             
@@ -124,10 +112,15 @@ namespace ProjectTowerRpg.Core.UI.Components
             return new DragData
             {
                 Source = this,
-                SlotIndex = SlotIndex, // Передаем чистый int
+                SlotIndex = SlotIndex,
                 ItemId = _itemId,
                 Amount = _amount,
-                Icon = null, // TODO: вытащить спрайт из конфигурации, если нужно
+                Icon = new IconData
+                {
+                    Glyph = _icon.text,
+                    Color = _icon.style.color.value,
+                    FontSize = 39f
+                },
                 SourceEntity = ContainerEntity
             };
         }
@@ -136,11 +129,20 @@ namespace ProjectTowerRpg.Core.UI.Components
         // Public Methods (Слот теперь просто принимает готовые данные)
         // ================================================================
 
-        public void SetData(string itemId, ItemConfig config, int index, int amount = 1, bool isActionBar = false, string bindingText = "")
+        /// <summary>
+        /// Полная установка данных слота (иконка, количество, бинд, валидация)
+        /// </summary>
+        public void SetData(
+            string itemId,
+            int index,
+            int amount = 1,
+            bool isActionBar = false,
+            string bindingText = "",
+            CastValidationResult validation = default)
         {
             _itemId = itemId;
             _amount = amount;
-            SlotIndex = index; // Кэшируем честный сквозной индекс бэкенда (0..23) для DragData!
+            SlotIndex = index;
             ClearVisual();
 
             if (string.IsNullOrEmpty(itemId) || amount <= 0)
@@ -153,32 +155,38 @@ namespace ProjectTowerRpg.Core.UI.Components
             string quality = "common";
             string iconCharacter = "";
 
-            if (config != null)
+            var abilityConfig = AbilitiesDatabase.GetAbility(itemId);
+            if (abilityConfig != null)
             {
-                quality = config.identity.quality;
-                iconCharacter = config.visuals?.icon_char ?? "";
+                quality = abilityConfig.identity?.@class ?? "common";
+                //_icon.style.backgroundColor = SolarizedOsakaNight.GetAbilityColor(quality);
+                _icon.style.color = SolarizedOsakaNight.GetAbilityColor(quality);
+                _icon.style.borderTopColor = SolarizedOsakaNight.GetAbilityColor(quality);
+                _icon.style.borderRightColor = SolarizedOsakaNight.GetAbilityColor(quality);
+                _icon.style.borderBottomColor = SolarizedOsakaNight.GetAbilityColor(quality);
+                _icon.style.borderLeftColor = SolarizedOsakaNight.GetAbilityColor(quality);
+                
+                iconCharacter = abilityConfig.visuals?.icon_char ?? "";
             }
             else
             {
-                var abilityConfig = AbilitiesDatabase.GetAbility(itemId);
-                if (abilityConfig != null)
+                var itemConfig = ItemsDatabase.GetItem(itemId);
+                if (itemConfig != null)
                 {
-                    iconCharacter = abilityConfig.visuals.icon_char;
+                    quality = itemConfig.identity?.quality ?? "common";
+                    //_icon.style.backgroundColor = SolarizedOsakaNight.GetQualityColor(quality);
+                    _icon.style.color = SolarizedOsakaNight.GetQualityColor(quality);
+                    _icon.style.borderTopColor = SolarizedOsakaNight.GetQualityColor(quality);
+                    _icon.style.borderRightColor = SolarizedOsakaNight.GetQualityColor(quality);
+                    _icon.style.borderBottomColor = SolarizedOsakaNight.GetQualityColor(quality);
+                    _icon.style.borderLeftColor = SolarizedOsakaNight.GetQualityColor(quality);
+                    iconCharacter = itemConfig.visuals?.icon_char ?? "";
                 }
             }
-
-            _icon.style.backgroundColor = GetQualityColor(quality);
+ 
             _icon.text = iconCharacter;
 
-            // 🔥 БИНД-КЛАВИША (Проверяем зрячий флаг, прилетевший из рельс экшен-бара)
-            if (isActionBar)
-            {
-                _bindLabel.style.display = DisplayStyle.Flex;
-                // Передаем остаток от деления на 12 (всегда вернет локальный индекс 0..11)
-                _bindLabel.text = bindingText;
-            }
-
-            // КОЛИЧЕСТВО (ДЛЯ СТАКОВ)
+            // Количество (для стаков)
             if (amount > 1)
             {
                 _amountLabel.style.display = DisplayStyle.Flex;
@@ -189,6 +197,77 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _amountLabel.style.display = DisplayStyle.None;
                 _amountLabel.text = "";
             }
+
+            // Экшен-бар: бинд-клавиша и валидация
+            if (isActionBar)
+            {
+                _bindLabel.text = bindingText;
+                _bindLabel.style.color = SolarizedOsakaNight.Text;
+                _icon.style.opacity = 1.0f;
+
+                ApplyValidation(validation);
+            }
+            else
+            {
+                _bindLabel.style.display = DisplayStyle.None;
+                _bindLabel.text = "";
+                _bindLabel.style.color = SolarizedOsakaNight.Text;
+                _icon.style.opacity = 1.0f;
+                ResetValidationStyle();
+            }
+        }
+
+        /// <summary>
+        /// Только обновление валидации (цвет, прозрачность) — ЛЁГКИЙ МЕТОД!
+        /// </summary>
+        public void SetValidation(CastValidationResult validation)
+        {
+            // Если это не экшен-бар — выходим
+            if (_bindLabel.style.display == DisplayStyle.None) return;
+
+            // Сбрасываем стили перед применением новых
+            ResetValidationStyle();
+
+            if (!validation.IsPossible && !string.IsNullOrEmpty(validation.Reason))
+            {
+                ApplyValidation(validation);
+            }
+        }
+
+        /// <summary>
+        /// Применяет визуальные эффекты валидации
+        /// </summary>
+        private void ApplyValidation(CastValidationResult validation)
+        {
+            switch (validation.Reason)
+            {
+                case "OUT_OF_RANGE":
+                    _bindLabel.style.color = Color.red;
+                     var currentColor = _icon.style.color.value;
+                    _icon.style.color = currentColor.Darken(0.4f).Desaturate(0.6f);
+                    _bindLabel.style.color = SolarizedOsakaNight.Red;
+                    break;
+
+                case "NO_MANA":
+                    _icon.style.opacity = 0.4f;
+                    _bindLabel.style.color = SolarizedOsakaNight.Red;
+                    break;
+
+                case "INVALID_TARGET":
+                case "NO_TARGET":
+                    _bindLabel.style.color = SolarizedOsakaNight.Red;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Сбрасывает стили валидации
+        /// </summary>
+        private void ResetValidationStyle()
+        {
+            _icon.style.backgroundColor = Color.clear; 
+            _icon.style.opacity = 1.0f;
+            _bindLabel.style.color = Color.white;
         }
 
         // Метод Refresh() больше не лезет в ECS! Сетка сама обновит слот, когда прилетит буфер.
@@ -210,16 +289,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             _durationLabel.style.display = DisplayStyle.None;
             _cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
             RemoveFromClassList("disabled");
-        }
-
-        private Color GetQualityColor(string quality)
-        {
-            return quality switch
-            {
-                "rare" => new Color(0.2f, 0.4f, 0.8f, 1f),
-                "uncommon" => new Color(0.2f, 0.7f, 0.3f, 1f),
-                _ => new Color(0.3f, 0.3f, 0.3f, 1f)
-            };
+            ResetValidationStyle();
         }
 
         private void OnSlotClicked(PointerDownEvent evt)
@@ -287,4 +357,3 @@ namespace ProjectTowerRpg.Core.UI.Components
 
     }
 }
-

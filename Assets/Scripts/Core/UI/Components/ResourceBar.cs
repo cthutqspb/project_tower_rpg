@@ -16,6 +16,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         {
             _root = barRoot;
             _fill = barRoot.Q<VisualElement>("fill") ?? barRoot;
+            _fill.AddToClassList("smooth");
         }
 
         /// <summary>

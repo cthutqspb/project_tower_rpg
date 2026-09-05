@@ -205,6 +205,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (isPlayer)
                 {
                     em.AddComponent<PlayerTag>(unitEntity);
+                    em.AddComponent<ControlledByPlayerTag>(unitEntity);
                     
                     // ================================================================
                     // 🔥 БУФЕР ВЗАИМОДЕЙСТВИЙ (ТОЛЬКО ДЛЯ ИГРОКА)
