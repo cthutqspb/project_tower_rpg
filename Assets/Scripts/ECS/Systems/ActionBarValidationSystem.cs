@@ -17,10 +17,14 @@ namespace ProjectTowerRpg.ECS.Systems
             if (!barLookup.HasBuffer(controlledEntity)) return;
 
             var barSlots = barLookup[controlledEntity];
-            
             // Получаем все сетки экшенбара, привязанные к управляемому существу
             var receivers = UIRegistry.GetReceivers(controlledEntity);
             if (receivers == null) return;
+
+            // ✅ Получаем состояние ГКД
+            var combatState = SystemAPI.GetComponent<CombatStateComponent>(controlledEntity);
+            float gcdRemaining = combatState.GcdRemaining;
+            float gcdDuration = combatState.GcdDuration;
 
             foreach (var receiver in receivers)
             {
@@ -28,7 +32,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 {
                     // 🚀 ПОКАДРОВЫЙ ПУШ: Метод вызывается каждую миллисекунду кадра,
                     // заставляя логи спамиться, а хоткеи — сочно алеть на лету!
-                    barUi.UpdateFromBuffer(barSlots, true);
+                    barUi.UpdateFromBuffer(barSlots, true, gcdRemaining, gcdDuration);
                 }
             }
         }

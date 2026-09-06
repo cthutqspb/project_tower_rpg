@@ -2,7 +2,7 @@ using UnityEngine;
 using Unity.Entities;
 using Unity.Mathematics;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.Abilities; // Твой AbilityConfig и реестр заклинаний
+using ProjectTowerRpg.Core.Abilities;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -12,57 +12,85 @@ namespace ProjectTowerRpg.ECS.Systems
         protected override void OnUpdate()
         {
             var em = EntityManager;
-            // Безопасный отложенный буфер для создания структурных изменений в конце фазы
             var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
 
             // =========================================================================
-            // ПОТОК 1: ПРИЕМ И ВАЛИДАЦИЯ ЗАПРОСОВ (Серверный шлюз)
+            // ПОТОК 1: ПРИЕМ И ВАЛИДАЦИЯ ЗАПРОСОВ (Серверный шлюз на старте)
             // =========================================================================
             foreach (var (request, requestEntity) in SystemAPI.Query<RefRO<CastRequest>>().WithEntityAccess())
             {
                 Entity casterEntity = request.ValueRO.Caster;
+                string abilityIdStr = request.ValueRO.AbilityId.ToString();
 
-                // Гвард: Сущность должна физически существовать в памяти чанков
                 if (casterEntity != Entity.Null && em.Exists(casterEntity))
                 {
-                    // 🛡️ WoW-ГВАРД: Проверяем, не занята ли туша другим активным кастом прямо сейчас
-                    bool isAlreadyCasting = em.HasComponent<CastComponent>(casterEntity) && em.GetComponentData<CastComponent>(casterEntity).IsActive;
+                    // 🚀 ШАГ 1: Сначала хладнокровно прогоняем абсолютный шлюз безопасности!
+                    // Если ГКД тикает — метод выдаст GCD_ACTIVE, и спам кнопки мгновенно разобьется о гвард!
+                    var validationResult = AbilityValidator.CheckCastPossibility(abilityIdStr, casterEntity, em);
 
-                    if (!isAlreadyCasting)
+                    if (validationResult.IsPossible)
                     {
-                        // Вытаскиваем эталонные ТТХ абилки из твоей базы данных способностей!
-                        var abilityCfg = AbilitiesDatabase.GetAbility(request.ValueRO.AbilityId.ToString());
-                        
-                        // Зряче лезем по цепочке в отмытые параметры твоего AbilityConfig
-                        float castTime = abilityCfg != null && abilityCfg.parameters != null 
-                            ? abilityCfg.parameters.cast_time 
-                            : 1.7f; // Наш фоллбэк для тестов
+                        // 🚀 ШАГ 2: Валидация конвейера пройдена! Только ТЕПЕРЬ проверяем, не читает ли туша спелл прямо сейчас.
+                        // По канону WoW: если маг уже кастует Frostbolt и нагло жмет Frostbolt еще раз — 
+                        // этот спам просто игнорируется симуляцией, не прерывая текущую полоску!
+                        bool isAlreadyCasting = em.HasComponent<CastComponent>(casterEntity) && em.GetComponentData<CastComponent>(casterEntity).IsActive;
 
-                        bool isChanneling = abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.is_channeling;
+                        if (!isAlreadyCasting)
+                        {
+                            var abilityCfg = AbilitiesDatabase.GetAbility(abilityIdStr);
+                            
+                            // ⏳ ВЗВОД ГКД НА СЕРВЕРЕ (Изолированный чистый Си-блок)
+                            if (abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.triggers_gcd)
+                            {
+                                float calculatedGcd = 1.2f; 
 
-                        // Если на существе еще нет CastComponent (первый каст в игре) — добавляем через ECB, иначе пишем поверх
-                        if (!em.HasComponent<CastComponent>(casterEntity))
-                        {
-                            ecb.AddComponent(casterEntity, new CastComponent
+                                if (em.HasComponent<CombatStateComponent>(casterEntity))
+                                {
+                                    var combat = em.GetComponentData<CombatStateComponent>(casterEntity);
+                                    
+                                    combat.GcdDuration = calculatedGcd;
+                                    combat.GcdRemaining = calculatedGcd;
+                                    
+                                    em.SetComponentData(casterEntity, combat);
+                                    Debug.Log($"⏳ [CastSystem]: На боевой стейт {casterEntity} наложено ГКД: {calculatedGcd}с.");
+                                }
+                            } // Скобка закрылась! Блок взвода ГКД полностью изолирован.
+
+                            // WoW-КАНОН: На старте обычного каста ману НЕ списываем! Только взводим стейт!
+                            float castTime = abilityCfg != null && abilityCfg.parameters != null 
+                                ? abilityCfg.parameters.cast_time 
+                                : 1.7f;
+
+                            bool isChanneling = abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.is_channeling;
+
+                            if (!em.HasComponent<CastComponent>(casterEntity))
                             {
-                                IsActive = true,
-                                AbilityId = request.ValueRO.AbilityId,
-                                CastTime = castTime,
-                                Progress = 0f,
-                                IsChanneling = isChanneling
-                            });
-                        }
-                        else
-                        {
-                            em.SetComponentData(casterEntity, new CastComponent
+                                ecb.AddComponent(casterEntity, new CastComponent
+                                {
+                                    IsActive = true,
+                                    AbilityId = request.ValueRO.AbilityId,
+                                    CastTime = castTime,
+                                    Progress = 0f,
+                                    IsChanneling = isChanneling
+                                });
+                            }
+                            else
                             {
-                                IsActive = true,
-                                AbilityId = request.ValueRO.AbilityId,
-                                CastTime = castTime,
-                                Progress = 0f,
-                                IsChanneling = isChanneling
-                            });
+                                em.SetComponentData(casterEntity, new CastComponent
+                                {
+                                    IsActive = true,
+                                    AbilityId = request.ValueRO.AbilityId,
+                                    CastTime = castTime,
+                                    Progress = 0f,
+                                    IsChanneling = isChanneling
+                                });
+                            }
                         }
+                    }
+                    else
+                    {
+                        // Сюда со свистом летят все наши варнинги о спаме кнопок во время ГКД!
+                        Debug.LogWarning($"❌ [CastSystem]: Сервер отклонил старт каста '{abilityIdStr}'. Причина: {validationResult.Reason}");
                     }
                 }
 
@@ -71,44 +99,62 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             // =========================================================================
-            // ПОТОК 2: ПОКАДРОВЫЙ ТИК ТАЙМЕРОВ КАСTА (Всеядный Си-цикл симуляции)
+            // ПОТОК 2: ПОКАДРОВЫЙ ТИК ТАЙМЕРОВ И ФИНИШ КАСTА (Симуляция)
             // =========================================================================
             foreach (var (castRW, entity) in SystemAPI.Query<RefRW<CastComponent>>().WithEntityAccess())
             {
                 if (!castRW.ValueRO.IsActive) continue;
 
-                // 🦾 СЕМАНТИКА: Извлекаем плоскую структуру данных под её честное, чистое имя!
                 var cast = castRW.ValueRW;
 
-                // 🦾 WoW-ГВАРД ДВИЖЕНИЯ: Если это НЕ потоковое заклинание на ходу (IsChanneling) — проверяем перемещение!
+                // WoW-ГВАРД ДВИЖЕНИЯ: Срыв каста шагом на WASD (мана сохраняется!)
                 if (!cast.IsChanneling && SystemAPI.HasComponent<MovementComponent>(entity))
                 {
                     var move = SystemAPI.GetComponent<MovementComponent>(entity);
-
-                    // Идеальная unmanaged-математика: проверяем вектор направления float3 и скалярную скорость!
                     bool isMoving = math.lengthsq(move.Direction) > 0.001f && move.CurrentSpeed > 0.001f; 
 
                     if (isMoving)
                     {
-                        cast.IsActive = false; // Намертво обрываем каст в памяти сервера!
+                        cast.IsActive = false; 
                         cast.Progress = 0f;
-                        castRW.ValueRW = cast; // Синхронизируем ОЗУ чанка кадра через RW-указатель
+                        castRW.ValueRW = cast;
 
-                        Debug.Log($"❌ [CastSystem]: Каст заклинания '{cast.AbilityId}' ПРЕРВАН из-за движения сущности {entity}!");
-                        continue; // Каст угас, пулей прыгаем на следующую Entity в чанке
+                        Debug.Log($"❌ [CastSystem]: Каст заклинания '{cast.AbilityId}' СОРВАН движением. Мана сохранена.");
+                        continue; 
                     }
                 }
 
-                cast.Progress += SystemAPI.Time.DeltaTime; // Накапливаем нативные Си-секунды!
+                cast.Progress += SystemAPI.Time.DeltaTime;
 
-                // Проверка успешного завершения заклинания
+                // 🦾 ИСТИННЫЙ ММО-ФИНИШ: Заклинание успешно дочитано до конца!
                 if (cast.Progress >= cast.CastTime)
                 {
-                    cast.IsActive = false; // Каст успешно угас в памяти!
-                    Debug.Log($"🔥 [CastSystem]: Каст заклинания '{cast.AbilityId}' УСПЕШНО ЗАВЕРШЕН у сущности {entity}!");
+                    cast.IsActive = false; 
+                    string finishedAbilityId = cast.AbilityId.ToString();
+
+                    // Перед тем как выпустить стрелу, еще раз проверяем ману (на случай десинхрона) и списываем её!
+                    var abilityCfg = AbilitiesDatabase.GetAbility(finishedAbilityId);
+                    
+                    if (abilityCfg != null && abilityCfg.cost != null && !string.IsNullOrEmpty(abilityCfg.cost.resource))
+                    {
+                        float costValue = abilityCfg.cost.value;
+                        if (costValue > 0f && em.HasComponent<ResourceComponent>(entity))
+                        {
+                            var resources = em.GetComponentData<ResourceComponent>(entity);
+                            
+                            // Атомарно вычитаем Си-байты стоимости из ОЗУ чанка
+                            resources.Current = math.max(0f, resources.Current - costValue);
+                            em.SetComponentData(entity, resources);
+
+                            Debug.Log($"🧪 [CastSystem]: Юнит {entity} успешно ДОКАСТОВАЛ '{finishedAbilityId}' и потратил {costValue} {abilityCfg.cost.resource}. Осталось: {resources.Current}");
+                        }
+                    }
+
+                    // ⚡ ЗДЕСЬ РОЖДАЕТСЯ ExecuteSpellEvent / Вылет снаряда в CombatSystem!
+                    Debug.Log($"🔥 [CastSystem]: Снаряд заклинания '{finishedAbilityId}' официально вылетел из рук {entity}!");
                 }
 
-                castRW.ValueRW = cast; // Запекаем обновленные секунды обратно в ОЗУ чанка
+                castRW.ValueRW = cast;
             }
         }
     }

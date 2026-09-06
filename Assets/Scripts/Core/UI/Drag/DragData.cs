@@ -1,5 +1,7 @@
 using Unity.Entities;
 using UnityEngine;
+using System.Collections.Generic;
+
 
 namespace ProjectTowerRpg.Core.UI
 {   
@@ -7,13 +9,13 @@ namespace ProjectTowerRpg.Core.UI
     {
         public string Glyph;   // Nerd Font символ
         public Color Color;    // Цвет иконки
-        public float FontSize; // Размер шрифта (опционально)
+        public List<string> Classes;
 
-        public IconData(string glyph, Color color, float fontSize = 39f)
+        public IconData(string glyph, Color color, List<string> classes = null)
         {
             Glyph = glyph;
             Color = color;
-            FontSize = fontSize;
+            Classes = classes ?? new List<string>();
         }
     }
 

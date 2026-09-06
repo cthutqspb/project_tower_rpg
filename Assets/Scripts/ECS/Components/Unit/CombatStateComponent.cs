@@ -17,8 +17,9 @@ namespace ProjectTowerRpg.ECS.Components
         public bool HasTarget => CurrentTarget != Entity.Null;
 
         // // TODO: WoW-Канон магии, агро-матрицы и вендетты на будущее
-        // public Entity CombatTarget;   // combat_target_uid
-        // public float GcdCurrent;      // cast.gcd_current
+        public Entity CombatTarget;   // combat_target_uid
+        public float GcdDuration;      // cast.gcd_current
+        public float GcdRemaining;
     }
 }
 

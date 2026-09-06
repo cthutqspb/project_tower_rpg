@@ -4,12 +4,17 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using ProjectTowerRpg.ECS.Components;
 
+using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Transforms;
+using ProjectTowerRpg.ECS.Components;
+
 namespace ProjectTowerRpg.Core.Abilities
 {
     public static class AbilityValidator
     {
         /// <summary>
-        /// Универсальный ААА-Валидатор возможности применения способностей (Только Цели и Дистанция)
+        /// Главный ААА-шлюз валидации конвейера способностей (Декомпозированный ММО-Канон)
         /// </summary>
         public static CastValidationResult CheckCastPossibility(
             string abilityId, 
@@ -24,16 +29,146 @@ namespace ProjectTowerRpg.Core.Abilities
             if (caster == Entity.Null || !em.Exists(caster)) 
                 return new CastValidationResult { IsPossible = false, Reason = "NO_CASTER" };
 
-            // 2. ВЫУЖИВАЕМ КОНФИГ: Метод сам достает чертеж из базы за 0 наносекунд нагрузки!
+            // 2. ВЫУЖИВАЕМ КОНФИГ: Извлекаем чертеж из базы за 0 наносекунд
             var ability = AbilitiesDatabase.GetAbility(abilityId);
             if (ability == null) 
                 return new CastValidationResult { IsPossible = false, Reason = "UNKNOWN_ABILITY" };
 
-            // 🎯 3. ПОЛИМОРФНЫЙ ГВАРД ТАРГЕТИНГА (requires_target)
+            // =========================================================================
+            // ПОСЛЕДОВАТЕЛЬНЫЙ СИ-КОНВЕЙЕР ПРОВЕРОК
+            // =========================================================================
+
+            // ⏳ Слой А: ГКД (Высший приоритет спам-защиты)
+            var gcdResult = CheckGCD(ability, caster, em);
+            if (!gcdResult.IsPossible) return gcdResult;
+
+            // 🧪 Слой Б: Стоимость ресурсов (Мана / Энергия / Ярость)
+            var resourceResult = CheckResource(ability, caster, em);
+            if (!resourceResult.IsPossible) return resourceResult;
+
+            // 🎯 Слой В: Существование и стейт цели (requires_target, IsDead)
+            var targetResult = CheckTarget(ability, caster, em, out Entity target);
+            if (!targetResult.IsPossible) return targetResult;
+
+            // 📐 Слой Г: Геометрия хитбоксов и Meadows-дистанция (math.distance)
+            var distanceResult = CheckDistance(ability, caster, target, em);
+            if (!distanceResult.IsPossible) return distanceResult;
+
+            // Способность полностью легальна, конвейер чист!
+            return new CastValidationResult { IsPossible = true, Reason = null };
+        }
+
+        // =========================================================================
+        // ИЗОЛИРОВАННЫЕ ВНУТРЕННИЕ МЕТOДЫ ПРОВЕРОК
+        // =========================================================================
+
+        private static CastValidationResult CheckGCD(AbilityConfig ability, Entity caster, EntityManager em)
+        {
+            // 1. ГВАРД ЧЕРТЕЖА: Если способность из JSON вообще не запускает ГКД — она всегда легальна!
+            if (ability.parameters == null || !ability.parameters.triggers_gcd)
+            {
+                return new CastValidationResult { IsPossible = true, Reason = null };
+            }
+
+            // 2. СИ-ЗАЩИТА ОЗУ: Проверяем наличие боевого паспорта на кастере
+            if (!em.HasComponent<CombatStateComponent>(caster))
+            {
+                return new CastValidationResult { IsPossible = true, Reason = null };
+            }
+
+            var combatState = em.GetComponentData<CombatStateComponent>(caster);
+
+            // ⏳ КАНOНИЧНЫЙ WOW-ГВАРД ГКД С ЗАЩИТОЙ ИНСТАНТ-СПАМА:
+            if (combatState.GcdRemaining > 0f)
+            {
+                float baseGcdDuration = combatState.GcdDuration;
+
+                // Проверяем, взвелось ли ГКД только что в этом же самом кадре (находится на самом пике).
+                // Твоя дельта-страховка в 0.02 секунды защищает инстант-баффы от ложных интерфейсных рефрешей в конце кадра!
+                bool isJustTriggered = combatState.GcdRemaining >= (baseGcdDuration - 0.02f);
+
+                // Если ГКД реально тикает и остывает (меньше пика) — это наглый спам кнопки! НАМЕРТВО БЛОКИРУЕМ!
+                if (!isJustTriggered)
+                {
+                    // Вердикт: "Категория не готова!"
+                    return new CastValidationResult { IsPossible = false, Reason = "GCD_ACTIVE" };
+                }
+            }
+
+            // Глобальный кулдаун остыл, Meadows-конвейер чист!
+            return new CastValidationResult { IsPossible = true, Reason = null };
+        }
+
+
+        private static CastValidationResult CheckResource(AbilityConfig ability, Entity caster, EntityManager em)
+        {
+            // 1. ГВАРД ЧЕРТЕЖА: Если у способности в JSON нет секции стоимости — спелл бесплатный!
+            if (ability.cost == null || string.IsNullOrEmpty(ability.cost.resource))
+            {
+                return new CastValidationResult { IsPossible = true, Reason = null };
+            }
+
+            // Вытаскиваем строковое имя требуемого ресурса из конфига (например, "Mana" или "Energy")
+            string requiredResourceStr = ability.cost.resource;
+            float resourceCost = ability.cost.value;
+
+            // Если способность бесплатная (цена 0) — пропускаем без проверок
+            if (resourceCost <= 0f)
+            {
+                return new CastValidationResult { IsPossible = true, Reason = null };
+            }
+
+            // 2. СИ-ЗАЩИТА ОЗУ: Если на кастере физически нет компонента ресурсов (например, это пилон или вещь)
+            if (!em.HasComponent<ResourceComponent>(caster))
+            {
+                return new CastValidationResult { IsPossible = false, Reason = "NO_RESOURCE_COMPONENT" };
+            }
+
+            // Достаем плоский unmanaged-паспорт ресурсов существа из чанка памяти
+            var currentResources = em.GetComponentData<ResourceComponent>(caster);
+
+            // Если у существа вообще нет ресурса (тип None) — каст заблокирован
+            if (currentResources.Type == ResourceType.None)
+            {
+                return new CastValidationResult { IsPossible = false, Reason = "NO_MANA" };
+            }
+
+            // 3. АППАРАТНЫЙ СВИТЧ ПРОВЕРКИ (Wow-Канон полиморфизма ресурсов)
+            // Мы парсим строку из JSON в твой нативный C# enum ResourceType за 0 наносекунд
+            if (System.Enum.TryParse<ResourceType>(requiredResourceStr, true, out var requiredType))
+            {
+                // Проверяем, совпадает ли биологический тип энергии спелла с тем, что сейчас залито в тушу кастера
+                if (currentResources.Type != requiredType)
+                {
+                    return new CastValidationResult { IsPossible = false, Reason = "INVALID_RESOURCE_TYPE" };
+                }
+
+                // Хладнокровно сверяем текущее количество Си-байт ресурса с ценой из базы данных
+                if (currentResources.Current < resourceCost)
+                {
+                    // Если маны/энергии мало — наглухо блокируем! 
+                    // Твой SlotElement.SetData поймает этот Reason и сочно затемнит иконку абилки!
+                    return new CastValidationResult { IsPossible = false, Reason = "NO_MANA" };
+                }
+            }
+            else
+            {
+                UnityEngine.Debug.LogError($"[AbilityValidator]: Ошибка парсинга типа ресурса '{requiredResourceStr}' в конфиге абилки {ability.id}");
+                return new CastValidationResult { IsPossible = false, Reason = "UNKNOWN_RESOURCE_TYPE" };
+            }
+
+            // Ресурсов хватает, Meadows-конвейер чист!
+            return new CastValidationResult { IsPossible = true, Reason = null };
+        }
+
+
+        private static CastValidationResult CheckTarget(AbilityConfig ability, Entity caster, EntityManager em, out Entity target)
+        {
+            target = Entity.Null;
+
             if (ability.parameters != null && ability.parameters.requires_target)
             {
-                // Вытаскиваем текущую цель напрямую из боевого стейта кастера!
-                Entity target = Entity.Null;
+                // Вытаскиваем текущую цель напрямую из боевого стейта кастера
                 if (em.HasComponent<CombatStateComponent>(caster))
                 {
                     target = em.GetComponentData<CombatStateComponent>(caster).CurrentTarget;
@@ -52,7 +187,15 @@ namespace ProjectTowerRpg.Core.Abilities
                     if (combat.IsDead) 
                         return new CastValidationResult { IsPossible = false, Reason = "INVALID_TARGET" };
                 }
+            }
 
+            return new CastValidationResult { IsPossible = true, Reason = null };
+        }
+
+        private static CastValidationResult CheckDistance(AbilityConfig ability, Entity caster, Entity target, EntityManager em)
+        {
+            if (ability.parameters != null && ability.parameters.requires_target)
+            {
                 // КЕЙС В: Расчет Edge-to-Edge расстояния в мире через хитбоксы WoW-канона
                 if (em.HasComponent<LocalTransform>(caster) && em.HasComponent<LocalTransform>(target))
                 {
@@ -96,7 +239,6 @@ namespace ProjectTowerRpg.Core.Abilities
                 }
             }
 
-            // Способность легальна, конвейер чист!
             return new CastValidationResult { IsPossible = true, Reason = null };
         }
     }

@@ -6,6 +6,6 @@ public interface IEcsUiBufferReceiver<T> where T : unmanaged, IBufferElementData
     Entity BoundEntity { get; }
     
     void BindToEntity(Entity entity);
-    void UpdateFromBuffer(DynamicBuffer<T> buffer, bool isOnlyValidation = false);
+    void UpdateFromBuffer(DynamicBuffer<T> buffer, bool isOnlyValidation = false, float gcdRemaining = 0f, float gcdDuration = 0f);
 }
 

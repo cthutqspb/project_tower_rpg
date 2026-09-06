@@ -61,11 +61,8 @@ namespace ProjectTowerRpg.Core.UI.Colors
                 "hunter" => Success,
                 "shaman" => Cyan,
                 "druid" => Success,
-                "paladin" => Primary,
-                "deathknight" => Danger,
-                "demonhunter" => Purple,
+                "paladin" => Primary,               
                 "monk" => Info,
-                "evoker" => Orange,
                 "bard" => Accent,
                 _ => Text
             };

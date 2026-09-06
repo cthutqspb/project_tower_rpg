@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
+using System.Linq;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Abilities;
 using ProjectTowerRpg.Core.UI.Colors;
@@ -10,47 +11,38 @@ namespace ProjectTowerRpg.Core.UI.Components
     public class SlotElement : VisualElement, IDragSource
     {
         // Было: private VisualElement _icon;
-        private Label _icon; // ✅ Изменили на Label для поддержки текста-иконок Nerd Font
-        private VisualElement _cooldownOverlay;
+        private Label _icon; // ✅ Изменили на Label для поддержки текста-иконок Nerd Font 
         private Label _bindLabel;
         private Label _amountLabel;
         private Label _durationLabel;
+
+        private VisualElement _cooldownOverlay;
+        private float _gcdProgress = 0f;
         
         // Слот кэширует свои данные только для Drag-and-Drop
         private string _itemId = "";
         private int _amount = 0;
+        
+        private bool _isActionBarSlot = false;
 
         public int SlotIndex { get; set; }
         public Entity ContainerEntity { get; set; }
-        
-        // Оставляем строки в UI для USS-стилей, это нормально
-        public string GridType { get; set; } 
 
         public SlotElement()
         {
             this.AddToClassList("slot");
             this.style.backgroundColor = SolarizedOsakaNight.Background;
+            this.style.overflow = Overflow.Hidden;
             
             _icon = new Label(); // ✅ Создаем как текстовый Label
             _icon.AddToClassList("slot-icon");
-            _icon.style.paddingLeft = 0;
-
-            _icon.style.width = Length.Percent(100f);
-            _icon.style.height = Length.Percent(100f);
             _icon.style.display = DisplayStyle.None;
-
-            // 🦾 ФРОНТЕНД-ХАК: Идеально центрируем иконку-значок внутри ячейки
-            _icon.style.unityTextAlign = TextAnchor.MiddleCenter;
-            _icon.style.fontSize = 39; // Оптимальный размер для Nerd Font глифов в ячейке 40х40
-            _icon.style.color = new Color(187, 154, 247, 1);
-
             Add(_icon);
             
             _cooldownOverlay = new VisualElement();
             _cooldownOverlay.AddToClassList("slot-cooldown-overlay");
-            _cooldownOverlay.style.width = 40;
-            _cooldownOverlay.style.height = 40;
-            _cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
+            //_cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
+            _cooldownOverlay.generateVisualContent += DrawRadialCooldown;
             Add(_cooldownOverlay);
             
             _bindLabel = new Label();
@@ -87,7 +79,8 @@ namespace ProjectTowerRpg.Core.UI.Components
         /// Универсальный метод вспышки ячейки (Wow-канон)
         /// </summary>
         public void FlashSlot(int targetGlobalIndex)
-        {
+        {   
+            if (!_isActionBarSlot) return;
             // Каждая ячейка на экране сама проверяет Си-паспорт. Не совпало — молча выходим!
             if (this.SlotIndex != targetGlobalIndex) return;
 
@@ -119,7 +112,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 {
                     Glyph = _icon.text,
                     Color = _icon.style.color.value,
-                    FontSize = 39f
+                    Classes = _icon.GetClasses().ToList()
                 },
                 SourceEntity = ContainerEntity
             };
@@ -138,10 +131,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             int amount = 1,
             bool isActionBar = false,
             string bindingText = "",
-            CastValidationResult validation = default)
+            CastValidationResult validation = default
+        )
         {
             _itemId = itemId;
             _amount = amount;
+            _isActionBarSlot = isActionBar;
             SlotIndex = index;
             ClearVisual();
 
@@ -152,20 +147,12 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             _icon.style.display = DisplayStyle.Flex;
 
-            string quality = "common";
             string iconCharacter = "";
 
             var abilityConfig = AbilitiesDatabase.GetAbility(itemId);
             if (abilityConfig != null)
             {
-                quality = abilityConfig.identity?.@class ?? "common";
-                //_icon.style.backgroundColor = SolarizedOsakaNight.GetAbilityColor(quality);
-                _icon.style.color = SolarizedOsakaNight.GetAbilityColor(quality);
-                _icon.style.borderTopColor = SolarizedOsakaNight.GetAbilityColor(quality);
-                _icon.style.borderRightColor = SolarizedOsakaNight.GetAbilityColor(quality);
-                _icon.style.borderBottomColor = SolarizedOsakaNight.GetAbilityColor(quality);
-                _icon.style.borderLeftColor = SolarizedOsakaNight.GetAbilityColor(quality);
-                
+                SetAbilityClass(abilityConfig.identity?.@class ?? "");                               
                 iconCharacter = abilityConfig.visuals?.icon_char ?? "";
             }
             else
@@ -173,13 +160,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 var itemConfig = ItemsDatabase.GetItem(itemId);
                 if (itemConfig != null)
                 {
-                    quality = itemConfig.identity?.quality ?? "common";
-                    //_icon.style.backgroundColor = SolarizedOsakaNight.GetQualityColor(quality);
-                    _icon.style.color = SolarizedOsakaNight.GetQualityColor(quality);
-                    _icon.style.borderTopColor = SolarizedOsakaNight.GetQualityColor(quality);
-                    _icon.style.borderRightColor = SolarizedOsakaNight.GetQualityColor(quality);
-                    _icon.style.borderBottomColor = SolarizedOsakaNight.GetQualityColor(quality);
-                    _icon.style.borderLeftColor = SolarizedOsakaNight.GetQualityColor(quality);
+                    SetItemQualityClass(itemConfig.identity?.quality ?? "common");
                     iconCharacter = itemConfig.visuals?.icon_char ?? "";
                 }
             }
@@ -201,9 +182,10 @@ namespace ProjectTowerRpg.Core.UI.Components
             // Экшен-бар: бинд-клавиша и валидация
             if (isActionBar)
             {
+                _bindLabel.style.display = DisplayStyle.Flex;
                 _bindLabel.text = bindingText;
-                _bindLabel.style.color = SolarizedOsakaNight.Text;
-                _icon.style.opacity = 1.0f;
+                _bindLabel.style.color = SolarizedOsakaNight.Yellow;
+                //_icon.style.opacity = 1.0f;
 
                 ApplyValidation(validation);
             }
@@ -211,10 +193,57 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 _bindLabel.style.display = DisplayStyle.None;
                 _bindLabel.text = "";
-                _bindLabel.style.color = SolarizedOsakaNight.Text;
-                _icon.style.opacity = 1.0f;
+                _bindLabel.style.color = SolarizedOsakaNight.Yellow;
+                //_icon.style.opacity = 1.0f;
                 ResetValidationStyle();
             }
+        }
+
+        private void SetAbilityClass(string classType)
+        {
+            // Удаляем старый класс
+            _icon.RemoveFromClassList("ability-mage");
+            _icon.RemoveFromClassList("ability-warrior");
+            _icon.RemoveFromClassList("ability-rogue");
+            _icon.RemoveFromClassList("ability-priest");
+            
+            // Добавляем новый
+            string abilityClass = classType?.ToLower() switch
+            {
+                "mage" => "ability-mage",
+                "warrior" => "ability-warrior",
+                "rogue" => "ability-rogue",
+                "priest" => "ability-priest",
+                _ => "ability-default"
+            };
+            
+            if (!string.IsNullOrEmpty(abilityClass))
+                _icon.AddToClassList(abilityClass);
+        }
+
+        private void SetItemQualityClass(string quality)
+        {
+            // Удаляем старые классы
+            _icon.RemoveFromClassList("item-common");
+            _icon.RemoveFromClassList("item-uncommon");
+            _icon.RemoveFromClassList("item-rare");
+            _icon.RemoveFromClassList("item-epic");
+            _icon.RemoveFromClassList("item-legendary");
+            _icon.RemoveFromClassList("item-artifact");
+            
+            // Добавляем новый
+            string qualityClass = quality?.ToLower() switch
+            {
+                "rare" => "item-rare",
+                "uncommon" => "item-uncommon",
+                "epic" => "item-epic",
+                "legendary" => "item-legendary",
+                "artifact" => "item-artifact",
+                _ => "item-common"
+            };
+            
+            if (!string.IsNullOrEmpty(qualityClass))
+                _icon.AddToClassList(qualityClass);
         }
 
         /// <summary>
@@ -234,6 +263,46 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
 
+        public void SetGlobalCooldown(float gcdRemaining, float gcdDuration) 
+    {
+        // 1. Быстрая проверка на отсутствие кулдауна
+        if (gcdRemaining <= 0f || gcdDuration <= 0f)
+        {
+            _gcdProgress = 0f;
+            _cooldownOverlay.MarkDirtyRepaint(); // Очищаем круг
+            return;
+        }
+
+        // 2. Тупо пишем прогресс (0.0..1.0) напрямую из аргументов вашей ECS-системы
+        _gcdProgress = Mathf.Clamp01(gcdRemaining / gcdDuration);
+        
+        // 3. Пингуем UI Toolkit, что геометрию пора обновить на этом кадре
+        _cooldownOverlay.MarkDirtyRepaint();
+    }
+
+        private void DrawRadialCooldown(MeshGenerationContext context)
+    {
+        // Если кулдауна нет — ничего не рисуем (оверлей полностью прозрачный)
+        if (_gcdProgress <= 0f) return;
+        
+        var painter = context.painter2D;
+        painter.fillColor = new Color(0f, 0f, 0f, 0.6f); // 60% затемнения
+        
+        Rect rect = _cooldownOverlay.contentRect;
+        Vector2 center = rect.center;
+        
+        // Считаем радиус с запасом под углы квадратной кнопки
+        float radius = Mathf.Sqrt(rect.width * rect.width + rect.height * rect.height) * 0.5f;
+        
+        float startAngle = -90f; // 12 часов дня
+        float sweepAngle = _gcdProgress * 360f; // Сектор уменьшается по часовой стрелке
+        
+        painter.BeginPath();
+        painter.MoveTo(center);
+        painter.Arc(center, radius, startAngle, startAngle + sweepAngle);
+        painter.LineTo(center);
+        painter.Fill();
+    }
         /// <summary>
         /// Применяет визуальные эффекты валидации
         /// </summary>
@@ -242,20 +311,19 @@ namespace ProjectTowerRpg.Core.UI.Components
             switch (validation.Reason)
             {
                 case "OUT_OF_RANGE":
-                    _bindLabel.style.color = Color.red;
-                     var currentColor = _icon.style.color.value;
-                    _icon.style.color = currentColor.Darken(0.4f).Desaturate(0.6f);
+                    _icon.AddToClassList("slot-icon-out-of-range");
                     _bindLabel.style.color = SolarizedOsakaNight.Red;
                     break;
 
                 case "NO_MANA":
-                    _icon.style.opacity = 0.4f;
-                    _bindLabel.style.color = SolarizedOsakaNight.Red;
+                    _icon.AddToClassList("slot-icon-no-mana");
+                    _bindLabel.style.color = SolarizedOsakaNight.Blue;
                     break;
 
                 case "INVALID_TARGET":
                 case "NO_TARGET":
                     _bindLabel.style.color = SolarizedOsakaNight.Red;
+                    _icon.AddToClassList("slot-icon-invalid-target");
                     break;
             }
         }
@@ -265,9 +333,13 @@ namespace ProjectTowerRpg.Core.UI.Components
         /// </summary>
         private void ResetValidationStyle()
         {
-            _icon.style.backgroundColor = Color.clear; 
-            _icon.style.opacity = 1.0f;
-            _bindLabel.style.color = Color.white;
+            _icon.RemoveFromClassList("slot-icon-out-of-range");
+            _icon.RemoveFromClassList("slot-icon-no-mana");
+            _icon.RemoveFromClassList("slot-icon-invalid-target");
+            
+            _icon.style.backgroundColor = Color.clear;
+            //_icon.style.opacity = 1.0f;
+            _bindLabel.style.color = Color.yellow;
         }
 
         // Метод Refresh() больше не лезет в ECS! Сетка сама обновит слот, когда прилетит буфер.
@@ -287,7 +359,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             _amountLabel.style.display = DisplayStyle.None;
             _durationLabel.text = "";
             _durationLabel.style.display = DisplayStyle.None;
-            _cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
+            //_cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
             RemoveFromClassList("disabled");
             ResetValidationStyle();
         }

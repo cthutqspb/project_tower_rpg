@@ -46,17 +46,10 @@ namespace ProjectTowerRpg.Core.UI
 
             _ghost = new Label();
             _ghost.name = "drag-ghost";
-            _ghost.AddToClassList("slot");
-            _ghost.AddToClassList("slot-icon");
             _ghost.style.width = 48;
             _ghost.style.height = 48;
-            _ghost.style.unityTextAlign = TextAnchor.MiddleCenter;
             _ghost.style.display = DisplayStyle.None;
             _ghost.style.backgroundColor = SolarizedOsakaNight.Surface.SetAlpha(0.85f);
-            _ghost.style.borderTopWidth = 2;
-            _ghost.style.borderRightWidth = 2;
-            _ghost.style.borderBottomWidth = 2;
-            _ghost.style.borderLeftWidth = 2;
             _ghost.pickingMode = PickingMode.Ignore;
 
             _amountLabel = new Label();
@@ -81,8 +74,8 @@ namespace ProjectTowerRpg.Core.UI
             if (mouse == null) return;
 
             Vector2 mousePos = mouse.position.ReadValue();
-            _ghost.style.left = mousePos.x - 24;
-            _ghost.style.top = Screen.height - mousePos.y - 24;
+            _ghost.style.left = mousePos.x;
+            _ghost.style.top = Screen.height - mousePos.y;
 
             if (!mouse.leftButton.isPressed)
             {
@@ -203,42 +196,41 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         public void StartDrag(DragData data)
-{
-    if (_activeDrag != null) CancelDrag();
+        {
+            if (_activeDrag != null) CancelDrag();
 
-    _activeDrag = data;
+            _activeDrag = data;
 
-    // ✅ ПОДНИМАЕМ НА ВЕРХ
-    _ghost.BringToFront();
-    _ghost.style.position = Position.Absolute;
+            // ✅ ПОДНИМАЕМ НА ВЕРХ
+            _ghost.BringToFront();
+            _ghost.style.position = Position.Absolute;
 
-    // ✅ СНАЧАЛА ОБНОВЛЯЕМ ПОЗИЦИЮ
-    var mouse = Mouse.current;
-    if (mouse != null)
-    {
-        Vector2 mousePos = mouse.position.ReadValue();
-        _ghost.style.left = mousePos.x - 24;
-        _ghost.style.top = Screen.height - mousePos.y - 24;
-    }
+            // ✅ СНАЧАЛА ОБНОВЛЯЕМ ПОЗИЦИЮ
+            var mouse = Mouse.current;
+            if (mouse != null)
+            {
+                Vector2 mousePos = mouse.position.ReadValue();
+                _ghost.style.left = mousePos.x;
+                _ghost.style.top = Screen.height - mousePos.y;
+            }
 
-    // ✅ ПОТОМ УСТАНАВЛИВАЕМ ДАННЫЕ
-    _ghost.text = data.Icon.Glyph;
-    _ghost.style.color = data.Icon.Color;
-    _ghost.style.fontSize = data.Icon.FontSize;
-    _ghost.style.borderTopColor = data.Icon.Color;
-    _ghost.style.borderRightColor = data.Icon.Color;
-    _ghost.style.borderBottomColor = data.Icon.Color;
-    _ghost.style.borderLeftColor = data.Icon.Color;
+            foreach (var className in data.Icon.Classes)
+            {
+                _ghost.AddToClassList(className);
+            }
 
-    // ✅ ПОТОМ ПОКАЗЫВАЕМ
-    _ghost.style.display = DisplayStyle.Flex;
-    _ghost.style.opacity = 1;
+            // ✅ ПОТОМ УСТАНАВЛИВАЕМ ДАННЫЕ
+            _ghost.text = data.Icon.Glyph;
+            
+            // ✅ ПОТОМ ПОКАЗЫВАЕМ
+            _ghost.style.display = DisplayStyle.Flex;
+            _ghost.style.opacity = 1;
 
-    _amountLabel.text = data.Amount > 1 ? data.Amount.ToString() : "";
-    _amountLabel.style.display = data.Amount > 1 ? DisplayStyle.Flex : DisplayStyle.None;
+            _amountLabel.text = data.Amount > 1 ? data.Amount.ToString() : "";
+            _amountLabel.style.display = data.Amount > 1 ? DisplayStyle.Flex : DisplayStyle.None;
 
-    Debug.Log($"[DragManager]: Драг начат {data.ItemId} x{data.Amount}");
-}
+            Debug.Log($"[DragManager]: Драг начат {data.ItemId} x{data.Amount}");
+        }
         public void Finish(object targetComponent, int targetSlot)
         {
             if (_activeDrag == null) return;

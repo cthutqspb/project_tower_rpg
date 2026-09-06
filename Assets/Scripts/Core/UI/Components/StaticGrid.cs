@@ -47,8 +47,8 @@ namespace ProjectTowerRpg.Core.UI.Components
                     name = $"slot-{i}",
                     style =
                     {
-                        width = 40,
-                        height = 40,
+                        width = 42,
+                        height = 42,
                         marginTop = 2,
                         marginRight = 2,
                         marginBottom = 2,
@@ -93,7 +93,12 @@ namespace ProjectTowerRpg.Core.UI.Components
         // =========================================================================
         // ⚔️ ПОТОК ИНВЕНТАРЯ (Вызывается автоматически для DynamicBuffer<ItemSlot>)
         // =========================================================================
-        public void UpdateFromBuffer(DynamicBuffer<ItemSlot> slots, bool isOnlyValidation = true)
+        public void UpdateFromBuffer(
+            DynamicBuffer<ItemSlot> slots,
+            bool isOnlyValidation = true,
+            float gcdRemaining = 0f,
+            float gcdDuration = 0f
+        )
         {
             Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} предметов инвентаря.");
             
@@ -115,7 +120,12 @@ namespace ProjectTowerRpg.Core.UI.Components
         // =========================================================================
         // 🔮 РЕЛЬСЫ ЭКШЕН-БАРА (Слепо и реактивно рендерит ВСЕ хоткеи 0..23)
         // =========================================================================
-        public void UpdateFromBuffer(DynamicBuffer<ActionBarSlot> slots, bool isOnlyValidation = false)
+        public void UpdateFromBuffer(
+            DynamicBuffer<ActionBarSlot> slots,
+            bool isOnlyValidation = false,
+            float gcdRemaining = 0f,
+            float gcdDuration = 0f
+        )
         {
             var world = World.DefaultGameObjectInjectionWorld;
             if (world == null) return;
@@ -157,8 +167,9 @@ namespace ProjectTowerRpg.Core.UI.Components
                 if (isOnlyValidation)
                 {
                     _slots[i].SetValidation(validationResult);
+                    _slots[i].SetGlobalCooldown(gcdRemaining, gcdDuration);
                     continue;
-                }
+                }             
 
                 // ✅ ПОЛНЫЙ РЕНДЕРИНГ (иконка, количество, бинд)
                 int displayAmount = 1;
@@ -177,7 +188,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                         }
                     }
                 }
-
+                
                 string bindingText = slotData.KeyBinding.ToString();
                 _slots[i].SetData(abilityId, absoluteIndex, displayAmount, true, bindingText, validationResult);
             }

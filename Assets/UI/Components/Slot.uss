@@ -1,25 +1,155 @@
-/* Дублируем эффект для клавиатурного инпута */
+:root {
+    /* Цвета классов способностей (только для иконки) */
+    --ability-mage-color: var(--osaka-cyan);
+    --ability-warrior-color: var(--osaka-red);
+    --ability-rogue-color: var(--osaka-yellow);
+    --ability-priest-color: var(--osaka-text);
+    --ability-default-color: var(--osaka-text-dim);
+
+    /* Состояния валидации */
+    --state-out-of-range-opacity: 0.6;
+    --state-no-mana-opacity: 0.4;
+    --state-invalid-target-opacity: 0.5;
+
+
+    /* Предметы */
+    --item-common-color: var(--osaka-text);
+    --item-uncommon-color: var(--osaka-green);
+    --item-rare-color: var(--osaka-blue);
+    --item-epic-color: var(--osaka-purple);
+    --item-legendary-color: var(--osaka-orange);
+    --item-artifact-color: var(--osaka-yellow);
+}
+
+.ability-mage {
+    color: var(--ability-mage-color);
+    border-color: var(--ability-mage-color);
+}
+
+.ability-warrior {
+    color: var(--ability-warrior-color);
+    border-color: var(--ability-warrior-color);
+}
+
+.ability-rogue {
+    color: var(--ability-rogue-color);
+    border-color: var(--ability-rogue-color);
+}
+
+.ability-priest {
+    color: var(--ability-priest-color);
+    border-color: var(--ability-priest-color);
+}
+
+.ability-default {
+    color: var(--ability-default-color);
+    border-color: var(--ability-default-color);
+}
+
+/* Предметы */
+
+.item-common {
+    color: var(--item-common-color);
+    border-color: var(--item-common-color);
+}
+
+.item-uncommon {
+    color: var(--item-uncommon-color);
+    border-color: var(--item-uncommon-color);
+}
+
+.item-rare {
+    color: var(--item-rare-color);
+    border-color: var(--item-rare-color);
+}
+
+.item-epic {
+    color: var(--item-epic-color);
+    border-color: var(--item-epic-color);
+}
+
+.item-legendary {
+    color: var(--item-legendary-color);
+    border-color: var(--item-legendary-color);
+}
+
+.item-artifact {
+    color: var(--item-artifact-color);
+    border-color: var(--item-artifact-color);
+}
+
 .slot {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   margin: 0;
   padding: 0;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--osaka-bg);
-  box-sizing: border-box;
+  border-width: 1px;
+  border-color: var(--osaka-surface);
 }
 
 .slot-icon {
-  width: 100%;
-  height: 100%;
+  width: 42px;
+  height: 42px;
   border-width: 2px;
-  border-style: solid;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-size: 39px;
+  text-align: center;
+  -unity-text-align: middle-center;
+  translate: -50% -50%;
+  transition-property: color, border-color;
+  transition-duration: .127s;
+  transition-timing-function: ease;
 }
 
-.slot-active-flash {
-    scale: 0.92;
-    background-color: rgba(122, 162, 247, 0.4);
-    border-color: #7aa2f7;
+/* ============================================================
+   СОСТОЯНИЯ ВАЛИДАЦИИ (как в WoW)
+   ============================================================ */
+
+/* OUT_OF_RANGE - затемнение + красная рамка */
+.slot-icon-out-of-range {
+    opacity: var(--state-out-of-range-opacity);
+    border-width: 3px;
+    border-color: var(--osaka-bg);
 }
+
+/* NO_MANA - сильное затемнение + синяя рамка */
+.slot-icon-no-mana {
+    opacity: var(--state-no-mana-opacity);
+    border-width: 3px;
+    border-color: var(--osaka-bg);
+}
+
+/* INVALID_TARGET - затемнение + желтая рамка */
+.slot-icon-invalid-target {
+    opacity: var(--state-invalid-target-opacity);
+    border-width: 3px;
+    border-color: var(--osaka-bg);
+}
+.slot-active-flash {
+  scale: 0.92;
+  background-color: rgba(122, 162, 247, 0.4);
+  border-color: #7aa2f7;
+}
+
+.slot-bind-label {
+  position: absolute;
+  bottom: 0;
+  font-size: 18px;
+  right: 2px;
+  transition: .127s;
+  -unity-text-outline-width: 1px;
+  -unity-text-outline-color: #000000;
+  text-shadow: 1px 1px 0px #000000, -1px -1px 0px #000000, 1px -1px 0px #000000, -1px 1px 0px #000000;
+}
+
+.slot-cooldown-overlay {
+  display: flex;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+}
+
 

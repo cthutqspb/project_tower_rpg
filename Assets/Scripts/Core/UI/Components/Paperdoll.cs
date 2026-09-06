@@ -82,7 +82,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
         
-        public void UpdateFromBuffer(DynamicBuffer<ItemSlot> slots, bool isOnlyValidation = true)
+        public void UpdateFromBuffer(
+            DynamicBuffer<ItemSlot> slots,
+            bool isOnlyValidation = true,
+            float gcdRemaining = 0f,
+            float gcdDuration = 0f
+        )
         {
             Debug.Log($"[Paperdoll] UpdateFromBuffer: {slots.Length} слотов экипировки");
             
