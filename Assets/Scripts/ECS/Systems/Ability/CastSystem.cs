@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using ProjectTowerRpg.ECS.Components;
@@ -39,7 +40,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         {
                             var abilityCfg = AbilitiesDatabase.GetAbility(abilityIdStr);
                             
-                            // ⏳ ВЗВОД ГКД НА СЕРВЕРЕ (Изолированный чистый Си-блок)
+                            // ⏳ ВЗВОД ГКД НА СЕРВЕРЕ (Твой чистый изолированный Си-блок)
                             if (abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.triggers_gcd)
                             {
                                 float calculatedGcd = 1.2f; 
@@ -54,12 +55,53 @@ namespace ProjectTowerRpg.ECS.Systems
                                     em.SetComponentData(casterEntity, combat);
                                     Debug.Log($"⏳ [CastSystem]: На боевой стейт {casterEntity} наложено ГКД: {calculatedGcd}с.");
                                 }
-                            } // Скобка закрылась! Блок взвода ГКД полностью изолирован.
+                            }
 
-                            // WoW-КАНОН: На старте обычного каста ману НЕ списываем! Только взводим стейт!
+                            // =========================================================================
+                            // 🎯 ВЗВОД ОБЫЧНОГО КУЛДАУНА ДЛЯ МГНОВЕННЫХ СПОСОБНОСТЕЙ (WoW-канон)
+                            // =========================================================================
                             float castTime = abilityCfg != null && abilityCfg.parameters != null 
                                 ? abilityCfg.parameters.cast_time 
                                 : 1.7f;
+
+                            // Если у способности есть КД, и она мгновенная — вешаем КД прямо сейчас
+                            if (abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.cooldown > 0f)
+                            {
+                                if (castTime <= 0f) // Только для Instant способностей!
+                                {
+                                    if (SystemAPI.HasBuffer<ActiveCooldownElement>(casterEntity))
+                                    {
+                                        var cooldownsBuffer = SystemAPI.GetBuffer<ActiveCooldownElement>(casterEntity);
+                                        
+                                        // Извлекаем CooldownGroup (например, из конфига или как хэш от AbilityId)
+                                        FixedString32Bytes cdGroup = abilityCfg.parameters.cooldown_group ?? abilityIdStr;
+                                        float cdDuration = abilityCfg.parameters.cooldown;
+
+                                        // Проверяем, нет ли уже такого КД в буфере, чтобы не дублировать
+                                        bool alreadyHasCd = false;
+                                        for (int c = 0; c < cooldownsBuffer.Length; c++)
+                                        {
+                                            if (cooldownsBuffer[c].CooldownGroup == cdGroup)
+                                            {
+                                                alreadyHasCd = true;
+                                                break;
+                                            }
+                                        }
+
+                                        if (!alreadyHasCd)
+                                        {
+                                            cooldownsBuffer.Add(new ActiveCooldownElement
+                                            {
+                                                CooldownGroup = cdGroup,
+                                                Remaining = cdDuration,
+                                                Duration = cdDuration
+                                            });
+                                            Debug.Log($"🎯 [CastSystem]: На юнита {casterEntity} наложен КД группы '{cdGroup}': {cdDuration}с.");
+                                        }
+                                    }
+                                }
+                            }
+                            // =========================================================================
 
                             bool isChanneling = abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.is_channeling;
 
@@ -149,6 +191,49 @@ namespace ProjectTowerRpg.ECS.Systems
                             Debug.Log($"🧪 [CastSystem]: Юнит {entity} успешно ДОКАСТОВАЛ '{finishedAbilityId}' и потратил {costValue} {abilityCfg.cost.resource}. Осталось: {resources.Current}");
                         }
                     }
+
+                    // =========================================================================
+                    // 🎯 ВЗВОД ОБЫЧНОГО КУЛДАУНА ПОСЛЕ УСПЕШНОГО КАСTА (WoW-канон)
+                    // =========================================================================
+                    // Проверяем, есть ли у заклинания КД и кастовалось ли оно (для инстантов КД взвелся еще в Потоке 1)
+                    if (abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.cooldown > 0f)
+                    {
+                        float castTime = abilityCfg.parameters.cast_time;
+                        if (castTime > 0f) // Только для заклинаний с полоской каста!
+                        {
+                            if (SystemAPI.HasBuffer<ActiveCooldownElement>(entity))
+                            {
+                                var cooldownsBuffer = SystemAPI.GetBuffer<ActiveCooldownElement>(entity);
+                                
+                                // Вытаскиваем ID группы КД (если пусто — используем сам ID способности)
+                                FixedString32Bytes cdGroup = abilityCfg.parameters.cooldown_group ?? finishedAbilityId;
+                                float cdDuration = abilityCfg.parameters.cooldown;
+
+                                // Защита от дублирования таймеров
+                                bool alreadyHasCd = false;
+                                for (int c = 0; c < cooldownsBuffer.Length; c++)
+                                {
+                                    if (cooldownsBuffer[c].CooldownGroup == cdGroup)
+                                    {
+                                        alreadyHasCd = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!alreadyHasCd)
+                                {
+                                    cooldownsBuffer.Add(new ActiveCooldownElement
+                                    {
+                                        CooldownGroup = cdGroup,
+                                        Remaining = cdDuration,
+                                        Duration = cdDuration
+                                    });
+                                    Debug.Log($"🎯 [CastSystem]: Спелл дочитан! На юнита {entity} наложен КД группы '{cdGroup}': {cdDuration}с.");
+                                }
+                            }
+                        }
+                    }
+                    // =========================================================================
 
                     // ⚡ ЗДЕСЬ РОЖДАЕТСЯ ExecuteSpellEvent / Вылет снаряда в CombatSystem!
                     Debug.Log($"🔥 [CastSystem]: Снаряд заклинания '{finishedAbilityId}' официально вылетел из рук {entity}!");

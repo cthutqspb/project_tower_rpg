@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
@@ -97,7 +98,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             DynamicBuffer<ItemSlot> slots,
             bool isOnlyValidation = true,
             float gcdRemaining = 0f,
-            float gcdDuration = 0f
+            float gcdDuration = 0f,
+            DynamicBuffer<ActiveCooldownElement> cooldowns = default
         )
         {
             Debug.Log($"[StaticGrid] UpdateFromBuffer: {slots.Length} предметов инвентаря.");
@@ -117,14 +119,15 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
 
-        // =========================================================================
+                // =========================================================================
         // 🔮 РЕЛЬСЫ ЭКШЕН-БАРА (Слепо и реактивно рендерит ВСЕ хоткеи 0..23)
         // =========================================================================
         public void UpdateFromBuffer(
             DynamicBuffer<ActionBarSlot> slots,
             bool isOnlyValidation = false,
             float gcdRemaining = 0f,
-            float gcdDuration = 0f
+            float gcdDuration = 0f,
+            DynamicBuffer<ActiveCooldownElement> cooldowns = default
         )
         {
             var world = World.DefaultGameObjectInjectionWorld;
@@ -144,10 +147,10 @@ namespace ProjectTowerRpg.Core.UI.Components
             // Дополнительно страхуем чанки через легальный Си-флаг isReadOnly: true.
             if (!isOnlyValidation && _boundEntity != Entity.Null && em.Exists(_boundEntity) && em.HasComponent<BuffersLinkComponent>(_boundEntity))
             {
-                Entity invEntity = em.GetComponentData<BuffersLinkComponent>(_boundEntity).Inventory;
-                if (invEntity != Entity.Null && em.Exists(invEntity) && em.HasBuffer<ItemSlot>(invEntity))
+                Entity inventoryEntity = em.GetComponentData<BuffersLinkComponent>(_boundEntity).Inventory;
+                if (inventoryEntity != Entity.Null && em.Exists(inventoryEntity) && em.HasBuffer<ItemSlot>(inventoryEntity))
                 {
-                    inventorySlots = em.GetBuffer<ItemSlot>(invEntity, isReadOnly: true);
+                    inventorySlots = em.GetBuffer<ItemSlot>(inventoryEntity, isReadOnly: true);
                     hasValidInventory = true;
                 }
             }
@@ -157,17 +160,62 @@ namespace ProjectTowerRpg.Core.UI.Components
                 int absoluteIndex = i + _startIndex;
                 var slotData = slots[absoluteIndex];
                 var abilityId = slotData.AbilityId.ToString();
-                if (string.IsNullOrEmpty(abilityId)) continue;
+                
+                // 🦾 СИ-ГВАРД НА ПУСТОЙ СЛОТ: Очищаем зависший кулдаун, если скилл утащили драгом
+                if (string.IsNullOrEmpty(abilityId)) 
+                {
+                    // Мгновенно тушим «часики» кулдауна на этой ячейке
+                    _slots[i].SetCooldown(0f, 0f, false);
+                    
+                    // Если это ПОЛНЫЙ рендеринг (а не просто валидация), принудительно затираем старый визуал
+                    if (!isOnlyValidation)
+                    {
+                        _slots[i].ClearVisual();
+                    }
+                    continue; // Теперь безопасно скипаем пустой слот
+                }
 
                 // ✅ ВАЛИДАЦИЯ (всегда)
                 var validationResult = AbilityValidator.CheckCastPossibility(abilityId, _boundEntity, em);
 
-                // ✅ ЕСЛИ ТОЛЬКО ВАЛИДАЦИЯ — ОБНОВЛЯЕМ ТОЛЬКО ЦВЕТ/ПРОЗРАЧНОСТЬ
+                // 🎯 ВЫЧИСЛЯЕМ ЛИЧНЫЙ КУЛДАУН СПОСОБНОСТЕЙ
+                float abilityCooldownRemaining = 0f;
+                float abilityCooldownDuration = 0f;
+
+                // 🦾 СИ-ОПТИМИЗАЦИЯ: Убрали ненадежную проверку типа слота при драге.
+                // Проверяем КД по базе для ЛЮБОГО непустого abilityId.
+                if (cooldowns.IsCreated)
+                {
+                    var abilityCfg = AbilitiesDatabase.GetAbility(abilityId);
+                    if (abilityCfg != null && abilityCfg.parameters != null)
+                    {
+                        // Извлекаем CooldownGroup из базы (или юзаем сам abilityId, если группа не задана)
+                        Unity.Collections.FixedString32Bytes cooldownGroup = abilityCfg.parameters.cooldown_group ?? abilityId;
+
+                        for (int c = 0; c < cooldowns.Length; c++)
+                        {
+                            if (cooldowns[c].CooldownGroup == cooldownGroup)
+                            {
+                                abilityCooldownRemaining = cooldowns[c].Remaining;
+                                abilityCooldownDuration = cooldowns[c].Duration;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // ⚔️ WoW-ПРИОРИТЕТ: Выбираем то, что остывает ДОЛЬШЕ (ГКД или собственный КД заклинания)
+                float cooldownRemaining = gcdRemaining > abilityCooldownRemaining ? gcdRemaining : abilityCooldownRemaining;
+                float cooldownDuration = cooldownRemaining == gcdRemaining ? gcdDuration : abilityCooldownDuration;
+                bool isGcdActive = cooldownRemaining == gcdRemaining;
+
+                // ✅ ЕСЛИ ТОЛЬКО ВАЛИДАЦИЯ — ОБНОВЛЯЕМ ТОЛЬКО ЦВЕТ/ПРОЗРАЧНОСТЬ И КУЛДАУН
                 // Процессор наглухо скипает весь тяжелый код ниже, инвентарь девственно чист!
                 if (isOnlyValidation)
                 {
                     _slots[i].SetValidation(validationResult);
-                    _slots[i].SetGlobalCooldown(gcdRemaining, gcdDuration);
+                    // Передаем вычисленный кулдаун и флаг типа КД в твой обновленный графический метод слота
+                    _slots[i].SetCooldown(cooldownRemaining, cooldownDuration, isGcdActive);
                     continue;
                 }             
 
@@ -191,6 +239,9 @@ namespace ProjectTowerRpg.Core.UI.Components
                 
                 string bindingText = slotData.KeyBinding.ToString();
                 _slots[i].SetData(abilityId, absoluteIndex, displayAmount, true, bindingText, validationResult);
+                
+                // 🦾 ПРАВИЛЬНЫЙ НАКАТ КД: Мы ВСЕГДА накатываем кулдаун в конце SetData.
+                _slots[i].SetCooldown(cooldownRemaining, cooldownDuration, isGcdActive);
             }
         }
     }

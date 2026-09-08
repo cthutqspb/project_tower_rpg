@@ -206,10 +206,11 @@
       }
     },
     "parameters": {
+      "cooldown_group": "frost_armor",
       "range": 0.0,
       "speed": 0.0,
       "cast_time": 0.0,
-      "cooldown": 30.0,
+      "cooldown": 7.0,
       "triggers_gcd": true,
       "is_homing": false,
       "requires_target": false
@@ -220,7 +221,7 @@
     },
     "cost": {
       "resource": "mana",
-      "value": 5.0
+      "value": 7.5
     },
     "effects": [
       {

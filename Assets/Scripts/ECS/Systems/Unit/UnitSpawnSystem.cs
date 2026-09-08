@@ -327,7 +327,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     var barBuffer = em.AddBuffer<ActionBarSlot>(unitEntity);
 
                     for (int k = 0; k < 24; k++)
-                    {
+ {
                         // Вычисляем локальный Си-хоткей на базе сквозного индекса (0..23)
                         int localIndex = k % 12;
                         string defaultKey = localIndex switch
@@ -346,11 +346,18 @@ namespace ProjectTowerRpg.ECS.Systems
                         {
                             barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "frostbolt", SlotType = "spell", KeyBinding = defaultKey });
                         }
+                        else if (k == 2)
+                        {
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "frost_armor", SlotType = "spell", KeyBinding = defaultKey });
+                        }
                         else
                         {
                             barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "", SlotType = "", KeyBinding = defaultKey });
                         }
                     }
+
+                    // 🎯 ИНИЦИАЛИЗАЦИЯ КУЛДАУНОВ ЮНИТА
+                    em.AddBuffer<ActiveCooldownElement>(unitEntity);
 
                     Debug.Log("🔮 [ФАБРИКА]: Сквозной массив хоткеев (0..23) успешно вшит в буфер игрока!");
                 }   

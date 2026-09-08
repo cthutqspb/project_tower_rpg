@@ -1,9 +1,5 @@
 using UnityEngine;
-using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Transforms;
-using ProjectTowerRpg.ECS.Components;
-
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -41,6 +37,9 @@ namespace ProjectTowerRpg.Core.Abilities
             // ⏳ Слой А: ГКД (Высший приоритет спам-защиты)
             var gcdResult = CheckGCD(ability, caster, em);
             if (!gcdResult.IsPossible) return gcdResult;
+
+            var cooldownResult = CheckCooldown(ability, caster, em);
+            if (!cooldownResult.IsPossible) return cooldownResult;
 
             // 🧪 Слой Б: Стоимость ресурсов (Мана / Энергия / Ярость)
             var resourceResult = CheckResource(ability, caster, em);
@@ -96,6 +95,38 @@ namespace ProjectTowerRpg.Core.Abilities
             }
 
             // Глобальный кулдаун остыл, Meadows-конвейер чист!
+            return new CastValidationResult { IsPossible = true, Reason = null };
+        }
+
+        private static CastValidationResult CheckCooldown(AbilityConfig ability, Entity caster, EntityManager em)
+        {
+            // Если у способности в базе вообще нет КД, проверку скипаем со свистом
+            if (ability.parameters == null || ability.parameters.cooldown <= 0f)
+                return new CastValidationResult { IsPossible = true, Reason = null };
+
+            // Определяем целевую группу КД. Если в конфиге null — падаем на дефолтный abilityId
+            FixedString32Bytes cooldownGroup = ability.parameters.cooldown_group;
+            
+            if (em.HasBuffer<ActiveCooldownElement>(caster))
+            {
+                var cooldownsBuffer = em.GetBuffer<ActiveCooldownElement>(caster, isReadOnly: true);        
+                // Плоский Си-поиск по буферу активных КД
+                for (int i = 0; i < cooldownsBuffer.Length; i++)
+                {
+                    var cooldownElement = cooldownsBuffer[i];
+                    
+                    // Если нашли нашу группу и таймер еще тикает — наглухо блокируем конвейер!
+                    if (cooldownElement.CooldownGroup == cooldownGroup && cooldownElement.Remaining > 0f)
+                    {
+                        return new CastValidationResult 
+                        { 
+                            IsPossible = false, 
+                            Reason = "COOLDOWN_ACTIVE" 
+                        };
+                    }
+                }
+            }
+
             return new CastValidationResult { IsPossible = true, Reason = null };
         }
 
@@ -203,7 +234,7 @@ namespace ProjectTowerRpg.Core.Abilities
                     float3 targetPos = em.GetComponentData<LocalTransform>(target).Position;
 
                     // Вычисляем чистую дистанцию между точками в ОЗУ мира
-                    float dist = math.distance(casterPos, targetPos);
+                    float distance = math.distance(casterPos, targetPos);
 
                     // Извлекаем базовый ренж из Data-Driven параметров конфига
                     float baseRange = ability.parameters.range;
@@ -232,7 +263,7 @@ namespace ProjectTowerRpg.Core.Abilities
                     }
 
                     // Если цель разорвала Meadows-дистанцию — Отказ!
-                    if (dist > maxAllowedRange)
+                    if (distance > maxAllowedRange)
                     {
                         return new CastValidationResult { IsPossible = false, Reason = "OUT_OF_RANGE" };
                     }

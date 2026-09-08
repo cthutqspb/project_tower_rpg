@@ -15,6 +15,14 @@ namespace ProjectTowerRpg.Core.UI
         public int ClickCount;        // ✅ 1 = Одиночный клик, 2 = Даблклик
     }
 
+    public enum SlotAnimationType : byte
+    {
+        Press,         // Кнопка сочно ушла внутрь при успешном использовании
+        CooldownReady, // Маска КД исчезла, иконка испускает вспышку готовности
+        Proc,          // Способность прокнула (бегущая рамка вокруг иконки)
+        Warning        // Блокировка каста (например, спам кнопки без маны)
+    }
+
     public static class UIEvents
     {
         public static event System.Action ToggleCharacterWindow;
@@ -32,7 +40,7 @@ namespace ProjectTowerRpg.Core.UI
 
         public static System.Action OnToggleMainMenu;
 
-        public static System.Action<int> OnFlashSlot;
+        public static System.Action<int, SlotAnimationType> OnSlotAnimation;
         
         public static void TriggerToggleCharacterWindow()
         {
@@ -71,8 +79,8 @@ namespace ProjectTowerRpg.Core.UI
             OnToggleMainMenu?.Invoke();
         }
 
-        public static void TriggerSlotFlash(int slotIndex) {
-            OnFlashSlot?.Invoke(slotIndex);
+        public static void TriggerSlotAnimate(int slotIndex, SlotAnimationType animationType) {
+            OnSlotAnimation?.Invoke(slotIndex, animationType);
         }
     }
 }

@@ -16,8 +16,12 @@ namespace ProjectTowerRpg.Core.UI.Components
         private Label _amountLabel;
         private Label _durationLabel;
 
+        private VisualElement _flashOverlay;
         private VisualElement _cooldownOverlay;
+
         private float _gcdProgress = 0f;
+        private float _flashProgress = 0f;
+        private float _flashAngle = 0f;
         
         // Слот кэширует свои данные только для Drag-and-Drop
         private string _itemId = "";
@@ -41,7 +45,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             
             _cooldownOverlay = new VisualElement();
             _cooldownOverlay.AddToClassList("slot-cooldown-overlay");
-            //_cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
             _cooldownOverlay.generateVisualContent += DrawRadialCooldown;
             Add(_cooldownOverlay);
             
@@ -54,6 +57,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             _amountLabel.AddToClassList("slot-amount-label");
             _amountLabel.style.display = DisplayStyle.None;
             Add(_amountLabel);
+
+            // 🎯 ДОБАВЛЯЕМ СЛОЙ ВСПЫШКИ: Он изначально скрыт (display: None)
+            _flashOverlay = new VisualElement();
+            _flashOverlay.AddToClassList("wow-flash-overlay");
+            _flashOverlay.style.display = DisplayStyle.None;
+            Add(_flashOverlay);
             
             _durationLabel = new Label();
             _durationLabel.AddToClassList("slot-duration-label");
@@ -66,38 +75,87 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             var dragManipulator = new DragManipulator(this, DragMode.Slot);
             this.AddManipulator(dragManipulator);
-
-            UIEvents.OnFlashSlot += FlashSlot;
+            
+            this.RegisterCallback<AttachToPanelEvent>(OnAttach);
+            this.RegisterCallback<DetachFromPanelEvent>(OnDetach);
         }
 
-        ~SlotElement()
+        private void OnAttach(AttachToPanelEvent evt)
         {
-            UIEvents.OnFlashSlot -= FlashSlot;
+            // Подписываемся на ивент анимаций ТОЛЬКО когда слот физически появился на экране
+            UIEvents.OnSlotAnimation += AnimateSlot;
+        }
+
+        private void OnDetach(DetachFromPanelEvent evt)
+        {
+            // Намертво отписываемся в тот же миг, как слот удален из панели. Нулевой Memory Leak!
+            UIEvents.OnSlotAnimation -= AnimateSlot;
         }
 
         /// <summary>
         /// Универсальный метод вспышки ячейки (Wow-канон)
         /// </summary>
-        public void FlashSlot(int targetGlobalIndex)
+        public void AnimateSlot(int targetGlobalIndex, SlotAnimationType animationType)
         {   
             if (!_isActionBarSlot) return;
             // Каждая ячейка на экране сама проверяет Си-паспорт. Не совпало — молча выходим!
             if (this.SlotIndex != targetGlobalIndex) return;
-
-            // Сочно ужимаем и подсвечиваем рамку по нативному USS-классу
-            this.AddToClassList("slot-active-flash");
-
-            // Ровно через 100 мс стираем класс, возвращая анимацию сжатия назад
-            this.schedule.Execute(() => 
+            
+            switch (animationType)
             {
-                this.RemoveFromClassList("slot-active-flash");
-            }).ExecuteLater(100);
+                case SlotAnimationType.Press:
+                    this.AddToClassList("slot-active-flash");
+                    // Ровно через 100 мс стираем класс, возвращая анимацию сжатия назад
+                    this.schedule.Execute(() => 
+                    {
+                        this.RemoveFromClassList("slot-active-flash");
+                    }).ExecuteLater(100);
+                    break;
+
+                case SlotAnimationType.CooldownReady:
+                    _flashProgress = 0.01f;
+                    _flashAngle = 0f;
+                    
+                    int totalSteps = 32; // ✅ 30 кадров = ~500 мс (идеально для WC3-вспышки)
+                    int currentStep = 0;
+
+                    this.schedule.Execute(() => 
+                    {
+                        currentStep++;
+                        float linearT = (float)currentStep / totalSteps;
+
+                        // Взрывной еазинг радиуса звезды (Cubic)
+                        _flashProgress = 1f - Mathf.Pow(1f - linearT, 3f); 
+                        
+                        // 🌀 КРУЧЕНИЕ: звезда делает 120 градусов за время вспышки (более динамично)
+                        _flashAngle = _flashProgress * 120f; 
+
+                        _cooldownOverlay.MarkDirtyRepaint();
+
+                        if (currentStep >= totalSteps)
+                        {
+                            _flashProgress = 0f;
+                            _flashAngle = 0f;
+                            _cooldownOverlay.MarkDirtyRepaint();
+                        }
+                    }).Every(16).Until(() => currentStep >= totalSteps);
+                    break;
+
+
+
+                case SlotAnimationType.Proc:
+                    // В будущем: включить золотую обводку
+                    break;
+
+                case SlotAnimationType.Warning:
+                    // В будущем: моргнуть красной рамкой
+                    break;
+            }
         }
 
         // ================================================================
         // IDragSource Implementation
         // ================================================================
-        
         public bool CanDrag() => !string.IsNullOrEmpty(_itemId) && _amount > 0;
 
         public DragData GetDragData()
@@ -263,46 +321,126 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
 
-        public void SetGlobalCooldown(float gcdRemaining, float gcdDuration) 
-    {
-        // 1. Быстрая проверка на отсутствие кулдауна
-        if (gcdRemaining <= 0f || gcdDuration <= 0f)
+        public void SetCooldown(float remaining, float duration, bool isGlobalCooldown) 
         {
-            _gcdProgress = 0f;
-            _cooldownOverlay.MarkDirtyRepaint(); // Очищаем круг
-            return;
+            // 1. Быстрая проверка на отсутствие кулдауна
+            if (remaining <= 0f || duration <= 0f)
+            {
+                _gcdProgress = 0f;
+                _cooldownOverlay.MarkDirtyRepaint(); // Очищаем круг
+                return;
+            }
+
+            // 2. Рассчитываем базовый прогресс (от 0.0 до 1.0)
+            float rawProgress = Mathf.Clamp01(remaining / duration);
+
+            // 3. Дифференцируем направление по WoW-канону:
+            // ГКД уходит назад (против часовой), обычный КД уходит вперед (по часовой)
+            _gcdProgress = isGlobalCooldown ? rawProgress : (1f - rawProgress);
+            
+            // 4. Пингуем UI Toolkit, что геометрию пора обновить на этом кадре
+            _cooldownOverlay.MarkDirtyRepaint();
         }
 
-        // 2. Тупо пишем прогресс (0.0..1.0) напрямую из аргументов вашей ECS-системы
-        _gcdProgress = Mathf.Clamp01(gcdRemaining / gcdDuration);
-        
-        // 3. Пингуем UI Toolkit, что геометрию пора обновить на этом кадре
-        _cooldownOverlay.MarkDirtyRepaint();
-    }
-
         private void DrawRadialCooldown(MeshGenerationContext context)
-    {
-        // Если кулдауна нет — ничего не рисуем (оверлей полностью прозрачный)
-        if (_gcdProgress <= 0f) return;
-        
-        var painter = context.painter2D;
-        painter.fillColor = new Color(0f, 0f, 0f, 0.6f); // 60% затемнения
-        
-        Rect rect = _cooldownOverlay.contentRect;
-        Vector2 center = rect.center;
-        
-        // Считаем радиус с запасом под углы квадратной кнопки
-        float radius = Mathf.Sqrt(rect.width * rect.width + rect.height * rect.height) * 0.5f;
-        
-        float startAngle = -90f; // 12 часов дня
-        float sweepAngle = _gcdProgress * 360f; // Сектор уменьшается по часовой стрелке
-        
-        painter.BeginPath();
-        painter.MoveTo(center);
-        painter.Arc(center, radius, startAngle, startAngle + sweepAngle);
-        painter.LineTo(center);
-        painter.Fill();
-    }
+        {
+            // 🚀 Быстрый выход, если ничего не рисуем
+            if (_gcdProgress <= 0f && _flashProgress <= 0f) return;
+
+            var painter = context.painter2D;
+            painter.fillGradient = default;
+            Rect rect = _cooldownOverlay.contentRect;
+            Vector2 center = rect.center;
+            float baseRadius = Mathf.Sqrt(rect.width * rect.width + rect.height * rect.height) * 0.5f;
+
+            // =========================================================================
+            // СЛОЙ 1: GCD (чёрный сектор)
+            // =========================================================================
+            if (_gcdProgress > 0f)
+            {
+                painter.fillColor = new Color(0f, 0f, 0f, 0.72f);
+                float startAngle = -90f;
+                float sweepAngle = _gcdProgress * 360f;
+
+                painter.BeginPath();
+                painter.MoveTo(center);
+                painter.Arc(center, baseRadius, startAngle, startAngle + sweepAngle);
+                painter.LineTo(center);
+                painter.Fill();
+            }
+
+            // =========================================================================
+            // СЛОЙ 2: ВСПЫШКА (один слой с градиентом!)
+            // =========================================================================
+            if (_flashProgress > 0f)
+            {
+                float alpha = Mathf.Pow(1f - _flashProgress, 1.5f);
+                float size = baseRadius * Mathf.Lerp(0.1f, 2.0f, _flashProgress);
+                float width = size * 0.15f;
+
+                float rad = _flashAngle * Mathf.Deg2Rad;
+                float cos = Mathf.Cos(rad);
+                float sin = Mathf.Sin(rad);
+
+                Vector2 Rotate(float x, float y) => new Vector2(
+                    center.x + (x * cos - y * sin),
+                    center.y + (x * sin + y * cos)
+                );
+
+                // 🔥 ОДИН ПРОХОД РИСОВАНИЯ (звезда + ядро + свечение)
+                for (int i = 0; i < 4; i++)
+                {
+                    float angle = i * 90f;
+                    float radAngle = angle * Mathf.Deg2Rad;
+                    float c = Mathf.Cos(radAngle);
+                    float s = Mathf.Sin(radAngle);
+
+                    Vector2 tip = Rotate(c * size, s * size);
+                    Vector2 left = Rotate(c * width - s * width * 0.3f, s * width + c * width * 0.3f);
+                    Vector2 right = Rotate(c * width + s * width * 0.3f, s * width - c * width * 0.3f);
+
+                    // ОСНОВНАЯ ЗВЕЗДА
+                    painter.fillColor = new Color(0.9f, 0.95f, 1f, alpha * 0.85f);
+                    painter.BeginPath();
+                    painter.MoveTo(center);
+                    painter.QuadraticCurveTo(left, tip);
+                    painter.QuadraticCurveTo(right, center);
+                    painter.Fill();
+                }
+
+                // ЯДРО (отдельно, но быстро)
+                float coreSize = size * Mathf.Lerp(0.05f, 0.15f, 1f - _flashProgress);
+                painter.fillColor = new Color(1f, 1f, 1f, alpha * 0.95f);
+                painter.BeginPath();
+                painter.Arc(center, coreSize, 0f, 360f);
+                painter.Fill();
+
+                // ХВОСТЫ (тонкие, один проход)
+                float trailLen = size * Mathf.Lerp(0.2f, 1.5f, 1f - _flashProgress);
+                float trailWidth = width * 0.2f;
+
+                for (int i = 0; i < 4; i++)
+                {
+                    float angle = i * 90f + _flashAngle * 0.3f;
+                    float radAngle = angle * Mathf.Deg2Rad;
+                    float c = Mathf.Cos(radAngle);
+                    float s = Mathf.Sin(radAngle);
+
+                    Vector2 start = center + new Vector2(c * trailLen * 0.2f, s * trailLen * 0.2f);
+                    Vector2 end = center + new Vector2(c * trailLen, s * trailLen);
+                    Vector2 perp = new Vector2(-s * trailWidth * 0.5f, c * trailWidth * 0.5f);
+
+                    painter.fillColor = new Color(0.3f, 0.6f, 1f, alpha * 0.2f);
+                    painter.BeginPath();
+                    painter.MoveTo(start);
+                    painter.LineTo(end + perp);
+                    painter.LineTo(end - perp);
+                    painter.ClosePath();
+                    painter.Fill();
+                }
+            }
+        }
+
         /// <summary>
         /// Применяет визуальные эффекты валидации
         /// </summary>

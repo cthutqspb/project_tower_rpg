@@ -55,6 +55,7 @@ namespace ProjectTowerRpg.Core.Abilities
     [Serializable]
     public class AbilityParameters
     {
+        public string cooldown_group;
         public float range;
         public float speed;
         public float cast_time;

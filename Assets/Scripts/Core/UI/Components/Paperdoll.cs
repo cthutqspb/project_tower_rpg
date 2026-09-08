@@ -86,7 +86,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             DynamicBuffer<ItemSlot> slots,
             bool isOnlyValidation = true,
             float gcdRemaining = 0f,
-            float gcdDuration = 0f
+            float gcdDuration = 0f,
+            DynamicBuffer<ActiveCooldownElement> cooldowns = default
         )
         {
             Debug.Log($"[Paperdoll] UpdateFromBuffer: {slots.Length} слотов экипировки");

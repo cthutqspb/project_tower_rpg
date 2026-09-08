@@ -231,7 +231,7 @@ namespace ProjectTowerRpg.ECS.Systems
                                     var slot = barSlots[i];
                                     if (!slot.AbilityId.IsEmpty)
                                     {   
-                                        UIEvents.TriggerSlotFlash(i);
+                                        UIEvents.TriggerSlotAnimate(i, SlotAnimationType.Press);
                                         
                                         // 🦾 СОЗДАЁМ КОМАНДУ НА КАСТ (через ECB)
                                         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
