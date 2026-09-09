@@ -1,9 +1,14 @@
 using Unity.Entities;
 using Unity.Transforms;
-using Unity.Collections;
 using Unity.Mathematics;
-using UnityEngine;
+
 using ProjectTowerRpg.ECS.Components;
+using GameObject = UnityEngine.GameObject;
+using Resources = UnityEngine.Resources;
+using Quaternion = UnityEngine.Quaternion;
+using Object = UnityEngine.Object;
+using FindObjectsInactive = UnityEngine.FindObjectsInactive;
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -149,7 +154,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     }
                 }
             }
-
 
             // =========================================================================
             // 💀 [РАЗДЕЛ ЮНИТОВ] КЕЙС Б: ТЕХНИЧЕСКИЙ КУЛЛИНГ МОНСТРОВ (Ушли далеко)

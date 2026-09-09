@@ -1,10 +1,11 @@
 using Unity.Entities;
 using Unity.Mathematics;
-using UnityEngine;
 using UnityEngine.InputSystem;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.UI;
 using ProjectTowerRpg.ECS.Actions; // Добавляем для ActionResolver
+using Camera = UnityEngine.Camera;
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -44,7 +45,7 @@ namespace ProjectTowerRpg.ECS.Systems
             // ================================================================
             // 2. СБОР ДАННЫХ ВВОДА
             // ================================================================
-            Vector2 moveInput = _moveAction.ReadValue<Vector2>();
+            float2 moveInput = _moveAction.ReadValue<float2>();
             float3 inputDirection = new float3(moveInput.x, 0f, moveInput.y);
 
             if (math.lengthsq(inputDirection) > 0)

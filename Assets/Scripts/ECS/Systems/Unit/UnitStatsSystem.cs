@@ -1,8 +1,8 @@
 using Unity.Entities;
 using Unity.Mathematics;
-using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {

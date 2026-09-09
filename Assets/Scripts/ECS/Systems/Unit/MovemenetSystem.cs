@@ -1,9 +1,12 @@
 using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
-using UnityEngine; // Для Physics.Raycast
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core;
+
+using Physics = UnityEngine.Physics;
+using RaycastHit = UnityEngine.RaycastHit;
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -138,8 +141,8 @@ namespace ProjectTowerRpg.ECS.Systems
                 // =========================================================================
                 if (math.lengthsq(flatMoveVector) > 0f)
                 {
-                    Vector3 wallRayStart = new Vector3(transform.ValueRO.Position.x, transform.ValueRO.Position.y + 0.5f, transform.ValueRO.Position.z);
-                    Vector3 moveDirection = math.normalize(flatMoveVector);
+                    float3 wallRayStart = new float3(transform.ValueRO.Position.x, transform.ValueRO.Position.y + 0.5f, transform.ValueRO.Position.z);
+                    float3 moveDirection = math.normalize(flatMoveVector);
 
                     if (Physics.Raycast(wallRayStart, moveDirection, out RaycastHit wallHit, 0.5f))
                     {

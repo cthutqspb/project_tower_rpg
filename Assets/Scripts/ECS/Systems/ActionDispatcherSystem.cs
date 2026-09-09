@@ -1,10 +1,10 @@
-using UnityEngine;
 using Unity.Entities;
 
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.ECS.Reducers;
 using ProjectTowerRpg.Core.UI;
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {

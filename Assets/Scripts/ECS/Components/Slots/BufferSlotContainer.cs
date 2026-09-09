@@ -1,8 +1,7 @@
 using Unity.Entities;
-using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.Utils;
 using ProjectTowerRpg.Core.Items;
+using Debug = UnityEngine.Debug;
 
 public class BufferSlotContainer : ISlotContainer
 {

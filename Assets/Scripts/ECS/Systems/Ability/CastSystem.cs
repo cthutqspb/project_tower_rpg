@@ -1,9 +1,9 @@
-using UnityEngine;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Abilities;
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -113,7 +113,8 @@ namespace ProjectTowerRpg.ECS.Systems
                                     AbilityId = request.ValueRO.AbilityId,
                                     CastTime = castTime,
                                     Progress = 0f,
-                                    IsChanneling = isChanneling
+                                    IsChanneling = isChanneling,
+                                    Target = request.ValueRO.TargetEntity
                                 });
                             }
                             else
@@ -124,7 +125,8 @@ namespace ProjectTowerRpg.ECS.Systems
                                     AbilityId = request.ValueRO.AbilityId,
                                     CastTime = castTime,
                                     Progress = 0f,
-                                    IsChanneling = isChanneling
+                                    IsChanneling = isChanneling,
+                                    Target = request.ValueRO.TargetEntity
                                 });
                             }
                         }
@@ -195,21 +197,17 @@ namespace ProjectTowerRpg.ECS.Systems
                     // =========================================================================
                     // 🎯 ВЗВОД ОБЫЧНОГО КУЛДАУНА ПОСЛЕ УСПЕШНОГО КАСTА (WoW-канон)
                     // =========================================================================
-                    // Проверяем, есть ли у заклинания КД и кастовалось ли оно (для инстантов КД взвелся еще в Потоке 1)
                     if (abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.cooldown > 0f)
                     {
                         float castTime = abilityCfg.parameters.cast_time;
-                        if (castTime > 0f) // Только для заклинаний с полоской каста!
+                        if (castTime > 0f) 
                         {
                             if (SystemAPI.HasBuffer<ActiveCooldownElement>(entity))
                             {
                                 var cooldownsBuffer = SystemAPI.GetBuffer<ActiveCooldownElement>(entity);
-                                
-                                // Вытаскиваем ID группы КД (если пусто — используем сам ID способности)
                                 FixedString32Bytes cdGroup = abilityCfg.parameters.cooldown_group ?? finishedAbilityId;
                                 float cdDuration = abilityCfg.parameters.cooldown;
 
-                                // Защита от дублирования таймеров
                                 bool alreadyHasCd = false;
                                 for (int c = 0; c < cooldownsBuffer.Length; c++)
                                 {
@@ -228,15 +226,33 @@ namespace ProjectTowerRpg.ECS.Systems
                                         Remaining = cdDuration,
                                         Duration = cdDuration
                                     });
-                                    Debug.Log($"🎯 [CastSystem]: Спелл дочитан! На юнита {entity} наложен КД группы '{cdGroup}': {cdDuration}с.");
+                                    Debug.Log($"🎯 [CastSystem]: На юнита {entity} наложен КД группы '{cdGroup}': {cdDuration}с.");
                                 }
                             }
                         }
                     }
                     // =========================================================================
 
-                    // ⚡ ЗДЕСЬ РОЖДАЕТСЯ ExecuteSpellEvent / Вылет снаряда в CombatSystem!
-                    Debug.Log($"🔥 [CastSystem]: Снаряд заклинания '{finishedAbilityId}' официально вылетел из рук {entity}!");
+                    // 🚀 ИСТИННЫЙ WOW-КАНОН: Достаем цель, которую мы заморозили в ОЗУ в миллисекунду НАЖАТИЯ кнопки!
+                    Entity castTarget = cast.Target;
+
+                    if (castTarget != Entity.Null && em.Exists(castTarget))
+                    {
+                        // Рождаем событийный пакет-запрос для боевой системы
+                        Entity combatEventEntity = ecb.CreateEntity();
+                        ecb.AddComponent(combatEventEntity, new CombatEventRequest
+                        {
+                            Caster = entity,
+                            Target = castTarget, // Цель пуленепробиваема к смене фокуса в процессе каста!
+                            AbilityId = cast.AbilityId
+                        });
+
+                        Debug.Log($"🔥 [CastSystem]: Каст завершен! Рожден CombatEventRequest для '{finishedAbilityId}'. Урон летит в ЗАФИКСИРОВАННУЮ НА СТАРТЕ цель: {castTarget}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"❌ [CastSystem]: Каст '{finishedAbilityId}' дочитан, но зафиксированная на старте цель {castTarget} умерла или исчезла из чанков ОЗУ мира! Урон отменен.");
+                    }
                 }
 
                 castRW.ValueRW = cast;

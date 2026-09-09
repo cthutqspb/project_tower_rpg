@@ -2,11 +2,16 @@ using Unity.Entities;
 using Unity.Collections;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.Items;
 using System.Collections.Generic;
 using System.IO;
+using Application = UnityEngine.Application;
+using JsonUtility = UnityEngine.JsonUtility;
+using Resources = UnityEngine.Resources;
+using Object = UnityEngine.Object;
+using GameObject = UnityEngine.GameObject;
+using Quaternion = UnityEngine.Quaternion;
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {

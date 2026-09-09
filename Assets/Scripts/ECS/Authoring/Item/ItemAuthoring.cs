@@ -1,6 +1,5 @@
 using UnityEngine;
 using Unity.Entities;
-using Unity.Collections;    // ← ДОБАВИТЬ для FixedString
 using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.Items

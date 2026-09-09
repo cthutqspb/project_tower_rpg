@@ -1,11 +1,10 @@
 using Unity.Entities;
 using Unity.Collections;
 using Unity.Mathematics;
-using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
 using Unity.Transforms;
 using ProjectTowerRpg.Core.Units;
-using ProjectTowerRpg.Core.Data; // Наш зрячий GameDB
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -60,7 +59,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 float hitboxRadius = dbCfg.parameters.hitbox_radius;
 
                 // Теперь генерация Uid видит spawnPos идеально!
-                string generatedUid = $"c_{Mathf.FloorToInt(spawnPos.x + 0.5f)}_{Mathf.FloorToInt(spawnPos.z + 0.5f)}";
+                string generatedUid = $"c_{(int)math.floor(spawnPos.x + 0.5f)}_{(int)math.floor(spawnPos.z + 0.5f)}";
 
                 // 🏗️ 1. РОЖДАЕМ КРИСТАЛЬНО ЧИСТУЮ ECS-СУЩНОСТЬ ДУШИ С НУЛЯ
                 Entity unitEntity = em.CreateEntity();

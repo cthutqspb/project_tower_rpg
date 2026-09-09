@@ -13,6 +13,7 @@ namespace ProjectTowerRpg.ECS.Components
         public float CastTime;                   // Полное эталонное время каста из базы (например, 1.7)
         public float Progress;                   // Текущее покадрово тикающее время каста в секундах (от 0 до Duration)
         public bool IsChanneling;                // Флаг потокового заклинания (wow-канон: полоска убывает справа налево)
+        public Entity Target;
     }
 }
 

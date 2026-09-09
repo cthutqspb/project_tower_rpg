@@ -1,10 +1,16 @@
 using Unity.Entities;
-using Unity.Transforms;
 using Unity.Mathematics; // ← Добавлен для math.float3
-using UnityEngine;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.UI;
+// 🚀 ХИРУРГИЧЕСКИЙ РАЗВОД ИМПОРТОВ: Заголовки чисты, клинч векторов и физики ликвидирован!
+using Camera = UnityEngine.Camera;
+using Vector2 = UnityEngine.Vector2;
+using Ray = UnityEngine.Ray;
+using Physics = UnityEngine.Physics;
+using RaycastHit = UnityEngine.RaycastHit;
+using Cursor = UnityEngine.Cursor;
+using CursorMode = UnityEngine.CursorMode;
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -30,8 +36,10 @@ namespace ProjectTowerRpg.ECS.Systems
             Camera mainCamera = Camera.main;
             if (mainCamera == null) return;
 
-            Vector2 mousePos = UnityEngine.InputSystem.Mouse.current != null 
-                ? UnityEngine.InputSystem.Mouse.current.position.ReadValue() 
+            // Вычистили уродливый инлайн-префикс UnityEngine.InputSystem.Mouse
+            var currentMouse = UnityEngine.InputSystem.Mouse.current;
+            Vector2 mousePos = currentMouse != null 
+                ? currentMouse.position.ReadValue() 
                 : Vector2.zero;
 
             Ray ray = mainCamera.ScreenPointToRay(mousePos);
@@ -73,6 +81,8 @@ namespace ProjectTowerRpg.ECS.Systems
                 {
                     if (hoverState.ValueRO.CurrentEntity == foundEntity)
                     {
+                        // Старая физика PhysX нагло и шёлково скармливает Vector3 (hit.point)
+                        // в твой unmanaged float3 (HitPosition) без лишней лапши конвертаций!
                         hoverState.ValueRW.HitPosition = hit.point;
                         return;
                     }
@@ -119,7 +129,7 @@ namespace ProjectTowerRpg.ECS.Systems
         private void ResetHover(ref HoverState hover)
         {
             hover.CurrentEntity = Entity.Null;
-            hover.HitPosition = math.float3(0, 0, 0); // Ошибка CS0103 полностью пропала
+            hover.HitPosition = math.float3(0, 0, 0); // Твой чистый Си-сброс вектора
             
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
             
@@ -128,3 +138,4 @@ namespace ProjectTowerRpg.ECS.Systems
         }
     }
 }
+

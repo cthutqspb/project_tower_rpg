@@ -1,10 +1,10 @@
 using Unity.Entities;
-using UnityEngine;
 using ProjectTowerRpg.Core.UI;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core;
 using ProjectTowerRpg.Core.Loot;
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Reducers
 {

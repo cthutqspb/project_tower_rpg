@@ -1,4 +1,3 @@
-using UnityEngine;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.UI;

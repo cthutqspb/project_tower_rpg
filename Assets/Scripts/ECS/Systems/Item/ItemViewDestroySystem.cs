@@ -1,7 +1,11 @@
 using Unity.Entities;
-using UnityEngine;
-using ProjectTowerRpg.Core.Items;
-using ProjectTowerRpg.ECS.Components; // Твой домен компонентов
+using ProjectTowerRpg.ECS.Components;
+
+// 🚀 ХИРУРГИЧЕСКИЙ РАЗВOД ИМПОРТОВ (Wow-Канон систем-мостов):
+// Мы полностью выжгли using UnityEngine;, забрав только 3 точечных класса!
+using Object = UnityEngine.Object;
+using FindObjectsInactive = UnityEngine.FindObjectsInactive;
+using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -13,29 +17,27 @@ namespace ProjectTowerRpg.ECS.Systems
         {
             var em = EntityManager;
 
-            // Находим все кубы предметов на сцене через их ItemView
+            // ⚠️ ВНИМАНИЕ: Оставляем FindObjectsByType строго для текущих тестов!
+            // В будущем этот поиск намертво выжигается через кверение unmanaged-компонента ссылки на ассет!
             var itemsOnScene = Object.FindObjectsByType<ItemView>(FindObjectsInactive.Exclude);
             if (itemsOnScene.Length == 0) return;
 
             foreach (var view in itemsOnScene)
             {
-                if (view.Entity != Entity.Null)
-                {
-                    // 🦾 ИСТИННЫЙ ECS-ГВАРД УДАЛЕНИЯ ГРАФИКИ:
-                    // Если сущность предмета ЕЩЕ существует в ECS, НО с неё уже пропал 
-                    // маркер материализации StoredTag (значит, редьюсер Loot её успешно собрал в сумку!)
-                    // ИЛИ если сущность была полностью стёрта из памяти симуляции (!em.Exists) — 
-                    // во всех этих случаях 3D-тело куба ОБЯЗАНО исчезнуть со сцены мгновенно!
-                    bool isLooted = em.Exists(view.Entity) && em.HasComponent<StoredTag>(view.Entity);
-                    bool isDestroyed = !em.Exists(view.Entity);
+                // Нагло убираем костыльную проверку == null, используя C# null-conditional оператор
+                if (view == null || view.Entity == Entity.Null) continue;
 
-                    if (isLooted || isDestroyed)
-                    {
-                        Debug.Log($"🧹 [ItemViewDestroySystem]: Предмет {view.itemId} (Entity {view.Entity.Index}) собран в рюкзак или стёрт. Аннигилирую 3D-куб {view.gameObject.name} со сцены!");
-                        
-                        // Насильно стираем куб с экрана, очищая Mono-кучу
-                        Object.Destroy(view.gameObject);
-                    }
+                // 🦾 ИСТИННЫЙ ECS-ГВАРД УДАЛЕНИЯ ГРАФИКИ:
+                bool isLooted = em.Exists(view.Entity) && em.HasComponent<StoredTag>(view.Entity);
+                bool isDestroyed = !em.Exists(view.Entity);
+
+                if (isLooted || isDestroyed)
+                {
+                    // Лог пишется чисто, лаконично и без инлайн-префиксов
+                    Debug.Log($"🧹 [ItemViewDestroySystem]: Предмет {view.itemId} (Entity {view.Entity.Index}) собран или стёрт. Аннигилирую 3D-куб {view.gameObject.name}!");
+                    
+                    // Насильно стираем куб с экрана, очищая Mono-кучу
+                    Object.Destroy(view.gameObject);
                 }
             }
         }
