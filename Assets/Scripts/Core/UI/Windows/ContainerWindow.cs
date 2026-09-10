@@ -95,16 +95,30 @@ namespace ProjectTowerRpg.Core.UI.Windows
             var links = em.GetComponentData<BuffersLinkComponent>(_containerEntity);
             Entity lootBagEntity = links.Inventory;
 
-            if (lootBagEntity != Entity.Null && em.Exists(lootBagEntity))
+            if (lootBagEntity == Entity.Null || !em.Exists(lootBagEntity)) return;
+
+            // 🦾 ЕСЛИ ГРИД ДЛЯ ЭТОГО МЕШКА УЖЕ ЕСТЬ — НЕ СОЗДАЁМ ВТОРОЙ
+            if (_lootGrid != null && _lootGrid.BoundEntity == lootBagEntity)
             {
-                var containerComp = em.GetComponentData<ContainerConfigComponent>(lootBagEntity);
-                _lootGrid = new StaticGrid(containerComp.Columns, containerComp.Rows);
-                _lootGrid.BindToEntity(lootBagEntity);
-                _inventoryContainer.Add(_lootGrid);
-                
                 _isWaitingForBag = false;
-                Debug.Log($"📦 [ContainerWindow] Сетка создана для мешка {lootBagEntity.Index}");
+                return;
             }
+
+            // 🦾 УБИРАЕМ СТАРЫЙ ГРИД (для другого контейнера), ЧТОБЫ НЕ БЫЛО ДВУХ СЕТОК В ОДНОМ ОКНЕ
+            if (_lootGrid != null)
+            {
+                UIRegistry.Unregister(_lootGrid.BoundEntity, _lootGrid);
+                _inventoryContainer.Remove(_lootGrid);
+                _lootGrid = null;
+            }
+
+            var containerComp = em.GetComponentData<ContainerConfigComponent>(lootBagEntity);
+            _lootGrid = new StaticGrid(containerComp.Columns, containerComp.Rows);
+            _lootGrid.BindToEntity(lootBagEntity);
+            _inventoryContainer.Add(_lootGrid);
+
+            _isWaitingForBag = false;
+            Debug.Log($"📦 [ContainerWindow] Сетка создана для мешка {lootBagEntity.Index}");
         }
 
         private void OnTakeAllClicked()

@@ -14,5 +14,7 @@ namespace ProjectTowerRpg.ECS.Components
 
     // 👥 МАРКЕР NPC: Для мирных торговцев, квестодателей и диалоговых окон
     public struct NpcTag : IComponentData {}
+
+    public struct IsDeadTag : IComponentData {}
 }
 

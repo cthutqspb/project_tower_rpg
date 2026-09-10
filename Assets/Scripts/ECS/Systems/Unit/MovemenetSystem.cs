@@ -20,8 +20,25 @@ namespace ProjectTowerRpg.ECS.Systems
             float dt = SystemAPI.Time.DeltaTime;
 
             // 🌍 Кверим вообще всех юнитов (и игрока, и скелетов)
-            foreach (var (transform, movement, entity) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<MovementComponent>>().WithEntityAccess())
+            foreach (var (transform, movement, entity) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<MovementComponent>>().WithNone<IsDeadTag>().WithEntityAccess())
             {
+                // 🪦 WOW-КАНOН ИНСТАНТ-СМЕРТИ (Гвард первого кадра гибели):
+                // Если в текущем кадре CombatSystem уже опустила ХП в ноль, но IsDeadTag еще лежит в буфере ecb —
+                // мы обязаны мгновенно, не дожидаясь конца кадра, затушить всю физику и скорость в ОЗУ чанка!
+                if (SystemAPI.HasComponent<HealthComponent>(entity))
+                {
+                    var health = SystemAPI.GetComponent<HealthComponent>(entity);
+                    if (health.Current <= 0f)
+                    {
+                        var moveWritable = movement.ValueRW;
+                        moveWritable.Direction = float3.zero;
+                        moveWritable.CurrentSpeed = 0f;
+                        moveWritable.JumpRequested = false;
+                        movement.ValueRW = moveWritable; // Запекаем покой обратно в чанк
+                        
+                        continue; // Пулей скипаем все холмы, гравитацию и коллизии! Труп застыл на месте гибели!
+                    }
+                }
                 float3 inputDir = movement.ValueRO.Direction;
                 bool isPlayer = SystemAPI.HasComponent<PlayerTag>(entity);
 

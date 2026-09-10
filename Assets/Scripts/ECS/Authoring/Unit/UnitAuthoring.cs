@@ -82,7 +82,6 @@ namespace ProjectTowerRpg.ECS.Authoring
             // Боевой паспорт здоровья
             AddComponent(entity, new CombatStateComponent
             {
-                IsDead = false,
                 IsInCombat = false, 
             });
 

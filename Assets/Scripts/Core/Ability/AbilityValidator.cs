@@ -212,11 +212,9 @@ namespace ProjectTowerRpg.Core.Abilities
                 }
 
                 // КЕЙС Б: Цель найдена, но она уже мертва -> Отказ!
-                if (em.HasComponent<CombatStateComponent>(target))
+                if (em.HasComponent<IsDeadTag>(target))
                 {
-                    var combat = em.GetComponentData<CombatStateComponent>(target);
-                    if (combat.IsDead) 
-                        return new CastValidationResult { IsPossible = false, Reason = "INVALID_TARGET" };
+                    return new CastValidationResult { IsPossible = false, Reason = "INVALID_TARGET" };
                 }
             }
 

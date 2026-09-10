@@ -10,16 +10,34 @@ namespace ProjectTowerRpg.ECS.Actions
     {
         public static ActionCommand Resolve(Entity actor, Entity target, EntityManager em)
         {
-            // 1. Если нет цели — возвращаем пустую команду
-            if (target == Entity.Null)
+            // 1. Если нет цели или она стёрта — возвращаем пустую команду
+            if (target == Entity.Null || !em.Exists(target))
                 return new ActionCommand { Action = BaseActions.None };
 
-            // 2. Получаем дистанцию до цели
+            // 2. Получаем дистанцию до цели за 0 наносекунд нагрузки
             float distance = PositionUtils.GetDistance(actor, target, em);
 
-            // 3. Проверяем, является ли цель юнитом
+            // 3. Проверяем, является ли цель юнитом (Игрок, Моб, Труп)
             if (em.HasComponent<UnitComponent>(target))
             {
+                // 🪦 WOW/BG3 СКОЛ СИ-ЛОГИКИ ТРУПOВ:
+                // Если на сущности взлетел IsDeadTag — мы нагло перехватываем управление!
+                // Нам плевать, кто это был — монстр или игрок, теперь это просто "мешок с лутом".
+                if (em.HasComponent<IsDeadTag>(target))
+                {
+                    // К трупу нужно сначала честно подойти, как к сундуку!
+                    if (distance <= 1.27f)
+                        // В упор — шёлково выплёвываем команду открытия контейнера!
+                        return new ActionCommand { Action = ContainerActions.Open, TargetEntity = target };
+                    else
+                        // Далеко — отдаём приказ «Беги к координатам тела»!
+                        return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
+                }
+
+                // ================================================================
+                // ДЕВСТВЕННО ЖИВЫЕ ЮНИТЫ (Твой оригинальный контур)
+                // ================================================================
+
                 // 🧟 МОНСТР (можно атаковать)
                 if (em.HasComponent<MonsterTag>(target))
                 {
@@ -52,18 +70,18 @@ namespace ProjectTowerRpg.ECS.Actions
 
                 Debug.Log($"[ActionResolver] Предмет: {itemIdStr}, Дистанция: {distance:F2}м, Сущность: {target.Index}");
 
-                // 📦 КОНТЕЙНЕР (сундук, труп, матрешка) — проверяем по конфигу из БД
+                // 📦 КОНТЕЙНЕР (сундук, матрешка) — проверяем по конфигу из БД
                 if (itemConfig != null && itemConfig.identity.type == "container")
                 {
-                    if (distance <= 0.72f)
-                        return new ActionCommand { Action = ContainerActions.Open, TargetEntity = target }; // ← target — сущность!
+                    if (distance <= 1.27f)
+                        return new ActionCommand { Action = ContainerActions.Open, TargetEntity = target };
                     else
                         return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
                 }
 
-                // 💎 ОБЫЧНЫЙ ПРЕДМЕТ (лут) — ЛУТАЕМ СУЩНОСТЬ, А НЕ ПОИСК ПО ID!
-                if (distance <= 0.72f)
-                    return new ActionCommand { Action = ItemActions.Loot, TargetEntity = target }; // ← target — сущность!
+                // 💎 ОБЫЧНЫЙ ПРЕДМЕТ (лут с земли)
+                if (distance <= 1.27f)
+                    return new ActionCommand { Action = ItemActions.Loot, TargetEntity = target };
                 else
                     return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
             }
@@ -72,7 +90,6 @@ namespace ProjectTowerRpg.ECS.Actions
             if (em.HasComponent<ObjectComponent>(target))
             {
                 // TODO: логика для объектов (двери, рычаги, ловушки)
-                // Пока просто интеракт
                 return new ActionCommand { Action = PlayerActions.Interact, TargetEntity = target };
             }
 
@@ -81,3 +98,4 @@ namespace ProjectTowerRpg.ECS.Actions
         }
     }
 }
+

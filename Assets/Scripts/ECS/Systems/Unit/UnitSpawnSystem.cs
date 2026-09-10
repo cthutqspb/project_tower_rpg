@@ -87,17 +87,20 @@ namespace ProjectTowerRpg.ECS.Systems
 
                 // Избавились от дублирования ХП и скорости! Оставили только чистый боевой стейт
                 em.AddComponentData(unitEntity, new CombatStateComponent
-                {
-                    IsDead = false, 
+                { 
                     IsInCombat = false
                 });
 
                 em.AddComponentData(unitEntity, new UnitCombatStatsComponent{});
-
+            
+                if (markerData.IsDead)
+                {
+                    em.AddComponent<IsDeadTag>(unitEntity);
+                }
                 // Записываем РЕАЛЬНОЕ расчетное ХП из конфига в ОЗУ чанка при рождении!
                 em.AddComponentData(unitEntity, new HealthComponent
                 {
-                    Current = dbCfg.parameters.base_health,
+                    Current = markerData.IsDead ? 0f : dbCfg.parameters.base_health,
                     Max = dbCfg.parameters.base_health
                 });
 
@@ -293,7 +296,6 @@ namespace ProjectTowerRpg.ECS.Systems
                             Uid = testItems[idx].id.GetHashCode() + idx, 
                             ItemId = testItems[idx].id,
                             Amount = testItems[idx].amount,
-                            IsLooted = true 
                         });
 
                         spawnedItemEntities[idx] = itemEntity;
@@ -326,7 +328,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     var barBuffer = em.AddBuffer<ActionBarSlot>(unitEntity);
 
                     for (int k = 0; k < 24; k++)
- {
+                    {
                         // Вычисляем локальный Си-хоткей на базе сквозного индекса (0..23)
                         int localIndex = k % 12;
                         string defaultKey = localIndex switch
@@ -355,12 +357,72 @@ namespace ProjectTowerRpg.ECS.Systems
                         }
                     }
 
-                    // 🎯 ИНИЦИАЛИЗАЦИЯ КУЛДАУНОВ ЮНИТА
-                    em.AddBuffer<ActiveCooldownElement>(unitEntity);
-
                     Debug.Log("🔮 [ФАБРИКА]: Сквозной массив хоткеев (0..23) успешно вшит в буфер игрока!");
-                }   
-                
+                                }   
+                else
+                {
+                    // =========================================================================
+                    // 💀 НАПОЛНЕНИЕ КАРМАНОВ МОБА (Копейка в копейку по канону Игрока!)
+                    // =========================================================================
+                    
+                    if (em.HasBuffer<ItemSlot>(markerEntity))
+                    {
+                        // Схлопываем данные маркера в плоский Си-массив, чтобы забыть про HasBuffer
+                        var customItems = em.GetBuffer<ItemSlot>(markerEntity).ToNativeArray(Allocator.Temp);
+                        int itemsCount = customItems.Length;
+
+                        if (itemsCount > 0)
+                        {
+                            // 🦾 ШАГ 1: Спавним "души" предметов в ОЗУ копейка в копейку как у игрока!
+                            NativeArray<Entity> spawnedItemEntities = new NativeArray<Entity>(itemsCount, Allocator.Temp);
+
+                            for (int idx = 0; idx < itemsCount; idx++)
+                            {
+                                Entity itemEntity = em.CreateEntity();
+                                
+                                em.AddComponentData(itemEntity, new ItemComponent
+                                {
+                                    Uid = customItems[idx].DataId.GetHashCode() + idx, 
+                                    ItemId = customItems[idx].DataId.ToString(),
+                                    Amount = customItems[idx].Amount
+                                });
+
+                                spawnedItemEntities[idx] = itemEntity;
+                            }
+
+                            // 🦾 ШАГ 2: Скачиваем легитимный буфер инвентаря моба
+                            var monsterSlotsBuffer = em.GetBuffer<ItemSlot>(inventoryEntity);
+
+                            // 🦾 ШАГ 3: Шёлково заполняем ячейки рюкзака ссылками на вечные Entity предмета
+                            int slotsToFill = math.min(itemsCount, 72);
+                            for (int idx = 0; idx < slotsToFill; idx++)
+                            {
+                                monsterSlotsBuffer[idx] = new ItemSlot
+                                {
+                                    SlotIndex = idx,
+                                    DataId = customItems[idx].DataId,
+                                    DataType = "item",
+                                    Amount = customItems[idx].Amount,
+                                    ItemEntity = spawnedItemEntities[idx], 
+                                    EquipSlot = EquipSlot.NONE,
+                                    ContainerType = ContainerType.INVENTORY
+                                };
+                            }
+
+                            spawnedItemEntities.Dispose();
+                            customItems.Dispose();
+                            
+                            Debug.Log($"🎒 [ФАБРИКА]: Живые карманы моба {unitEntity.Index} сочно набиты кастомным лутом ({slotsToFill} шт.) с вечными Entity-душами предметов!");
+                        }
+                    }
+                    
+                    // Кулдауны мобу тоже намертво вшиваем, чтобы его ИИ мог легально остужать свои спеллы
+                    em.AddBuffer<ActiveCooldownElement>(unitEntity);
+                }
+
+                // 🎯 ИНИЦИАЛИЗАЦИЯ КУЛДАУНОВ ЮНИТА
+                em.AddBuffer<ActiveCooldownElement>(unitEntity);
+
                 // Уничтожаем кубик-маркер запроса спавна прямо через EntityManager
                 em.DestroyEntity(markerEntity);
             }

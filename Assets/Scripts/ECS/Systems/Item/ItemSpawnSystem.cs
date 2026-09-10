@@ -1,8 +1,10 @@
+using Unity.Collections;
 using Unity.Entities;
-using Unity.Transforms;
 using Unity.Mathematics;
+using Unity.Transforms;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core;
+using ProjectTowerRpg.Core.Items;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
@@ -11,47 +13,101 @@ namespace ProjectTowerRpg.ECS.Systems
     [WorldSystemFilter(WorldSystemFilterFlags.LocalSimulation)]
     public partial class ItemSpawnSystem : SystemBase
     {
-        private EntityCommandBufferSystem _ecbSystem;
-
-        protected override void OnCreate()
-        {
-            _ecbSystem = World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
-        }
-
         protected override void OnUpdate()
         {
-            var ecb = _ecbSystem.CreateCommandBuffer();
+            var em = EntityManager;
 
-            foreach (var (request, requestEntity) in 
-                     SystemAPI.Query<RefRO<DropItemRequest>>().WithEntityAccess())
+            // ================================================================
+            // СЦЕНАРНЫЕ ПРЕДМЕТЫ (ItemSpawnMarkerComponent)
+            // ================================================================
+            var markerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<ItemSpawnMarkerComponent>());
+            if (!markerQuery.IsEmpty)
             {
-                // 1. Рождаем чистую ECS-сущность в памяти
-                Entity itemEntity = ecb.CreateEntity();
-
-                string itemIdStr = request.ValueRO.ItemId.ToString();
-                float3 spawnPosition = request.ValueRO.Position;
-                spawnPosition.y = PhysicsUtils.GetGroundHeight(spawnPosition);
-
-                string generatedUidStr = $"i_{(int)spawnPosition.x}_{(int)spawnPosition.z}";
-                int generatedUidHash = generatedUidStr.GetHashCode();
-
-                // 2. Накатываем базовые unmanaged-компоненты в ОЗУ симуляции
-                ecb.AddComponent(itemEntity, LocalTransform.FromPosition(spawnPosition));
-                ecb.AddComponent(itemEntity, new ItemComponent
+                var markers = markerQuery.ToEntityArray(Allocator.Temp);
+                foreach (var markerEntity in markers)
                 {
-                    Uid = generatedUidHash,
-                    ItemId = itemIdStr,  
-                    Amount = request.ValueRO.Amount,
-                    LootTableId = request.ValueRO.LootTableId,
-                    IsLooted = request.ValueRO.IsLooted,
-                    RespawnTime = request.ValueRO.RespawnTime
-                });
+                    var markerData = em.GetComponentData<ItemSpawnMarkerComponent>(markerEntity);
 
-                Debug.Log($"[ItemSpawnSystem] Чистая ECS-сущность предмета родилась в ОЗУ: {itemIdStr}, Uid Hash={generatedUidHash}");
+                    float3 spawnPosition = markerData.SpawnPosition;
+                    spawnPosition.y = PhysicsUtils.GetGroundHeight(spawnPosition);
 
-                ecb.DestroyEntity(requestEntity);
+                    string itemIdStr = markerData.ItemId.ToString();
+                    int generatedUidHash = ($"i_{(int)spawnPosition.x}_{(int)spawnPosition.z}").GetHashCode();
+
+                    Entity itemEntity = em.CreateEntity();
+                    em.AddComponentData(itemEntity, LocalTransform.FromPosition(spawnPosition));
+                    em.AddComponentData(itemEntity, new ItemComponent
+                    {
+                        Uid = generatedUidHash,
+                        ItemId = markerData.ItemId,
+                        Amount = markerData.Amount,
+                        LootTableId = markerData.LootTableId,
+                        RespawnTime = markerData.RespawnTime,
+                    });
+
+                    var itemCfg = ItemsDatabase.GetItem(itemIdStr);
+                    bool isContainer = itemCfg != null && itemCfg.identity.type == "container";
+
+                    if (isContainer)
+                    {
+                        int columns = itemCfg.properties.columns ?? 6;
+                        int rows = itemCfg.properties.rows ?? 4;
+                        int totalSlots = columns * rows;
+
+                        Entity bagEntity = em.CreateEntity();
+                        em.AddComponentData(bagEntity, new ContainerConfigComponent
+                        {
+                            Owner = itemEntity,
+                            Columns = columns,
+                            Rows = rows,
+                        });
+                        em.AddComponent<InventoryTag>(bagEntity);
+
+                        var slotsBuffer = em.AddBuffer<ItemSlot>(bagEntity);
+                        for (int i = 0; i < totalSlots; i++)
+                        {
+                            slotsBuffer.Add(new ItemSlot
+                            {
+                                SlotIndex = i,
+                                DataId = "",
+                                DataType = "",
+                                Amount = 0,
+                                ContainerType = ContainerType.INVENTORY,
+                            });
+                        }
+
+                        if (em.HasBuffer<ItemSlot>(markerEntity))
+                        {
+                            var customItems = em.GetBuffer<ItemSlot>(markerEntity).ToNativeArray(Allocator.Temp);
+                            int slotsToFill = math.min(customItems.Length, totalSlots);
+                            for (int i = 0; i < slotsToFill; i++)
+                            {
+                                slotsBuffer[i] = new ItemSlot
+                                {
+                                    SlotIndex = i,
+                                    DataId = customItems[i].DataId,
+                                    DataType = "item",
+                                    Amount = customItems[i].Amount,
+                                    ContainerType = ContainerType.INVENTORY,
+                                };
+                            }
+                            customItems.Dispose();
+                        }
+
+                        em.AddComponentData(itemEntity, new BuffersLinkComponent
+                        {
+                            Inventory = bagEntity,
+                            Paperdoll = Entity.Null,
+                        });
+                        em.AddComponent<ContainerTag>(itemEntity);
+
+                        Debug.Log($"[ItemSpawnSystem] Контейнер {itemIdStr} создан с bagEntity {bagEntity.Index}");
+                    }
+
+                    em.DestroyEntity(markerEntity);
+                }
+                markers.Dispose();
             }
         }
     }
 }
-

@@ -20,7 +20,7 @@ namespace ProjectTowerRpg.ECS.Systems
     public partial class SaveSystem : SystemBase
     {
         private string SavePath => Application.persistentDataPath + "/save.json";
-        
+
         private bool _isF9Latched = false;
         private bool _isF5Latched = false;
 
@@ -50,11 +50,81 @@ namespace ProjectTowerRpg.ECS.Systems
             }
         }
 
+        // ================================================================
+        // SAVE
+        // ================================================================
         public void Save()
         {
             var saveData = new SaveData();
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
+            // ================================================================
+            // 1. СОБИРАЕМ ВСЕ ПРЕДМЕТЫ СРАЗУ — И В МИРЕ, И В КОНТЕЙНЕРАХ.
+            //    Строим словарь uid -> ItemSaveData, чтобы слоты юнитов
+            //    могли ссылаться на Uid предмета.
+            // ================================================================
+            var itemQuery = em.CreateEntityQuery(ComponentType.ReadOnly<ItemComponent>());
+            var allItemEntities = itemQuery.ToEntityArray(Allocator.Temp);
+
+            foreach (var entity in allItemEntities)
+            {
+                var itemComp = em.GetComponentData<ItemComponent>(entity);
+
+                var itemData = new ItemSaveData
+                {
+                    Uid = itemComp.Uid.ToString(),
+                    ItemId = itemComp.ItemId.ToString(),
+                    Amount = itemComp.Amount,
+                    LootTableId = itemComp.LootTableId.ToString(),
+                    RespawnTime = itemComp.RespawnTime,
+                    IsLootGenerated = em.HasComponent<LootGeneratedTag>(entity),
+                };
+
+                // Позиция — только если предмет НЕ в контейнере
+                if (!em.HasComponent<StoredTag>(entity) && em.HasComponent<LocalTransform>(entity))
+                {
+                    itemData.Position = em.GetComponentData<LocalTransform>(entity).Position;
+                }
+
+                // Если контейнер — сохраняем содержимое bagEntity
+                if (em.HasComponent<BuffersLinkComponent>(entity))
+                {
+                    var links = em.GetComponentData<BuffersLinkComponent>(entity);
+
+                    if (links.Inventory != Entity.Null
+                        && em.Exists(links.Inventory)
+                        && em.HasBuffer<ItemSlot>(links.Inventory))
+                    {
+                        var slots = em.GetBuffer<ItemSlot>(links.Inventory);
+                        foreach (var slot in slots)
+                        {
+                            string childUid = "";
+                            if (slot.ItemEntity != Entity.Null
+                                && em.Exists(slot.ItemEntity)
+                                && em.HasComponent<ItemComponent>(slot.ItemEntity))
+                            {
+                                childUid = em.GetComponentData<ItemComponent>(slot.ItemEntity).Uid.ToString();
+                            }
+
+                            itemData.ContainerSlots.Add(new ItemSlotSaveData
+                            {
+                                Uid = childUid,
+                                ItemId = slot.DataId.ToString(),
+                                Amount = slot.Amount,
+                                EquipSlot = slot.EquipSlot,
+                                ContainerType = slot.ContainerType,
+                            });
+                        }
+                    }
+                }
+
+                saveData.Items.Add(itemData);
+            }
+            allItemEntities.Dispose();
+
+            // ================================================================
+            // 2. СОХРАНЯЕМ ЮНИТОВ
+            // ================================================================
             var allUnitsQuery = em.CreateEntityQuery(
                 ComponentType.ReadOnly<UnitComponent>(),
                 ComponentType.ReadOnly<LocalTransform>(),
@@ -62,7 +132,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 ComponentType.ReadOnly<ResourceComponent>(),
                 ComponentType.ReadOnly<BuffersLinkComponent>()
             );
-
             var unitEntities = allUnitsQuery.ToEntityArray(Allocator.Temp);
 
             foreach (var entity in unitEntities)
@@ -89,39 +158,57 @@ namespace ProjectTowerRpg.ECS.Systems
                     IsNpc = em.HasComponent<NpcTag>(entity),
                 };
 
-                // Сохраняем инвентарь
+                // Инвентарь
                 if (buffersLink.Inventory != Entity.Null && em.HasBuffer<ItemSlot>(buffersLink.Inventory))
                 {
                     var slots = em.GetBuffer<ItemSlot>(buffersLink.Inventory);
                     foreach (var slot in slots)
                     {
-                        unitData.InventorySlots.Add(new ItemSlotSaveData 
-                        { 
-                            ItemId = slot.DataId.ToString(), 
-                            Amount = slot.Amount, 
-                            EquipSlot = slot.EquipSlot, 
-                            ContainerType = slot.ContainerType 
+                        string childUid = "";
+                        if (slot.ItemEntity != Entity.Null
+                            && em.Exists(slot.ItemEntity)
+                            && em.HasComponent<ItemComponent>(slot.ItemEntity))
+                        {
+                            childUid = em.GetComponentData<ItemComponent>(slot.ItemEntity).Uid.ToString();
+                        }
+
+                        unitData.InventorySlots.Add(new ItemSlotSaveData
+                        {
+                            Uid = childUid,
+                            ItemId = slot.DataId.ToString(),
+                            Amount = slot.Amount,
+                            EquipSlot = slot.EquipSlot,
+                            ContainerType = slot.ContainerType,
                         });
                     }
                 }
 
-                // Сохраняем куклу
+                // Кукла
                 if (buffersLink.Paperdoll != Entity.Null && em.HasBuffer<ItemSlot>(buffersLink.Paperdoll))
                 {
                     var slots = em.GetBuffer<ItemSlot>(buffersLink.Paperdoll);
                     foreach (var slot in slots)
                     {
-                        unitData.PaperdollSlots.Add(new ItemSlotSaveData 
-                        { 
-                            ItemId = slot.DataId.ToString(), 
-                            Amount = slot.Amount, 
-                            EquipSlot = slot.EquipSlot, 
-                            ContainerType = slot.ContainerType 
+                        string childUid = "";
+                        if (slot.ItemEntity != Entity.Null
+                            && em.Exists(slot.ItemEntity)
+                            && em.HasComponent<ItemComponent>(slot.ItemEntity))
+                        {
+                            childUid = em.GetComponentData<ItemComponent>(slot.ItemEntity).Uid.ToString();
+                        }
+
+                        unitData.PaperdollSlots.Add(new ItemSlotSaveData
+                        {
+                            Uid = childUid,
+                            ItemId = slot.DataId.ToString(),
+                            Amount = slot.Amount,
+                            EquipSlot = slot.EquipSlot,
+                            ContainerType = slot.ContainerType,
                         });
                     }
                 }
 
-                // Сохраняем экшенбар
+                // Экшенбар
                 if (em.HasBuffer<ActionBarSlot>(entity))
                 {
                     var barSlots = em.GetBuffer<ActionBarSlot>(entity);
@@ -131,38 +218,23 @@ namespace ProjectTowerRpg.ECS.Systems
                         {
                             SlotIndex = barSlot.SlotIndex,
                             AbilityId = barSlot.AbilityId.ToString(),
-                            SlotType = barSlot.SlotType.ToString()
+                            SlotType = barSlot.SlotType.ToString(),
                         });
                     }
                 }
 
                 saveData.Units.Add(unitData);
             }
-
-            // Сохраняем предметы в мире
-            var itemQuery = em.CreateEntityQuery(
-                ComponentType.ReadOnly<ItemComponent>(),
-                ComponentType.ReadOnly<LocalTransform>(),
-                ComponentType.Exclude<StoredTag>()
-            );
-            var itemEntities = itemQuery.ToEntityArray(Allocator.Temp);
-            foreach (var entity in itemEntities)
-            {
-                var itemComp = em.GetComponentData<ItemComponent>(entity);
-                var transform = em.GetComponentData<LocalTransform>(entity);
-                saveData.WorldItems.Add(new WorldItemSaveData 
-                { 
-                    ItemId = itemComp.ItemId.ToString(), 
-                    Amount = itemComp.Amount, 
-                    Position = transform.Position 
-                });
-            }
+            unitEntities.Dispose();
 
             string json = JsonUtility.ToJson(saveData, true);
             File.WriteAllText(SavePath, json);
-            Debug.Log($"💾 [SaveSystem]: Мир запечен! Существ: {saveData.Units.Count}, Предметов на полу: {saveData.WorldItems.Count}");
+            Debug.Log($"💾 Save: юнитов {saveData.Units.Count}, предметов {saveData.Items.Count}");
         }
 
+        // ================================================================
+        // LOAD
+        // ================================================================
         public void Load()
         {
             if (!File.Exists(SavePath)) return;
@@ -172,58 +244,195 @@ namespace ProjectTowerRpg.ECS.Systems
             var saveData = JsonUtility.FromJson<SaveData>(json);
             if (saveData == null) return;
 
-            // 1. Удаляем старые маркеры
-            var oldMarkers = em.CreateEntityQuery(typeof(UnitSpawnMarkerComponent));
-            em.DestroyEntity(oldMarkers);
+            // 1. Удаляем старые маркеры юнитов
+            em.DestroyEntity(em.CreateEntityQuery(typeof(UnitSpawnMarkerComponent)));
 
-            // 2. Удаляем старые предметы в мире
-            var oldItemsQuery = em.CreateEntityQuery(
-                ComponentType.ReadOnly<ItemComponent>(),
-                ComponentType.Exclude<StoredTag>()
-            );
-            em.DestroyEntity(oldItemsQuery);
+            // 2. Собираем uid -> Entity для всех существующих ItemEntity
+            var allItemsQuery = em.CreateEntityQuery(ComponentType.ReadOnly<ItemComponent>());
+            var existingItems = allItemsQuery.ToEntityArray(Allocator.Temp);
+            var uidToItemEntity = new Dictionary<string, Entity>();
 
-            // 3. Кэшируем существующих игроков
+            foreach (var entity in existingItems)
+            {
+                var itemComp = em.GetComponentData<ItemComponent>(entity);
+                uidToItemEntity[itemComp.Uid.ToString()] = entity;
+            }
+            existingItems.Dispose();
+
+            // 3. Собираем uid -> Entity для юнитов
             var playerQuery = em.CreateEntityQuery(
                 ComponentType.ReadOnly<UnitComponent>(),
                 ComponentType.ReadOnly<PlayerTag>()
             );
             var existingPlayers = playerQuery.ToEntityArray(Allocator.Temp);
-            var uidToEntity = new Dictionary<string, Entity>();
-
+            var uidToPlayer = new Dictionary<string, Entity>();
             foreach (var entity in existingPlayers)
-            {
-                var unit = em.GetComponentData<UnitComponent>(entity);
-                uidToEntity[unit.Uid.ToString()] = entity;
-            }
+                uidToPlayer[em.GetComponentData<UnitComponent>(entity).Uid.ToString()] = entity;
+            existingPlayers.Dispose();
 
-            // 4. Кэшируем существующих монстров
             var monsterQuery = em.CreateEntityQuery(
                 ComponentType.ReadOnly<UnitComponent>(),
                 ComponentType.ReadOnly<MonsterTag>()
             );
             var existingMonsters = monsterQuery.ToEntityArray(Allocator.Temp);
             var uidToMonster = new Dictionary<string, Entity>();
-
             foreach (var entity in existingMonsters)
-            {
-                var unit = em.GetComponentData<UnitComponent>(entity);
-                uidToMonster[unit.Uid.ToString()] = entity;
-            }
+                uidToMonster[em.GetComponentData<UnitComponent>(entity).Uid.ToString()] = entity;
+            existingMonsters.Dispose();
 
-            // 5. Включаем систему спавна
+            // 4. Включаем систему спавна юнитов
             var spawnSystem = World.GetExistingSystemManaged<UnitSpawnSystem>();
-            if (spawnSystem != null)
+            if (spawnSystem != null) spawnSystem.Enabled = true;
+
+            // ================================================================
+            // 5. ВОССТАНАВЛИВАЕМ ПРЕДМЕТЫ
+            //    Если Uid найден — заливаем. Если нет — создаём.
+            // ================================================================
+            foreach (var itemData in saveData.Items)
             {
-                spawnSystem.Enabled = true;
+                Entity itemEntity;
+
+                if (uidToItemEntity.TryGetValue(itemData.Uid, out itemEntity))
+                {
+                    // === СУЩЕСТВУЮЩИЙ ПРЕДМЕТ — ОБНОВЛЯЕМ ===
+                    var itemComp = em.GetComponentData<ItemComponent>(itemEntity);
+                    itemComp.ItemId = itemData.ItemId;
+                    itemComp.Amount = itemData.Amount;
+                    itemComp.LootTableId = itemData.LootTableId;
+                    itemComp.RespawnTime = itemData.RespawnTime;
+                    em.SetComponentData(itemEntity, itemComp);
+
+                    // Позиция — если предмет не в контейнере
+                    if (!em.HasComponent<StoredTag>(itemEntity) && em.HasComponent<LocalTransform>(itemEntity))
+                    {
+                        var t = em.GetComponentData<LocalTransform>(itemEntity);
+                        t.Position = itemData.Position;
+                        em.SetComponentData(itemEntity, t);
+                    }
+
+                    // LootGeneratedTag
+                    if (itemData.IsLootGenerated && !em.HasComponent<LootGeneratedTag>(itemEntity))
+                        em.AddComponent<LootGeneratedTag>(itemEntity);
+                    else if (!itemData.IsLootGenerated && em.HasComponent<LootGeneratedTag>(itemEntity))
+                        em.RemoveComponent<LootGeneratedTag>(itemEntity);
+
+                    // bagEntity — заливаем слоты
+                    if (em.HasComponent<BuffersLinkComponent>(itemEntity))
+                    {
+                        var links = em.GetComponentData<BuffersLinkComponent>(itemEntity);
+                        if (links.Inventory != Entity.Null && em.HasBuffer<ItemSlot>(links.Inventory))
+                        {
+                            var slots = em.GetBuffer<ItemSlot>(links.Inventory);
+                            for (int i = 0; i < slots.Length && i < itemData.ContainerSlots.Count; i++)
+                            {
+                                var s = itemData.ContainerSlots[i];
+
+                                Entity childEntity = Entity.Null;
+                                if (!string.IsNullOrEmpty(s.Uid) && uidToItemEntity.TryGetValue(s.Uid, out var child))
+                                    childEntity = child;
+
+                                slots[i] = new ItemSlot
+                                {
+                                    SlotIndex = i,
+                                    DataId = s.ItemId,
+                                    DataType = string.IsNullOrEmpty(s.ItemId) ? "" : "item",
+                                    Amount = s.Amount,
+                                    ItemEntity = childEntity,
+                                    EquipSlot = s.EquipSlot,
+                                    ContainerType = s.ContainerType,
+                                };
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // === НОВЫЙ ПРЕДМЕТ — СОЗДАЁМ ===
+                    itemEntity = em.CreateEntity();
+
+                    em.AddComponentData(itemEntity, LocalTransform.FromPosition(itemData.Position));
+                    em.AddComponentData(itemEntity, new ItemComponent
+                    {
+                        Uid = int.Parse(itemData.Uid),
+                        ItemId = itemData.ItemId,
+                        Amount = itemData.Amount,
+                        LootTableId = itemData.LootTableId,
+                        RespawnTime = itemData.RespawnTime,
+                    });
+
+                    if (itemData.IsLootGenerated)
+                        em.AddComponent<LootGeneratedTag>(itemEntity);
+
+                    // Контейнер — если есть сохранённые слоты
+                    if (itemData.ContainerSlots.Count > 0)
+                    {
+                        int totalSlots = itemData.ContainerSlots.Count;
+
+                        Entity bagEntity = em.CreateEntity();
+                        em.AddComponentData(bagEntity, new ContainerConfigComponent
+                        {
+                            Owner = itemEntity,
+                            Columns = totalSlots,
+                            Rows = 1,
+                        });
+                        em.AddComponent<InventoryTag>(bagEntity);
+
+                        var slotsBuffer = em.AddBuffer<ItemSlot>(bagEntity);
+                        for (int i = 0; i < totalSlots; i++)
+                        {
+                            var s = itemData.ContainerSlots[i];
+
+                            Entity childEntity = Entity.Null;
+                            if (!string.IsNullOrEmpty(s.Uid) && uidToItemEntity.TryGetValue(s.Uid, out var child))
+                                childEntity = child;
+
+                            slotsBuffer.Add(new ItemSlot
+                            {
+                                SlotIndex = i,
+                                DataId = s.ItemId,
+                                DataType = string.IsNullOrEmpty(s.ItemId) ? "" : "item",
+                                Amount = s.Amount,
+                                ItemEntity = childEntity,
+                                EquipSlot = s.EquipSlot,
+                                ContainerType = s.ContainerType,
+                            });
+                        }
+
+                        em.AddComponentData(itemEntity, new BuffersLinkComponent
+                        {
+                            Inventory = bagEntity,
+                            Paperdoll = Entity.Null,
+                        });
+                        em.AddComponent<ContainerTag>(itemEntity);
+                    }
+
+                    // Визуал
+                    var prefab = Resources.Load<GameObject>("Items/default_item");
+                    if (prefab != null)
+                    {
+                        var go = Object.Instantiate(prefab, itemData.Position, Quaternion.identity);
+                        var view = go.GetComponent<ItemView>();
+                        if (view != null)
+                        {
+                            view.uid = itemData.Uid;
+                            view.itemId = itemData.ItemId;
+                            view.Entity = itemEntity;
+                            view.IsLinked = true;
+                        }
+                    }
+
+                    uidToItemEntity[itemData.Uid] = itemEntity;
+                }
             }
 
-            // 6. Восстанавливаем всех юнитов
+            // ================================================================
+            // 6. ВОССТАНАВЛИВАЕМ ЮНИТОВ
+            // ================================================================
             foreach (var unitData in saveData.Units)
             {
                 if (unitData.IsPlayer)
                 {
-                    if (uidToEntity.TryGetValue(unitData.Uid, out Entity entity))
+                    if (uidToPlayer.TryGetValue(unitData.Uid, out Entity entity))
                     {
                         var unit = em.GetComponentData<UnitComponent>(entity);
                         unit.Level = unitData.Level;
@@ -245,42 +454,63 @@ namespace ProjectTowerRpg.ECS.Systems
 
                         var buffersLink = em.GetComponentData<BuffersLinkComponent>(entity);
 
-                        // Восстанавливаем инвентарь
+                        // Инвентарь — с привязкой к ItemEntity по Uid
                         if (buffersLink.Inventory != Entity.Null && em.HasBuffer<ItemSlot>(buffersLink.Inventory))
                         {
                             var slots = em.GetBuffer<ItemSlot>(buffersLink.Inventory);
                             for (int i = 0; i < slots.Length && i < unitData.InventorySlots.Count; i++)
                             {
-                                var targetSlot = slots[i];
-                                targetSlot.DataId = unitData.InventorySlots[i].ItemId;
-                                targetSlot.Amount = unitData.InventorySlots[i].Amount;
-                                slots[i] = targetSlot;
+                                var s = unitData.InventorySlots[i];
+                                Entity itemEnt = Entity.Null;
+                                if (!string.IsNullOrEmpty(s.Uid) && uidToItemEntity.TryGetValue(s.Uid, out var ie))
+                                    itemEnt = ie;
+
+                                slots[i] = new ItemSlot
+                                {
+                                    SlotIndex = i,
+                                    DataId = s.ItemId,
+                                    DataType = string.IsNullOrEmpty(s.ItemId) ? "" : "item",
+                                    Amount = s.Amount,
+                                    ItemEntity = itemEnt,
+                                    EquipSlot = s.EquipSlot,
+                                    ContainerType = s.ContainerType,
+                                };
                             }
                         }
 
-                        // Восстанавливаем куклу
+                        // Кукла
                         if (buffersLink.Paperdoll != Entity.Null && em.HasBuffer<ItemSlot>(buffersLink.Paperdoll))
                         {
                             var slots = em.GetBuffer<ItemSlot>(buffersLink.Paperdoll);
                             for (int i = 0; i < slots.Length && i < unitData.PaperdollSlots.Count; i++)
                             {
-                                var targetSlot = slots[i];
-                                targetSlot.DataId = unitData.PaperdollSlots[i].ItemId;
-                                targetSlot.Amount = unitData.PaperdollSlots[i].Amount;
-                                slots[i] = targetSlot;
+                                var s = unitData.PaperdollSlots[i];
+                                Entity itemEnt = Entity.Null;
+                                if (!string.IsNullOrEmpty(s.Uid) && uidToItemEntity.TryGetValue(s.Uid, out var ie))
+                                    itemEnt = ie;
+
+                                slots[i] = new ItemSlot
+                                {
+                                    SlotIndex = i,
+                                    DataId = s.ItemId,
+                                    DataType = string.IsNullOrEmpty(s.ItemId) ? "" : "item",
+                                    Amount = s.Amount,
+                                    ItemEntity = itemEnt,
+                                    EquipSlot = s.EquipSlot,
+                                    ContainerType = s.ContainerType,
+                                };
                             }
                         }
 
-                        // Восстанавливаем экшенбар
+                        // Экшенбар
                         if (em.HasBuffer<ActionBarSlot>(entity) && unitData.ActionBarSlots.Count > 0)
                         {
                             var barSlots = em.GetBuffer<ActionBarSlot>(entity);
                             for (int k = 0; k < barSlots.Length && k < unitData.ActionBarSlots.Count; k++)
                             {
-                                var savedBar = unitData.ActionBarSlots[k];
                                 var targetBar = barSlots[k];
-                                targetBar.AbilityId = savedBar.AbilityId;
-                                targetBar.SlotType = savedBar.SlotType;
+                                targetBar.AbilityId = unitData.ActionBarSlots[k].AbilityId;
+                                targetBar.SlotType = unitData.ActionBarSlots[k].SlotType;
                                 barSlots[k] = targetBar;
                             }
                         }
@@ -296,7 +526,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     // МОНСТР
                     if (uidToMonster.TryGetValue(unitData.Uid, out Entity entity))
                     {
-                        // Обновляем существующего монстра
                         var health = em.GetComponentData<HealthComponent>(entity);
                         health.Current = (int)unitData.Health;
                         health.Max = (int)unitData.MaxHealth;
@@ -315,42 +544,58 @@ namespace ProjectTowerRpg.ECS.Systems
                         resources.Max = unitData.MaxMana;
                         em.SetComponentData(entity, resources);
 
-                        // Восстанавливаем инвентарь
+                        // Инвентарь
                         var buffersLink = em.GetComponentData<BuffersLinkComponent>(entity);
                         if (buffersLink.Inventory != Entity.Null && em.HasBuffer<ItemSlot>(buffersLink.Inventory))
                         {
                             var slots = em.GetBuffer<ItemSlot>(buffersLink.Inventory);
                             for (int i = 0; i < slots.Length && i < unitData.InventorySlots.Count; i++)
                             {
+                                var s = unitData.InventorySlots[i];
+                                Entity itemEnt = Entity.Null;
+                                if (!string.IsNullOrEmpty(s.Uid) && uidToItemEntity.TryGetValue(s.Uid, out var ie))
+                                    itemEnt = ie;
+
                                 slots[i] = new ItemSlot
                                 {
-                                    DataId = unitData.InventorySlots[i].ItemId,
-                                    Amount = unitData.InventorySlots[i].Amount,
-                                    EquipSlot = unitData.InventorySlots[i].EquipSlot,
-                                    ContainerType = unitData.InventorySlots[i].ContainerType
+                                    SlotIndex = i,
+                                    DataId = s.ItemId,
+                                    DataType = string.IsNullOrEmpty(s.ItemId) ? "" : "item",
+                                    Amount = s.Amount,
+                                    ItemEntity = itemEnt,
+                                    EquipSlot = s.EquipSlot,
+                                    ContainerType = s.ContainerType,
                                 };
                             }
                         }
 
-                        // Восстанавливаем куклу
+                        // Кукла
                         if (buffersLink.Paperdoll != Entity.Null && em.HasBuffer<ItemSlot>(buffersLink.Paperdoll))
                         {
                             var slots = em.GetBuffer<ItemSlot>(buffersLink.Paperdoll);
                             for (int i = 0; i < slots.Length && i < unitData.PaperdollSlots.Count; i++)
                             {
+                                var s = unitData.PaperdollSlots[i];
+                                Entity itemEnt = Entity.Null;
+                                if (!string.IsNullOrEmpty(s.Uid) && uidToItemEntity.TryGetValue(s.Uid, out var ie))
+                                    itemEnt = ie;
+
                                 slots[i] = new ItemSlot
                                 {
-                                    DataId = unitData.PaperdollSlots[i].ItemId,
-                                    Amount = unitData.PaperdollSlots[i].Amount,
-                                    EquipSlot = unitData.PaperdollSlots[i].EquipSlot,
-                                    ContainerType = unitData.PaperdollSlots[i].ContainerType
+                                    SlotIndex = i,
+                                    DataId = s.ItemId,
+                                    DataType = string.IsNullOrEmpty(s.ItemId) ? "" : "item",
+                                    Amount = s.Amount,
+                                    ItemEntity = itemEnt,
+                                    EquipSlot = s.EquipSlot,
+                                    ContainerType = s.ContainerType,
                                 };
                             }
                         }
                     }
                     else
                     {
-                        // Монстра нет — создаём маркер спавна
+                        // Монстра нет — создаём маркер
                         Entity spawnMarker = em.CreateEntity();
                         em.AddComponentData(spawnMarker, new UnitSpawnMarkerComponent
                         {
@@ -359,53 +604,13 @@ namespace ProjectTowerRpg.ECS.Systems
                             SpawnPosition = unitData.Position,
                             IsPlayer = false,
                             Level = unitData.Level,
-                            Rank = "common"
+                            Rank = "common",
                         });
                     }
                 }
             }
 
-            // ================================================================
-            // 7. ВОССТАНАВЛИВАЕМ ПРЕДМЕТЫ В МИРЕ
-            // ================================================================
-            foreach (var itemData in saveData.WorldItems)
-            {
-                // 🦾 СОЗДАЁМ СУЩНОСТЬ ПРЕДМЕТА НАПРЯМУЮ
-                Entity itemEntity = em.CreateEntity();
-                
-                // Генерируем Uid
-                string generatedUidStr = $"i_{(int)itemData.Position.x}_{(int)itemData.Position.z}";
-                int generatedUidHash = generatedUidStr.GetHashCode();
-                
-                // Компоненты
-                em.AddComponentData(itemEntity, LocalTransform.FromPosition(itemData.Position));
-                em.AddComponentData(itemEntity, new ItemComponent
-                {
-                    Uid = generatedUidHash,
-                    ItemId = itemData.ItemId,
-                    Amount = itemData.Amount,
-                    IsLooted = false,
-                    LootTableId = "",
-                    RespawnTime = 0
-                });
-                
-                // Спавн визуала
-                var prefab = Resources.Load<GameObject>("Items/default_item");
-                if (prefab != null)
-                {
-                    var go = Object.Instantiate(prefab, itemData.Position, Quaternion.identity);
-                    var view = go.GetComponent<ItemView>();
-                    if (view != null)
-                    {
-                        view.uid = generatedUidStr;
-                        view.itemId = itemData.ItemId;
-                        view.Entity = itemEntity;
-                        view.IsLinked = true;
-                    }
-                }
-            }
-
-            Debug.Log($"📂 [SaveSystem]: Загрузка завершена! Восстановлено {saveData.Units.Count} юнитов, {saveData.WorldItems.Count} предметов.");
+            Debug.Log($"📂 Load: юнитов {saveData.Units.Count}, предметов {saveData.Items.Count}");
         }
     }
 
@@ -416,7 +621,7 @@ namespace ProjectTowerRpg.ECS.Systems
     public class SaveData
     {
         public List<UnitSaveData> Units = new();
-        public List<WorldItemSaveData> WorldItems = new();
+        public List<ItemSaveData> Items = new();
     }
 
     [System.Serializable]
@@ -430,11 +635,11 @@ namespace ProjectTowerRpg.ECS.Systems
         public float MaxHealth;
         public float Mana;
         public float MaxMana;
-        public bool IsPlayer;      
-        public bool IsLeader;      
-        public bool IsMonster;     
-        public bool IsNpc;         
-        
+        public bool IsPlayer;
+        public bool IsLeader;
+        public bool IsMonster;
+        public bool IsNpc;
+
         public List<ItemSlotSaveData> InventorySlots = new();
         public List<ItemSlotSaveData> PaperdollSlots = new();
         public List<ActionBarSaveData> ActionBarSlots = new();
@@ -443,6 +648,7 @@ namespace ProjectTowerRpg.ECS.Systems
     [System.Serializable]
     public class ItemSlotSaveData
     {
+        public string Uid;             // Uid предмета, который лежит в слоте
         public string ItemId;
         public int Amount;
         public EquipSlot EquipSlot;
@@ -458,10 +664,16 @@ namespace ProjectTowerRpg.ECS.Systems
     }
 
     [System.Serializable]
-    public class WorldItemSaveData
+    public class ItemSaveData
     {
+        public string Uid;
         public string ItemId;
         public int Amount;
         public float3 Position;
+        public string LootTableId;
+        public int RespawnTime;
+        public bool IsLootGenerated;
+
+        public List<ItemSlotSaveData> ContainerSlots = new();
     }
 }

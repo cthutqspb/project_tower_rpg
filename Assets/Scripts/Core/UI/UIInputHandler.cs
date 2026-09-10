@@ -99,131 +99,67 @@ namespace ProjectTowerRpg.Core.UI
 
 
         // ================================================================
-        // 🎯 УНИВЕРСАЛЬНЫЙ ДАБЛКЛИК (ЧЕРЕЗ ECS ТЕГИ)
-        // ================================================================
-        private void HandleUiDoubleClick(UiClickContext context)
-        {
-            if (context.ContextEntity == Entity.Null) return;
+// 🎯 УНИВЕРСАЛЬНЫЙ ДАБЛКЛИК (РЕЗОЛВ ЧЕРЕЗ BuffersLinkComponent)
+// ================================================================
+private void HandleUiDoubleClick(UiClickContext context)
+{
+    if (context.ContextEntity == Entity.Null) return;
 
-            var em = _entityManager;
+    var em = _entityManager;
 
-            bool isInventory = em.HasComponent<InventoryTag>(context.ContextEntity);
-            bool isPaperdoll = em.HasComponent<PaperdollTag>(context.ContextEntity);
-            bool isContainer = em.HasComponent<ContainerTag>(context.ContextEntity);
+    // 🦾 1. РЕЗОЛВ SOURCE: если есть BuffersLink.Inventory — берём его.
+    //         Иначе работаем с самим entity (это bagEntity или старый стиль).
+    Entity sourceContainer = context.ContextEntity;
+    if (em.HasComponent<BuffersLinkComponent>(context.ContextEntity))
+    {
+        var links = em.GetComponentData<BuffersLinkComponent>(context.ContextEntity);
+        if (links.Inventory != Entity.Null && em.Exists(links.Inventory))
+            sourceContainer = links.Inventory;
+    }
 
-            Entity targetContainerEntity = Entity.Null;
+    // 🦾 2. РЕЗОЛВ ИГРОКА
+    Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+    if (playerEntity == Entity.Null || !em.HasComponent<BuffersLinkComponent>(playerEntity))
+    {
+        Debug.LogWarning("[UIInputHandler] Нет игрока или у него нет BuffersLinkComponent");
+        return;
+    }
 
-            // КЕЙС 1: ИНВЕНТАРЬ → кукла
-            if (isInventory && !isContainer)
-            {
-                var ownerEntity = em.GetComponentData<ContainerConfigComponent>(context.ContextEntity).Owner;
+    var playerLinks = em.GetComponentData<BuffersLinkComponent>(playerEntity);
+    Entity playerInventory = playerLinks.Inventory;
+    Entity playerPaperdoll = playerLinks.Paperdoll;
 
-                var allContainers = em.CreateEntityQuery(
-                    ComponentType.ReadOnly<ContainerConfigComponent>(),
-                    ComponentType.ReadOnly<PaperdollTag>()
-                ).ToEntityArray(Unity.Collections.Allocator.Temp);
+    // 🦾 3. РЕЗОЛВ TARGET по правилу:
+    //    - source == inventory игрока   → target = paperdoll (экипировка)
+    //    - source == paperdoll игрока   → target = inventory (снятие)
+    //    - иначе (чужой контейнер/лут)  → target = inventory игрока
+    Entity targetContainer;
+    if (sourceContainer == playerInventory)
+        targetContainer = playerPaperdoll;
+    else if (sourceContainer == playerPaperdoll)
+        targetContainer = playerInventory;
+    else
+        targetContainer = playerInventory;
 
-                foreach (var container in allContainers)
-                {
-                    var cfg = em.GetComponentData<ContainerConfigComponent>(container);
-                    if (cfg.Owner == ownerEntity)
-                    {
-                        targetContainerEntity = container;
-                        break;
-                    }
-                }
-                allContainers.Dispose();
+    if (targetContainer == Entity.Null || !em.Exists(targetContainer))
+    {
+        Debug.LogWarning($"[UIInputHandler] Не найден target для source {sourceContainer}");
+        return;
+    }
 
-                if (targetContainerEntity != Entity.Null)
-                {
-                    CreateTransferCommand(
-                        em,
-                        context.ContextEntity,
-                        context.SlotIndex,
-                        targetContainerEntity, 
-                        context.TargetId,
-                        context.Amount,
-                        -1
-                    );
-                    Debug.Log($"[UIInputHandler] Даблклик: экипировка {context.TargetId}");
-                    return;
-                }
+    // 🦾 4. ШЛЁМ КОМАНДУ
+    CreateTransferCommand(
+        em,
+        sourceContainer,
+        context.SlotIndex,
+        targetContainer,
+        context.TargetId,
+        context.Amount,
+        -1
+    );
 
-                Debug.LogWarning($"[UIInputHandler] Не найдена кукла для {context.TargetId}");
-                return;
-            }
-
-            // КЕЙС 2: КУКЛА → инвентарь
-            if (isPaperdoll)
-            {
-                var ownerEntity = em.GetComponentData<ContainerConfigComponent>(context.ContextEntity).Owner;
-
-                var allContainers = em.CreateEntityQuery(
-                    ComponentType.ReadOnly<ContainerConfigComponent>(),
-                    ComponentType.ReadOnly<InventoryTag>()
-                ).ToEntityArray(Unity.Collections.Allocator.Temp);
-
-                foreach (var container in allContainers)
-                {
-                    var cfg = em.GetComponentData<ContainerConfigComponent>(container);
-                    if (cfg.Owner == ownerEntity)
-                    {
-                        targetContainerEntity = container;
-                        break;
-                    }
-                }
-                allContainers.Dispose();
-
-                if (targetContainerEntity != Entity.Null)
-                {
-                    CreateTransferCommand(
-                        em,
-                        context.ContextEntity,
-                        context.SlotIndex,
-                        targetContainerEntity, 
-                        context.TargetId,
-                        context.Amount,
-                        -1
-                    );
-                    Debug.Log($"[UIInputHandler] Даблклик: снятие {context.TargetId}");
-                    return;
-                }
-
-                Debug.LogWarning($"[UIInputHandler] Не найден инвентарь для снятия {context.TargetId}");
-                return;
-            }
-
-            // КЕЙС 3: КОНТЕЙНЕР (сундук/матрешка) → инвентарь игрока
-            if (isContainer)
-            {
-                Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
-                if (playerEntity != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntity))
-                {
-                    var links = em.GetComponentData<BuffersLinkComponent>(playerEntity);
-                    targetContainerEntity = links.Inventory;
-                }
-
-                if (targetContainerEntity != Entity.Null && em.Exists(targetContainerEntity))
-                {
-                    CreateTransferCommand(
-                        em,
-                        context.ContextEntity,
-                        context.SlotIndex,
-                        targetContainerEntity,
-                        context.TargetId,
-                        context.Amount,
-                        -1
-                    );
-                    Debug.Log($"[UIInputHandler] Даблклик: забрал {context.TargetId} из контейнера");
-                    return;
-                }
-
-                Debug.LogWarning($"[UIInputHandler] Не найден инвентарь игрока для {context.TargetId}");
-                return;
-            }
-
-            Debug.LogWarning($"[UIInputHandler] Неизвестный тип контейнера для даблклика: {context.ContextEntity}");
-        }
+    Debug.Log($"[UIInputHandler] Даблклик: {context.TargetId} из {sourceContainer} в {targetContainer}");
+}
 
         // ================================================================
         // 🎯 ЕДИНЫЙ ОБРАБОТЧИК КЛИКОВ В UI

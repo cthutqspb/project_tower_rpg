@@ -1,9 +1,8 @@
 using Unity.Entities;
-
+using Unity.Collections;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.ECS.Reducers;
-using ProjectTowerRpg.Core.UI;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
@@ -45,7 +44,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         break;
 
                     case ActionKind.ContainerTakeAll:
-                        ExecuteContainerTakeAll(cmd.ValueRO);
+                        ExecuteContainerTakeAll(cmd.ValueRO, ecb);
                         break;
 
                     case ActionKind.Attack:
@@ -61,7 +60,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         break;
 
                     case ActionKind.ItemTransfer:
-                        ExecuteItemTransfer(cmd.ValueRO);
+                        ExecuteItemTransfer(cmd.ValueRO, ecb);
                         break;
 
                     case ActionKind.ItemDrop:
@@ -69,7 +68,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         break;
 
                     case ActionKind.ItemUse:
-                        ExecuteItemUse(cmd.ValueRO);
+                        ExecuteItemUse(cmd.ValueRO, ecb);
                         break;
 
                     case ActionKind.ActionBarAssign:
@@ -120,7 +119,7 @@ namespace ProjectTowerRpg.ECS.Systems
             Debug.Log($"[ActionDispatcher] Открыт контейнер {cmd.TargetEntity.Index}");
         }
 
-        private void ExecuteContainerTakeAll(ActionCommand cmd)
+        private void ExecuteContainerTakeAll(ActionCommand cmd, EntityCommandBuffer ecb)
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
@@ -150,29 +149,34 @@ namespace ProjectTowerRpg.ECS.Systems
                 return;
             }
 
-            // 🦾 Теперь буфер гарантированно найдется на sourceBagEntity (самом мешке сундука)!
             var sourceSlotsBuffer = _slotDataLookup[sourceBagEntity];
 
+            // 🦾 СНАЧАЛА СОБИРАЕМ — не мутируем буфер во время сбора
+            var transfers = new NativeList<ActionCommand>(Allocator.Temp);
             for (int i = 0; i < sourceSlotsBuffer.Length; i++)
             {
                 var slotData = sourceSlotsBuffer[i];
-
                 if (!slotData.IsEmpty)
                 {
-                    var singleTransferCommand = new ActionCommand
+                    transfers.Add(new ActionCommand
                     {
                         Action = ItemActions.Transfer,
-                        SourceEntity = sourceBagEntity, 
+                        SourceEntity = sourceBagEntity,
                         SourceSlot = i,
-                        TargetEntity = targetBagEntity, 
-                        TargetSlot = -1,                
-                        ItemId = slotData.DataId, 
-                        Amount = slotData.Amount
-                    };
-
-                    ExecuteItemTransfer(singleTransferCommand);
+                        TargetEntity = targetBagEntity,
+                        TargetSlot = -1,
+                        ItemId = slotData.DataId,
+                        Amount = slotData.Amount,
+                    });
                 }
             }
+
+            // 🦾 ПОТОМ ИСПОЛНЯЕМ — буфер source уже не читаем
+            foreach (var t in transfers)
+            {
+                ExecuteItemTransfer(t, ecb);
+            }
+            transfers.Dispose();
 
             Debug.Log($"💰 [ActionDispatcher]: Экшен 'ВЗЯТЬ ВСЁ' шёлково перелил предметы из мешка {sourceBagEntity.Index} в рюкзак {targetBagEntity.Index}.");
         }
@@ -195,7 +199,7 @@ namespace ProjectTowerRpg.ECS.Systems
             // MovementActions.MoveTo(cmd.SourceEntity, cmd.Position);
         }
 
-        private void ExecuteItemTransfer(ActionCommand cmd)
+        private void ExecuteItemTransfer(ActionCommand cmd, EntityCommandBuffer ecb)
         {
             ISlotContainer source = CreateContainer(cmd.SourceEntity);
             ISlotContainer target = CreateContainer(cmd.TargetEntity);
@@ -252,7 +256,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
-            ItemReducer.Transfer(source, cmd.SourceSlot, target, finalTargetSlot);
+            ItemReducer.Transfer(ecb, source, cmd.SourceSlot, target, finalTargetSlot);
             Debug.Log($"[ActionDispatcher] Трансфер {cmd.ItemId} [{cmd.SourceSlot}] -> [{finalTargetSlot}]");
         }
 
@@ -269,9 +273,10 @@ namespace ProjectTowerRpg.ECS.Systems
             Debug.Log($"[ActionDispatcher] Дроп {cmd.ItemId} x{cmd.Amount} на {cmd.Position}");
         }
 
-        private void ExecuteItemUse(ActionCommand cmd)
+        private void ExecuteItemUse(ActionCommand cmd, EntityCommandBuffer ecb)
         {
             ItemReducer.Use(
+                ecb,
                 ref _slotDataLookup,
                 cmd.SourceEntity,
                 cmd.SourceSlot,

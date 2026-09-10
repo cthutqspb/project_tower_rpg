@@ -5,6 +5,7 @@ using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.UI;
 using ProjectTowerRpg.ECS.Actions; // Добавляем для ActionResolver
 using Camera = UnityEngine.Camera;
+using Vector2 = UnityEngine.Vector2;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
@@ -45,7 +46,7 @@ namespace ProjectTowerRpg.ECS.Systems
             // ================================================================
             // 2. СБОР ДАННЫХ ВВОДА
             // ================================================================
-            float2 moveInput = _moveAction.ReadValue<float2>();
+            Vector2 moveInput = _moveAction.ReadValue<Vector2>();
             float3 inputDirection = new float3(moveInput.x, 0f, moveInput.y);
 
             if (math.lengthsq(inputDirection) > 0)
@@ -123,38 +124,38 @@ namespace ProjectTowerRpg.ECS.Systems
                     // --- ТРАТА МАНЫ ИГРОКА ---
                     if (SystemAPI.HasComponent<ResourceComponent>(playerEntity))
                     {
-                        var resource = SystemAPI.GetComponent<ResourceComponent>(playerEntity);
-                        resource.Current = math.max(0f, resource.Current - 10f);
-
-                        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
-                            .CreateCommandBuffer(World.Unmanaged);
-
-                        ecb.SetComponent(playerEntity, resource);
-                        Debug.Log($"[InputSystem] Мана потрачена! Осталось: {resource.Current}/{resource.Max}");
+                        // var resource = SystemAPI.GetComponent<ResourceComponent>(playerEntity);
+                        // resource.Current = math.max(0f, resource.Current - 10f);
+                        //
+                        // var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+                        //     .CreateCommandBuffer(World.Unmanaged);
+                        //
+                        // ecb.SetComponent(playerEntity, resource);
+                        // Debug.Log($"[InputSystem] Мана потрачена! Осталось: {resource.Current}/{resource.Max}");
 
                         // --- ⚔️ ХАК: КУСАЕМ ТАРГЕТ НА 10% ОТ МАКС ХП ---
-                        if (SystemAPI.HasComponent<CombatStateComponent>(playerEntity))
-                        {
-                            var combatState = SystemAPI.GetComponent<CombatStateComponent>(playerEntity);
-                            Entity targetEntity = combatState.CurrentTarget; // Наш текущий прицел (выбранный скелет)
-
-                            // Проверяем железно: цель вообще выбрана, существует ли она в ОЗУ симуляции и есть ли у неё ХП?
-                            if (targetEntity != Entity.Null && EntityManager.Exists(targetEntity) && SystemAPI.HasComponent<HealthComponent>(targetEntity))
-                            {
-                                var targetHealth = SystemAPI.GetComponent<HealthComponent>(targetEntity);
-                                
-                                // Вычисляем 10% от МАКСИМАЛЬНОГО здоровья цели
-                                float damageAmount = targetHealth.Max * 0.10f;
-                                
-                                // Нагло срезаем текущее ХП, не падая ниже нуля
-                                targetHealth.Current = math.max(0f, targetHealth.Current - damageAmount);
-
-                                // Безопасно пихаем апдейт здоровья цели в тот же unmanaged-конвейер ECB!
-                                ecb.SetComponent(targetEntity, targetHealth);
-
-                                Debug.Log($"💥 [InputSystem]: Нанесено {damageAmount} урона цели {targetEntity.Index} при прыжке! Осталось ХП: {targetHealth.Current}/{targetHealth.Max}");
-                            }
-                        }
+                        // if (SystemAPI.HasComponent<CombatStateComponent>(playerEntity))
+                        // {
+                        //     var combatState = SystemAPI.GetComponent<CombatStateComponent>(playerEntity);
+                        //     Entity targetEntity = combatState.CurrentTarget; // Наш текущий прицел (выбранный скелет)
+                        //
+                        //     // Проверяем железно: цель вообще выбрана, существует ли она в ОЗУ симуляции и есть ли у неё ХП?
+                        //     if (targetEntity != Entity.Null && EntityManager.Exists(targetEntity) && SystemAPI.HasComponent<HealthComponent>(targetEntity))
+                        //     {
+                        //         var targetHealth = SystemAPI.GetComponent<HealthComponent>(targetEntity);
+                        //         
+                        //         // Вычисляем 10% от МАКСИМАЛЬНОГО здоровья цели
+                        //         float damageAmount = targetHealth.Max * 0.10f;
+                        //         
+                        //         // Нагло срезаем текущее ХП, не падая ниже нуля
+                        //         targetHealth.Current = math.max(0f, targetHealth.Current - damageAmount);
+                        //
+                        //         // Безопасно пихаем апдейт здоровья цели в тот же unmanaged-конвейер ECB!
+                        //         ecb.SetComponent(targetEntity, targetHealth);
+                        //
+                        //         Debug.Log($"💥 [InputSystem]: Нанесено {damageAmount} урона цели {targetEntity.Index} при прыжке! Осталось ХП: {targetHealth.Current}/{targetHealth.Max}");
+                        //     }
+                        // }
                     }
                 }
             }

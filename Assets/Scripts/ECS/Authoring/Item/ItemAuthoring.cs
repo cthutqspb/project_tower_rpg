@@ -26,7 +26,6 @@ namespace ProjectTowerRpg.Core.Items
                     ItemId = authoring.itemId,  // ← строка
                     Amount = authoring.amount,
                     LootTableId = authoring.lootTableId,  // ← строка
-                    IsLooted = false
                 });
 
                 authoring.Entity = entity;

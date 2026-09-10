@@ -31,19 +31,11 @@ namespace ProjectTowerRpg.ECS.Systems
             // Перебираем твои новые компоненты стейта, твой родной MovementComponent
             // и стандартный LocalTransform через нативный SystemAPI.Query
             foreach (var (ai, move, combat, transform, unitData) in 
-                     SystemAPI.Query<RefRW<AiComponent>, RefRW<MovementComponent>, RefRO<CombatStateComponent>, RefRW<LocalTransform>, RefRO<UnitComponent>>())
-            {
-                // 🛡️ WOW-КАНОН ОПТИМИЗАЦИИ (Твой оригинальный Lua-гвард):
+                     SystemAPI.Query<RefRW<AiComponent>, RefRW<MovementComponent>, RefRO<CombatStateComponent>, RefRW<LocalTransform>, RefRO<UnitComponent>>().WithNone<IsDeadTag>())
+            {                // 🛡️ WOW-КАНОН ОПТИМИЗАЦИИ (Твой оригинальный Lua-гвард):
                 // Если этот юнит не из фабрики (например, игрок или редакторный призрак) —
                 // мы мгновенно прерываем апдейт. Ему запрещено покадрово думать и патрулировать!
                 if (!ai.ValueRO.IsFromFactory) continue;
-
-                // 🛡️ ПУЛЕНЕПРОБИВАЕМЫЙ ГВАРД СМЕРТИ (Твой оригинальный Lua-контур):
-                if (combat.ValueRO.IsDead)
-                {
-                    move.ValueRW.Direction = float3.zero;
-                    continue; // В цикле foreach вместо return пишем continue, чтобы идти к следующему мобу!
-                }
 
                 // // TODO: WoW-Канон Боевой фазы на будущее (Utility AI, CHASE / ATTACK, Кайтинг магов)
                 // if (combat.ValueRO.IsInCombat) { continue; }

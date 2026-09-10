@@ -119,6 +119,71 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1001 &9217245
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -1788450849677659645, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: itemId
+      value: chest_common
+      objectReference: {fileID: 0}
+    - target: {fileID: -1788450849677659645, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: lootTableId
+      value: chest_common
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.26
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.39
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 6.95
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4046426236658813666, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: m_Name
+      value: ItemSpawnMarker (1)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
 --- !u!1001 &376301670
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -134,6 +199,34 @@ PrefabInstance:
     - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: unitId
       value: skeleton_mage
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[0].amount
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[0].itemId
+      value: clown_hat
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[1].amount
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[1].itemId
+      value: lesser_mana_potion
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[2].amount
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[2].itemId
+      value: wooden_barrel
       objectReference: {fileID: 0}
     - target: {fileID: 1843503950245551364, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: m_LocalPosition.x
@@ -195,6 +288,30 @@ PrefabInstance:
     - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: level
       value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: isDead
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[0].amount
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[0].itemId
+      value: iron_sword
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[1].amount
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[1].itemId
+      value: leather_helmet
       objectReference: {fileID: 0}
     - target: {fileID: 1843503950245551364, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: m_LocalPosition.x
@@ -260,6 +377,18 @@ PrefabInstance:
     - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: isPlayer
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[0].amount
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: customLoot.Array.data[0].itemId
+      value: crystal_sword
       objectReference: {fileID: 0}
     - target: {fileID: 1843503950245551364, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: m_LocalPosition.x
@@ -373,6 +502,18 @@ PrefabInstance:
       propertyPath: lootTableId
       value: chest_common
       objectReference: {fileID: 0}
+    - target: {fileID: -1788450849677659645, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: customLoot.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -1788450849677659645, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: customLoot.Array.data[0].amount
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: -1788450849677659645, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
+      propertyPath: customLoot.Array.data[0].itemId
+      value: lesser_mana_potion
+      objectReference: {fileID: 0}
     - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
       propertyPath: m_LocalPosition.x
       value: 7.33
@@ -431,3 +572,4 @@ SceneRoots:
   - {fileID: 455190904}
   - {fileID: 376301670}
   - {fileID: 2063230721}
+  - {fileID: 9217245}

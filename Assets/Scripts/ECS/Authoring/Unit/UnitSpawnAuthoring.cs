@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -5,13 +7,26 @@ using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.ECS.Authoring
 {
+    [Serializable]
+    public struct CustomLootItem
+    {
+        public string itemId;
+        public int amount;
+    }
+
     public class UnitSpawnAuthoring : MonoBehaviour
     {
         [Header("Параметры Спавна из IDE")]
         public string unitId = "skeleton_warrior";
         public int level = 1;
         public string rank = "common"; // common, rare, elite, boss
+        public string lootTableId = "";
         public bool isPlayer = false;
+
+        public bool isDead = false;
+
+        [Header("Кастомный лут (Если таблица пустая)")]
+        public List<CustomLootItem> customLoot = new List<CustomLootItem>();
 
         // 🎨 ВИЗУАЛИЗАЦИЯ МЕТКИ В РЕДАКТОРЕ UNITY (Каноничный неоновый Tokyonight Red)
         private void OnDrawGizmos()
@@ -34,20 +49,42 @@ namespace ProjectTowerRpg.ECS.Authoring
     {
         public override void Bake(UnitSpawnAuthoring authoring)
         {
-            // Возвращаем TransformUsageFlags.None — маркеру в рантайме не нужен свой ECS-трансформ
-            var entity = GetEntity(TransformUsageFlags.None);
+            // Получаем сущность КУБА-МАРКЕРА запроса спавна
+            var markerEntity = GetEntity(TransformUsageFlags.None);
 
-            // Переносим сухие данные из Unity-инспектора в плоскую Си-структуру
-            AddComponent(entity, new UnitSpawnMarkerComponent
+            // 1. Запекаем плоские ТТХ и ID таблицы лута в маркер
+            AddComponent(markerEntity, new UnitSpawnMarkerComponent
             {
-                PrefabEntity = Entity.Null, // Больше не храним здесь ссылки на запеченные префабы!
+                PrefabEntity = Entity.Null, 
                 UnitId = authoring.unitId,
                 Level = authoring.level,
                 Rank = authoring.rank,
                 SpawnPosition = authoring.transform.position,
-                IsPlayer = authoring.isPlayer
+                IsPlayer = authoring.isPlayer,
+                IsDead = authoring.isDead,
+                LootTableId = authoring.lootTableId // Теперь маркер знает таблицу!
             });
+
+            // 2. 🦾 ЗАПЕКАНИЕ КАСТOМНOГO ЛУТА: 
+            // Если геймдизайнер добавил шмотки через плюс в инспекторе, 
+            // мы вешаем буфер ItemSlot прямо на КУБ-МАРКЕР как временный Си-контейнер!
+            if (string.IsNullOrEmpty(authoring.lootTableId) && authoring.customLoot != null && authoring.customLoot.Count > 0)
+            {
+                var markerBuffer = AddBuffer<ItemSlot>(markerEntity);
+                
+                foreach (var lootItem in authoring.customLoot)
+                {
+                    if (string.IsNullOrEmpty(lootItem.itemId)) continue;
+
+                    markerBuffer.Add(new ItemSlot
+                    {
+                        DataId = lootItem.itemId, // Записали FixedString64Bytes ID предмета
+                        Amount = math.max(1, lootItem.amount)
+                    });
+                }
+            }
         }
     }
+   
 }
 

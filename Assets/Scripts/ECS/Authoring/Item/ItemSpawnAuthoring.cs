@@ -1,10 +1,11 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Unity.Entities;
 using Unity.Mathematics;
 using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.ECS.Authoring
-{
+{       
     public class ItemSpawnAuthoring : MonoBehaviour
     {
         [Header("Параметры Спавна Предмета из IDE")]
@@ -13,6 +14,9 @@ namespace ProjectTowerRpg.ECS.Authoring
 
         [Header("ID таблицы лута")]
         public string lootTableId = "";
+
+        [Header("Кастомный лут (Если таблица пустая)")]
+        public List<CustomLootItem> customLoot = new List<CustomLootItem>();
 
         [Header("Время респавна объекта (в СЕКУНДАХ, 0 = без респавна)")]
         public int respawnTime = 0;
@@ -40,17 +44,31 @@ namespace ProjectTowerRpg.ECS.Authoring
         public override void Bake(ItemSpawnAuthoring authoring)
         {
             // Возвращаем TransformUsageFlags.None — маркер исчезнет, его личный трансформ в ECS не нужен
-            var entity = GetEntity(TransformUsageFlags.None);
+            var markerEntity = GetEntity(TransformUsageFlags.None);
 
-            // 🚀 ГЕНИАЛЬНОЕ СХЛОПЫВАНИЕ: Вместо нового компонента-маркера 
-            // мы сразу генерируем стандартный запрос на спавн предмета в мире!
-            AddComponent(entity, new DropItemRequest
+            AddComponent(markerEntity, new ItemSpawnMarkerComponent
             {
                 ItemId = authoring.itemId,
-                Amount = authoring.amount, 
-                Position = authoring.transform.position,
+                Amount = authoring.amount,
+                SpawnPosition = authoring.transform.position,
                 LootTableId = authoring.lootTableId,
+                RespawnTime = authoring.respawnTime,
             });
+
+            // 🦾 Если геймдизайнер набил кастомный лут — кладём его в буфер ItemSlot на маркере
+            if (authoring.customLoot != null && authoring.customLoot.Count > 0)
+            {
+                var markerBuffer = AddBuffer<ItemSlot>(markerEntity);
+                foreach (var lootItem in authoring.customLoot)
+                {
+                    if (string.IsNullOrEmpty(lootItem.itemId)) continue;
+                    markerBuffer.Add(new ItemSlot
+                    {
+                        DataId = lootItem.itemId,
+                        Amount = math.max(1, lootItem.amount),
+                    });
+                }
+            }
         }
     }
 }

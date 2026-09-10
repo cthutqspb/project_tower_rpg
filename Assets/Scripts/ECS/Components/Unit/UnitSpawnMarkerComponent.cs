@@ -9,8 +9,10 @@ namespace ProjectTowerRpg.ECS.Components
         public Unity.Collections.FixedString32Bytes UnitId; // Строка типа "amy" или "skeleton_warrior"
         public float3 SpawnPosition;
         public bool IsPlayer;           // Флаг: управлять им как игроком или отдать ИИ
+        public bool IsDead;
         public int Level;
         public Unity.Collections.FixedString32Bytes Rank;
+        public Unity.Collections.FixedString64Bytes LootTableId;
     }
 }
 

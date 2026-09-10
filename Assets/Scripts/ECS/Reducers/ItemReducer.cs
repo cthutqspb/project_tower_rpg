@@ -35,7 +35,7 @@ namespace ProjectTowerRpg.ECS.Reducers
         // УНИВЕРСАЛЬНЫЙ ТРАНСФЕР (ПОЛИМОРФНЫЙ)
         // ================================================================
 
-        public static void Transfer(ISlotContainer source, int sourceSlot, ISlotContainer target, int targetSlot)
+        public static void Transfer(EntityCommandBuffer ecb, ISlotContainer source, int sourceSlot, ISlotContainer target, int targetSlot)
         {
             if (!source.HasContent(sourceSlot))
             {
@@ -130,8 +130,7 @@ namespace ProjectTowerRpg.ECS.Reducers
                 {
                     Uid = item.DataId.GetHashCode() + index,
                     ItemId = item.DataId,
-                    Amount = item.Amount,
-                    IsLooted = false
+                    Amount = item.Amount,    
                 });
                 
                 Debug.LogWarning($"⚠️ [ItemActions.Drop]: На кукле/в сумке лежал Entity.Null! Через ECB создана аварийная Entity для {item.DataId}.");
@@ -216,6 +215,7 @@ namespace ProjectTowerRpg.ECS.Reducers
         // ================================================================
 
         public static void Use(
+            EntityCommandBuffer ecb,
             ref BufferLookup<ItemSlot> slotDataLookup,
             Entity containerEntity,
             int index,

@@ -1,7 +1,7 @@
+using Unity.Collections;
 using Unity.Entities;
 using ProjectTowerRpg.Core.UI;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core;
 using ProjectTowerRpg.Core.Loot;
 using Debug = UnityEngine.Debug;
@@ -16,33 +16,70 @@ namespace ProjectTowerRpg.ECS.Reducers
 
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
-            if (!em.HasComponent<ItemComponent>(containerEntity))
+            // 🦾 Резолв bagEntity через линк (модель C)
+            if (!em.HasComponent<BuffersLinkComponent>(containerEntity))
             {
-                Debug.LogWarning($"[ContainerActions] {containerEntity.Index} не имеет ItemComponent!");
+                Debug.LogWarning($"[ContainerReducer] У {containerEntity.Index} нет BuffersLinkComponent — открывать нечего");
                 return;
             }
 
-            // 🦾 СВЕРХЗВУКОВОЙ ТРЕКИНГ МЕШКА: Прямой адрес из ОЗУ чанка вместо ContainerHelper!
-            Entity bagEntity = Entity.Null;
+            var links = em.GetComponentData<BuffersLinkComponent>(containerEntity);
+            Entity bagEntity = links.Inventory;
 
-            if (em.HasComponent<BuffersLinkComponent>(containerEntity))
-            {
-                bagEntity = em.GetComponentData<BuffersLinkComponent>(containerEntity).Inventory;
-            }
-
-            // Если мешка нет или он стерт — шёлково запускаем твой генератор лута
             if (bagEntity == Entity.Null || !em.Exists(bagEntity))
             {
-                CreateBag(containerEntity, ecb);
-                Debug.Log($"[ContainerActions] Создан мешок для {containerEntity.Index} через ECB");
-            }
-            else
-            {
-                Debug.Log($"[ContainerActions] Мешок для {containerEntity.Index} уже существует");
+                Debug.LogWarning($"[ContainerReducer] У {containerEntity.Index} нет валидного Inventory");
+                return;
             }
 
             // ================================================================
-            // 🦾 ВЗАИМОДЕЙСТВИЕ В БУФЕР ИГРОКА (По твоему канону!)
+            // 🎲 ГЕНЕРАЦИЯ ЛУТА ИЗ ТАБЛИЦЫ ПРИ ПЕРВОМ ОТКРЫТИИ
+            // ================================================================
+            if (!em.HasComponent<LootGeneratedTag>(containerEntity))
+            {
+                FixedString64Bytes lootTableId = default;
+
+                if (em.HasComponent<ItemComponent>(containerEntity))
+                {
+                    lootTableId = em.GetComponentData<ItemComponent>(containerEntity).LootTableId;
+                }
+                // TODO: UnitComponent.LootTableId — когда добавишь, раскомментируй:
+                // else if (em.HasComponent<UnitComponent>(containerEntity))
+                // {
+                //     lootTableId = em.GetComponentData<UnitComponent>(containerEntity).LootTableId;
+                // }
+
+                if (!lootTableId.IsEmpty)
+                {
+                    var dynamicLoot = LootService.GenerateLoot(lootTableId.ToString());
+                    var slotsBuffer = em.GetBuffer<ItemSlot>(bagEntity);
+
+                    int filled = 0;
+                    for (int i = 0; i < slotsBuffer.Length && filled < dynamicLoot.Count; i++)
+                    {
+                        if (!slotsBuffer[i].DataId.IsEmpty) continue;
+
+                        var loot = dynamicLoot[filled];
+                        slotsBuffer[i] = new ItemSlot
+                        {
+                            SlotIndex = i,
+                            DataId = loot.ItemId,
+                            DataType = "item",
+                            Amount = loot.Amount,
+                            ContainerType = ContainerType.INVENTORY,
+                        };
+                        filled++;
+                    }
+
+                    Debug.Log($"[ContainerReducer] Сгенерировано {filled} предметов из таблицы {lootTableId}");
+                }
+
+                // 🦾 ЕДИНАЯ ТОЧКА: тег через ECB (structural change!)
+                ecb.AddComponent<LootGeneratedTag>(containerEntity);
+            }
+
+            // ================================================================
+            // 🦾 ВЗАИМОДЕЙСТВИЕ В БУФЕР ИГРОКА
             // ================================================================
             Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
             if (playerEntity != Entity.Null)
@@ -50,80 +87,12 @@ namespace ProjectTowerRpg.ECS.Reducers
                 ecb.AppendToBuffer(playerEntity, new InteractionEntry
                 {
                     TargetEntity = containerEntity,
-                    MaxDistance = 1.5f
+                    MaxDistance = 1.5f,
                 });
-                Debug.Log($"[ContainerActions] Добавлено взаимодействие с {containerEntity.Index} в буфер игрока");
             }
 
+            // 🚀 Открываем окно контейнера
             UIEvents.TriggerOpenContainerWindow(containerEntity);
-        }
-
-        private static void CreateBag(Entity containerEntity, EntityCommandBuffer ecb)
-        {
-            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-            
-            if (!em.HasComponent<ItemComponent>(containerEntity))
-                return;
-
-            var itemComp = em.GetComponentData<ItemComponent>(containerEntity);
-            var itemConfig = ItemsDatabase.GetItem(itemComp.ItemId.ToString());
-
-            if (itemConfig == null || itemConfig.identity.type != "container")
-                return;
-
-            int columns = itemConfig.properties.columns ?? 6;
-            int rows = itemConfig.properties.rows ?? 4;
-            int totalSlots = columns * rows;
-
-            // 🔥 ГЕНЕРАЦИЯ ЛУТА ЧЕРЕЗ LootService
-            var lootItems = LootService.GenerateLoot(itemComp.LootTableId.ToString());
-
-            // ✅ СОЗДАЁМ МЕШОК ЧЕРЕЗ ECB
-            Entity bagEntity = ecb.CreateEntity();
-
-            ecb.AddComponent(bagEntity, new ContainerConfigComponent
-            {
-                Owner = containerEntity,
-                Columns = columns,
-                Rows = rows
-            });
-            
-            ecb.AddComponent<ContainerTag>(bagEntity);
-            ecb.AddComponent<InventoryTag>(bagEntity);
-
-            var slotsBuffer = ecb.AddBuffer<ItemSlot>(bagEntity);
-            for (int i = 0; i < totalSlots; i++)
-            {
-                slotsBuffer.Add(new ItemSlot { SlotIndex = i, ContainerType = ContainerType.INVENTORY });
-            }
-
-            // Раскладываем лут
-            int slotIndex = 0;
-            foreach (var item in lootItems)
-            {
-                if (slotIndex >= totalSlots) break;
-                slotsBuffer[slotIndex] = new ItemSlot
-                {
-                    SlotIndex = slotIndex,
-                    DataId = item.ItemId,
-                    DataType = "item",
-                    Amount = item.Amount,
-                    ContainerType = ContainerType.INVENTORY
-                };
-                slotIndex++;
-            }
-
-            // 🦾 ЗАПЕКАЕМ СВЯЗЬ: Сундук намертво запоминает свой мешок за 0 наносекунд!
-            ecb.AddComponent(containerEntity, new BuffersLinkComponent
-            {
-                Inventory = bagEntity,
-                Paperdoll = Entity.Null
-            });
-
-            // ПОМЕЧАЕМ КАК ОБЛУТАННЫЙ
-            itemComp.IsLooted = true;
-            ecb.SetComponent(containerEntity, itemComp);
         }
     }
 }
-

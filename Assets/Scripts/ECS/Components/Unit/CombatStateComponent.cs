@@ -7,7 +7,6 @@ namespace ProjectTowerRpg.ECS.Components
     // Хранит мутабельный паспорт здоровья в плоском Си-массиве ОЗУ.
     public struct CombatStateComponent : IComponentData
     {
-        public bool IsDead;              // unit.combat.is_dead
         public bool IsInCombat;          // unit.combat.is_in_combat
         // 🌟 СЕТЕВОЙ ЗАДЕЛ: Персональная цель конкретно ЭТОГО существа
         // (Игрок хранит тут скелета, а скелет в своей памяти будет хранить игрока!)

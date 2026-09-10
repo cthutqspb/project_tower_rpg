@@ -33,7 +33,29 @@ public class SyncTransformWithEntity : MonoBehaviour
         transform.position = localTransform.Position;
         transform.rotation = localTransform.Rotation;
 
-        // 🧬 СИНХРОНИЗАЦИЯ 8-СТОРОННЕГО BLEND TREE С УЧЕТОМ КАМЕРЫ И ИИ:
+        // 🪦 WOW/BG3 КАНОН МAРИОНEТКИ: Проверяем тэг смерти прямо в ОЗУ чанка за 0 наносекунд нагрузки!
+        if (_animator != null && _entityManager.HasComponent<IsDeadTag>(_boundEntity))
+        {
+            // 1. Принудительно выжигаем в Аниматоре все оси движения в ноль кадра,
+            // чтобы лежащий или падающий труп не пытался ложно бежать или скользить!
+            _animator.SetFloat("VelocityX", 0f);
+            _animator.SetFloat("VelocityZ", 0f);
+            _animator.SetFloat("VelocityY", 0f);
+            
+            // 2. 🎯 Включаем состояние смерти в твоем Аниматоре!
+            // (Зайди в Unity Animator Controller и добавь булеан параметр "IsDead")
+            _animator.SetBool("IsDead", true);
+            
+            return; // 🦾 Сущность мертва — пулей выходим, наглухо блокируя всю живую логику холмов и камер!
+        }
+
+        // Если юнит девственно жив — страхуем Аниматор от застревания в позе трупа
+        if (_animator != null)
+        {
+            _animator.SetBool("IsDead", false);
+        }
+
+        // 🧬 СИНХРОНИЗАЦИЯ 8-СТОРОННЕГО BLEND TREE С УЧЕТОМ КАМЕРЫ И ИИ (Только для живых!):
         if (_entityManager.HasComponent<MovementComponent>(_boundEntity))
         {
             var moveData = _entityManager.GetComponentData<MovementComponent>(_boundEntity);
@@ -55,7 +77,7 @@ public class SyncTransformWithEntity : MonoBehaviour
                         
                         float3 worldMoveVector = (cameraForward * moveData.Direction.z) + (cameraRight * moveData.Direction.x);
                         
-                        // Переводим мировой вектор движения в локальное пространство "носа" персонажа
+                        // Переводим мировой вектор движения в локальное空间 "носа" персонажа
                         float3 localDir = math.mul(math.inverse(localTransform.Rotation), worldMoveVector);
 
                         _animator.SetFloat("VelocityX", localDir.x);

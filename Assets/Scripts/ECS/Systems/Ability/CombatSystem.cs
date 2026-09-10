@@ -40,7 +40,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             {
                                 case "direct_damage":
                                     // Передаем полное имя random по ссылке (ref) в наши методы эффектов
-                                    ApplyDirectDamage(target, effect, em, ref random);
+                                    ApplyDirectDamage(target, effect, em, ref random, ecb);
                                     break;
 
                                 case "direct_heal":
@@ -60,18 +60,19 @@ namespace ProjectTowerRpg.ECS.Systems
         // ПРИВАТНЫЕ ИЗОЛИРОВАННЫЕ МЕТOДЫ ПРИМЕНЕНИЯ ЭФФЕКТОВ
         // =========================================================================
 
-        private static void ApplyDirectDamage(Entity target, AbilityEffectConfig effect, EntityManager em, ref Unity.Mathematics.Random random)
+        private static void ApplyDirectDamage(Entity target, AbilityEffectConfig effect, EntityManager em, ref Unity.Mathematics.Random random, EntityCommandBuffer ecb)
         {
             if (!em.HasComponent<HealthComponent>(target)) return;
 
+            // ГВАРД СМЕРТИ: Защита на случай, если тэг уже применился кадром ранее
+            if (em.HasComponent<IsDeadTag>(target)) return;
+
             var health = em.GetComponentData<HealthComponent>(target);
-            var combat = em.GetComponentData<CombatStateComponent>(target);
-
-            if (combat.IsDead || health.Current <= 0f) return;
-
-            // 🚀 СВЕРХЗВУКОВОЙ МИНИМАЛИЗМ: Никаких дебильных сокращений, строго полное имя random!
-            float baseDamage = random.NextFloat(effect.min, effect.max);
             
+            // Защита от избыточного урона: если ХП уже на нуле (но тэг еще долетает в буфере) — выходим
+            if (health.Current <= 0f) return;
+
+            float baseDamage = random.NextFloat(effect.min, effect.max);
             if (baseDamage <= 0f && effect.value > 0f) baseDamage = effect.value;
 
             health.Current = math.max(0f, health.Current - baseDamage);
@@ -79,23 +80,29 @@ namespace ProjectTowerRpg.ECS.Systems
 
             Debug.Log($"⚔️ [CombatSystem]: Цель {target} получила {baseDamage:F1} {effect.school} урона! ХП: {health.Current}/{health.Max}");
 
+            // 🪦 WOW-КАНОН СМЕРТИ: Если ХП иссякло — отправляем отложенный тэг смерти!
             if (health.Current <= 0f)
             {
-                combat.IsDead = true;
-                em.SetComponentData(target, combat);
-                Debug.Log($"🪦 [CombatSystem]: Сущность {target} официально скончалась в симуляции.");
+                // 🦾 ПУЛЕНЕПРОБИВАЕМЫЙ ECS-СЛOЙ:
+                // Вместо EntityManager вызываем ecb.AddComponent! 
+                // Команда шёлково запишется в буфер, и применится сразу на выходе из системы, 
+                // полностью ликвидируя краш InvalidOperationException!
+                ecb.AddComponent<IsDeadTag>(target);
+                
+                Debug.Log($"🪦 [CombatSystem]: Сущность {target} скончалась. Команда накат IsDeadTag отправлена в ECB.");
             }
         }
+
 
         private static void ApplyDirectHeal(Entity target, AbilityEffectConfig effect, EntityManager em, ref Unity.Mathematics.Random random)
         {
             if (!em.HasComponent<HealthComponent>(target)) return;
 
-            var health = em.GetComponentData<HealthComponent>(target);
-            var combat = em.GetComponentData<CombatStateComponent>(target);
+            // 🪦 Труп вылечить прямым хилом нельзя!
+            if (em.HasComponent<IsDeadTag>(target)) return;
 
-            if (combat.IsDead) return;
-            
+            var health = em.GetComponentData<HealthComponent>(target);
+
             float baseHeal = random.NextFloat(effect.min, effect.max);
             if (baseHeal <= 0f && effect.value > 0f) baseHeal = effect.value;
 

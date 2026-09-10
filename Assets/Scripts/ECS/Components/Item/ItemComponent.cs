@@ -10,7 +10,6 @@ namespace ProjectTowerRpg.ECS.Components
         public int Amount;
 
         public FixedString64Bytes LootTableId; // ← строка
-        public bool IsLooted;
 
         public int RespawnTime;
     }
