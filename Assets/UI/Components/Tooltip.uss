@@ -1,0 +1,68 @@
+/* =========================================================================
+   🎨 УТИЛИТАРНЫЕ ТЕКСТОВЫЕ КЛАССЫ ДЛЯ ТУЛТИПА (Tooltip Специфика)
+   ========================================================================= */
+
+/* Обычный текст / выполненные требования */
+.text-normal {
+    color: var(--osaka-text);
+}
+
+/* Название предмета обычного качества */
+.text-quality-common {
+    color: var(--item-common-color);
+}
+
+/* Название редкого предмета (Синий) */
+.text-quality-rare {
+    color: var(--item-rare-color);
+}
+
+/* Название эпика (Фиолетовый) */
+.text-quality-epic {
+    color: var(--item-epic-color);
+}
+
+/* Легендарка (Оранжевый) */
+.text-quality-legendary {
+    color: var(--item-legendary-color);
+}
+
+/* Артефакт (Желтый) */
+.text-quality-artifact {
+    color: var(--item-artifact-color);
+}
+
+/* Зеленка (Необычный) */
+.text-quality-uncommon {
+    color: var(--item-uncommon-color);
+}
+
+/* Ошибка / Невыполненное требование (Красный) */
+.text-danger {
+    color: var(--osaka-red);
+}
+
+/* Боевые характеристики (Урон / Акценты) */
+.text-damage {
+    color: var(--osaka-yellow);
+}
+
+/* Текст брони / Магические свойства */
+.text-armor {
+    color: var(--osaka-blue);
+}
+
+/* Подписи веса, цены и серый текст */
+.text-muted {
+    color: var(--osaka-text-dim);
+}
+
+
+.global-tooltip-bg {
+    width: 320px;
+    background-color: rgba(15, 15, 15, 0.95);
+    border-width: 1px;
+    border-color: rgba(64, 64, 64, 0.4);
+    padding: 10px 12px;
+}
+

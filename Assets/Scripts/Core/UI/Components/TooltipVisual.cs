@@ -1,10 +1,10 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using Unity.Entities;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Abilities;
 using ProjectTowerRpg.Core.Units;
 using ProjectTowerRpg.Core.Localization;
-using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.UI.Colors;
 
@@ -23,50 +23,36 @@ namespace ProjectTowerRpg.Core.UI.Components
             this.pickingMode = PickingMode.Ignore;
 
             _background = new VisualElement();
-            _background.style.width = 320;
-            _background.style.backgroundColor = new Color(0.06f, 0.06f, 0.06f, 0.95f);
-            _background.style.borderTopWidth = 1;
-            _background.style.borderBottomWidth = 1;
-            _background.style.borderLeftWidth = 1;
-            _background.style.borderRightWidth = 1;
-            var borderColor = new Color(0.25f, 0.25f, 0.25f, 0.4f);
-            _background.style.borderTopColor = borderColor;
-            _background.style.borderBottomColor = borderColor;
-            _background.style.borderLeftColor = borderColor;
-            _background.style.borderRightColor = borderColor;
-            _background.style.paddingTop = 10;
-            _background.style.paddingBottom = 10;
-            _background.style.paddingLeft = 12;
-            _background.style.paddingRight = 12;
+            // 🦾 ЧИСТОТА: Все инлайн-стили фона уехали в твой USS-класс!
+            _background.AddToClassList("global-tooltip-bg");
             Add(_background);
         }
 
-        private void AddLine(string leftText, string rightText = "", Color? color = null, bool isHeader = false)
+        // 🦾 ВОЗВРАТ К ИСТОКАМ: Твой оригинальный рабочий метод генерации строк!
+        private void AddLine(string leftText, string rightText = "", string styleClass = "text-normal", bool isHeader = false)
         {
             var row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.justifyContent = Justify.SpaceBetween;
-
-            var textColor = color ?? Color.white;
+            row.AddToClassList("tooltip-row");
 
             var labelLeft = new Label(leftText);
-            labelLeft.style.color = textColor;
             labelLeft.style.whiteSpace = WhiteSpace.Normal;
             labelLeft.style.flexGrow = 1;
             labelLeft.style.flexShrink = 1;
 
+            // Накатываем семантический цвет из твоей палитры
+            if (!string.IsNullOrEmpty(styleClass))
+            {
+                labelLeft.AddToClassList(styleClass);
+            }
+
             if (isHeader)
             {
-                row.style.justifyContent = Justify.Center;
-                labelLeft.style.fontSize = 17;
-                labelLeft.style.unityFontStyleAndWeight = FontStyle.Bold;
-                labelLeft.style.unityTextAlign = TextAnchor.UpperCenter;
-                row.style.marginBottom = 8;
+                row.AddToClassList("tooltip-row-header");
+                labelLeft.AddToClassList("tooltip-label-header");
             }
             else
             {
-                labelLeft.style.fontSize = 13;
-                row.style.marginBottom = 4;
+                labelLeft.AddToClassList("tooltip-label-normal");
             }
 
             row.Add(labelLeft);
@@ -74,18 +60,24 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (!string.IsNullOrEmpty(rightText) && !isHeader)
             {
                 var labelRight = new Label(rightText);
-                labelRight.style.color = textColor;
-                labelRight.style.fontSize = 13;
                 labelRight.style.flexGrow = 0;
                 labelRight.style.flexShrink = 0;
                 labelRight.style.marginLeft = 15;
                 labelRight.style.unityTextAlign = TextAnchor.UpperRight;
+                labelRight.AddToClassList("tooltip-label-normal");
+                
+                if (!string.IsNullOrEmpty(styleClass))
+                {
+                    labelRight.AddToClassList(styleClass);
+                }
+                
                 row.Add(labelRight);
             }
 
             _background.Add(row);
         }
 
+        // 🦾 ВОЗВРАТ К ИСТОКАМ: Твоя родная покадровая логика без залипаний!
         public void UpdateTick()
         {
             var payload = TooltipManager.GetCurrent();
@@ -145,13 +137,14 @@ namespace ProjectTowerRpg.Core.UI.Components
             int amount = 1;
 
             string nameText = LocalizationManager.Get(cfg.identity.name_key).ToUpper();
-            Color nameColor = SolarizedOsakaNight.GetQualityColor(cfg.identity.quality);
+            // Накатываем семантический класс качества шмотки (text-quality-rare, text-quality-epic)
+            string qualityClass = $"text-quality-{cfg.identity.quality.ToLower()}";
 
             if (cfg.properties.stackable && amount > 1)
             {
                 nameText += $" (x{amount})";
             }
-            AddLine(nameText, color: nameColor, isHeader: true);
+            AddLine(nameText, styleClass: qualityClass, isHeader: true);
 
             if (!isInInventory)
             {
@@ -165,7 +158,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             string localizedSlot = LocalizationManager.Get(cfg.properties.equip_slot);
 
             string subHeader = $"{localizedType.ToUpper()} ({localizedSlot})";
-            AddLine(subHeader, color: new Color(0.5f, 0.5f, 0.5f, 1f));
+            AddLine(subHeader, styleClass: "text-muted");
 
             // ================================================================
             // 🔥 БЛОК ТРЕБОВАНИЙ С ПРОВЕРКОЙ
@@ -173,70 +166,64 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (cfg.requirements != null)
             {
                 string reqHeader = LocalizationManager.Get("required") + ":";
-                AddLine(reqHeader.ToUpper(), color: Color.white);
-
-                // Получаем сущность игрока
+                AddLine(reqHeader.ToUpper(), styleClass: "text-normal");
+                
                 var playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
                 if (playerEntity != Entity.Null)
                 {
                     var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-                    var result = ItemRequirementsChecker.CheckRequirements(cfg, playerEntity, em);
+                    var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
+                    var resource = em.GetComponentData<ResourceComponent>(playerEntity);
+                    int level = GetUnitLevel(playerEntity, em);
 
-                    // Выводим каждое требование с цветом (красный если не выполнено)
                     if (cfg.requirements.level > 0)
                     {
                         bool isOk = cfg.requirements.level <= GetUnitLevel(playerEntity, em);
-                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
-                        AddLine($"  {LocalizationManager.Get("level")}: {cfg.requirements.level}", color: reqColor);
+                        string reqClass = isOk ? "text-normal" : "text-danger";
+                        AddLine($"  {LocalizationManager.Get("level")}: {cfg.requirements.level}", styleClass: reqClass);
                     }
 
                     if (cfg.requirements.strength > 0)
                     {
-                        var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
                         bool isOk = cfg.requirements.strength <= attrs.strength;
-                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
-                        AddLine($"  {LocalizationManager.Get("stat_strength")}: {cfg.requirements.strength}", color: reqColor);
+                        string reqClass = isOk ? "text-normal" : "text-danger";
+                        AddLine($"  {LocalizationManager.Get("stat_strength")}: {cfg.requirements.strength}", styleClass: reqClass);
                     }
 
                     if (cfg.requirements.agility > 0)
                     {
-                        var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
                         bool isOk = cfg.requirements.agility <= attrs.agility;
-                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
-                        AddLine($"  {LocalizationManager.Get("stat_agility")}: {cfg.requirements.agility}", color: reqColor);
+                        string reqClass = isOk ? "text-normal" : "text-danger";
+                        AddLine($"  {LocalizationManager.Get("stat_agility")}: {cfg.requirements.agility}", styleClass: reqClass);
                     }
 
                     if (cfg.requirements.intellect > 0)
                     {
-                        var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
                         bool isOk = cfg.requirements.intellect <= attrs.intellect;
-                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
-                        AddLine($"  {LocalizationManager.Get("stat_intellect")}: {cfg.requirements.intellect}", color: reqColor);
+                        string reqClass = isOk ? "text-normal" : "text-danger";
+                        AddLine($"  {LocalizationManager.Get("stat_intellect")}: {cfg.requirements.intellect}", styleClass: reqClass);
                     }
 
                     if (cfg.requirements.stamina > 0)
                     {
-                        var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
                         bool isOk = cfg.requirements.stamina <= attrs.stamina;
-                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
-                        AddLine($"  {LocalizationManager.Get("stat_stamina")}: {cfg.requirements.stamina}", color: reqColor);
+                        string reqClass = isOk ? "text-normal" : "text-danger";
+                        AddLine($"  {LocalizationManager.Get("stat_stamina")}: {cfg.requirements.stamina}", styleClass: reqClass);
                     }
 
                     if (cfg.requirements.wisdom > 0)
                     {
-                        var attrs = em.GetComponentData<UnitCurrentAttributesComponent>(playerEntity);
                         bool isOk = cfg.requirements.wisdom <= attrs.wisdom;
-                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
-                        AddLine($"  {LocalizationManager.Get("stat_wisdom")}: {cfg.requirements.wisdom}", color: reqColor);
+                        string reqClass = isOk ? "text-normal" : "text-danger";
+                        AddLine($"  {LocalizationManager.Get("stat_wisdom")}: {cfg.requirements.wisdom}", styleClass: reqClass);
                     }
 
                     if (!string.IsNullOrEmpty(cfg.requirements.resource))
                     {
-                        var resource = em.GetComponentData<ResourceComponent>(playerEntity);
                         bool isOk = resource.Type.ToString().ToLower() == cfg.requirements.resource.ToLower();
-                        Color reqColor = isOk ? Color.white : new Color(1f, 0.3f, 0.3f, 1f);
+                        string reqClass = isOk ? "text-normal" : "text-danger";
                         string resName = LocalizationManager.Get(cfg.requirements.resource);
-                        AddLine($"  {LocalizationManager.Get("resource")}: {resName}", color: reqColor);
+                        AddLine($"  {LocalizationManager.Get("resource")}: {resName}", styleClass: reqClass);
                     }
                 }
             }
@@ -250,31 +237,31 @@ namespace ProjectTowerRpg.Core.UI.Components
                 {
                     string dmgTypeName = LocalizationManager.Get(cfg.combat_stats.damage.type);
                     string dmgText = $"{cfg.combat_stats.damage.min}-{cfg.combat_stats.damage.max} {dmgTypeName.ToUpper()} УРОН";
-                    AddLine(dmgText, color: new Color(1f, 0.85f, 0.2f, 1f));
+                    AddLine(dmgText, styleClass: "text-damage");
                 }
 
                 if (cfg.combat_stats.armor_rating > 0)
                 {
                     string armorName = LocalizationManager.Get("armor_rating");
                     string armorText = $"{cfg.combat_stats.armor_rating} {armorName.ToUpper()}";
-                    AddLine(armorText, color: new Color(0.7f, 0.8f, 1f, 1f));
+                    AddLine(armorText, styleClass: "text-armor");
                 }
 
                 if (cfg.combat_stats.attributes != null)
                 {
                     var attrs = cfg.combat_stats.attributes;
-                    if (attrs.strength != 0) AddLine($"{(attrs.strength > 0 ? "+" : "")}{attrs.strength} {LocalizationManager.Get("stat_strength")}", color: new Color(0.4f, 0.6f, 1f, 1f));
-                    if (attrs.agility != 0) AddLine($"{(attrs.agility > 0 ? "+" : "")}{attrs.agility} {LocalizationManager.Get("stat_agility")}", color: new Color(0.4f, 0.6f, 1f, 1f));
-                    if (attrs.intellect != 0) AddLine($"{(attrs.intellect > 0 ? "+" : "")}{attrs.intellect} {LocalizationManager.Get("stat_intellect")}", color: new Color(0.4f, 0.6f, 1f, 1f));
-                    if (attrs.stamina != 0) AddLine($"{(attrs.stamina > 0 ? "+" : "")}{attrs.stamina} {LocalizationManager.Get("stat_stamina")}", color: new Color(0.4f, 0.6f, 1f, 1f));
-                    if (attrs.wisdom != 0) AddLine($"{(attrs.wisdom > 0 ? "+" : "")}{attrs.wisdom} {LocalizationManager.Get("stat_wisdom")}", color: new Color(0.4f, 0.6f, 1f, 1f));
+                    if (attrs.strength != 0) AddLine($"{(attrs.strength > 0 ? "+" : "")}{attrs.strength} {LocalizationManager.Get("stat_strength")}", styleClass: "text-armor");
+                    if (attrs.agility != 0) AddLine($"{(attrs.agility > 0 ? "+" : "")}{attrs.agility} {LocalizationManager.Get("stat_agility")}", styleClass: "text-armor");
+                    if (attrs.intellect != 0) AddLine($"{(attrs.intellect > 0 ? "+" : "")}{attrs.intellect} {LocalizationManager.Get("stat_intellect")}", styleClass: "text-armor");
+                    if (attrs.stamina != 0) AddLine($"{(attrs.stamina > 0 ? "+" : "")}{attrs.stamina} {LocalizationManager.Get("stat_stamina")}", styleClass: "text-armor");
+                    if (attrs.wisdom != 0) AddLine($"{(attrs.wisdom > 0 ? "+" : "")}{attrs.wisdom} {LocalizationManager.Get("stat_wisdom")}", styleClass: "text-armor");
                 }
             }
 
             if (!string.IsNullOrEmpty(cfg.identity.desc_key))
             {
                 string localizedDesc = LocalizationManager.Get(cfg.identity.desc_key);
-                AddLine(localizedDesc, color: new Color(0.8f, 0.7f, 0.5f, 1f));
+                AddLine(localizedDesc, styleClass: "text-normal");
             }
 
             string weightName = LocalizationManager.Get("weight");
@@ -282,18 +269,19 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             string weightLabel = $"{weightName}: {cfg.identity.weight:F1}";
             string priceLabel = $"{priceName}: {cfg.identity.price}";
-            AddLine(weightLabel, priceLabel, color: new Color(0.5f, 0.5f, 0.5f, 1f));
+            AddLine(weightLabel, priceLabel, styleClass: "text-muted");
         }
 
-        private void RenderAbility(AbilityConfig cfg) {
+        private void RenderAbility(AbilityConfig cfg) 
+        {
             string nameText = LocalizationManager.Get(cfg.identity.name_key).ToUpper();
-            AddLine(nameText, color: Color.white, isHeader: true);
+            AddLine(nameText, styleClass: "text-normal", isHeader: true);
         }
 
         private void RenderUnit(UnitConfig cfg)
         {
             string nameText = LocalizationManager.Get(cfg.identity.name_key).ToUpper();
-            AddLine(nameText, color: Color.white, isHeader: true);
+            AddLine(nameText, styleClass: "text-normal", isHeader: true);
         }
 
         private int GetUnitLevel(Entity unitEntity, EntityManager em)
@@ -304,3 +292,6 @@ namespace ProjectTowerRpg.Core.UI.Components
         }
     }
 }
+
+
+

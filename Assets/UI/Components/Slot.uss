@@ -78,7 +78,7 @@
     border-color: var(--item-artifact-color);
 }
 
-.slot {
+.slot { 
   width: 42px;
   height: 42px;
   margin: 0;
@@ -88,6 +88,7 @@
 }
 
 .slot-icon {
+  display: flex;
   width: 42px;
   height: 42px;
   border-width: 2px;
@@ -114,6 +115,10 @@
     border-color: var(--osaka-bg);
 }
 
+.slot-bind-label-out-of-range {
+  color: var(--osaka-red);
+}
+
 /* NO_MANA - сильное затемнение + синяя рамка */
 .slot-icon-no-mana {
     opacity: var(--state-no-mana-opacity);
@@ -121,12 +126,21 @@
     border-color: var(--osaka-bg);
 }
 
+.slot-bind-label-no-mana {
+  color: var(--osaka-blue);
+}
+
 /* INVALID_TARGET - затемнение + желтая рамка */
 .slot-icon-invalid-target {
     opacity: var(--state-invalid-target-opacity);
     border-width: 3px;
-    border-color: var(--osaka-bg);
+    border-color: var(--osaka-bg); 
 }
+
+.slot-bind-label-invalid-target {
+  color: var(--osaka-red);
+}
+
 .slot-active-flash {
   scale: 0.92;
   background-color: rgba(122, 162, 247, 0.4);
@@ -162,6 +176,7 @@
 }
 
 .slot-bind-label {
+  display: flex;
   position: absolute;
   bottom: 0;
   font-size: 18px;
@@ -170,6 +185,18 @@
   -unity-text-outline-width: 1px;
   -unity-text-outline-color: #000000;
   text-shadow: 1px 1px 0px #000000, -1px -1px 0px #000000, 1px -1px 0px #000000, -1px 1px 0px #000000;
+}
+
+.slot-bind-label.hidden {
+  visibility: hidden;
+}
+
+.slot-amount-label {
+  display: flex;
+}
+
+.slot-duration-label {
+  display: flex;
 }
 
 .slot-cooldown-overlay {

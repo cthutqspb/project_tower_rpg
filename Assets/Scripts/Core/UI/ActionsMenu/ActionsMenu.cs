@@ -3,7 +3,9 @@ using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.ECS.Components;
+using Unity.Mathematics;
 using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.Utils;
 
 namespace ProjectTowerRpg.Core.UI
 {
@@ -195,6 +197,9 @@ namespace ProjectTowerRpg.Core.UI
                 targetEntity = data.TargetEntity;
             }
 
+            PlayerUtils.TryGetPosition(out float3 playerPosition);
+            float3 dropPosition = PositionUtils.GetDropPosition(playerPosition);
+
             var actionEntity = em.CreateEntity();
             em.AddComponentData(actionEntity, new ActionCommand
             {
@@ -205,6 +210,7 @@ namespace ProjectTowerRpg.Core.UI
                 TargetSlot = -1,
                 ItemId = data.ItemId,
                 Amount = data.Amount,
+                Position = dropPosition
             });
 
             Debug.Log($"[ActionsMenu] Команда: {action.Action}, Source: {data.ContainerEntity.Index}, Target: {targetEntity.Index}");
@@ -221,7 +227,7 @@ namespace ProjectTowerRpg.Core.UI
             public int Amount;
             public string SourceType;
             public Entity TargetEntity = Entity.Null;
-            public Vector3 WorldPosition;
+            public float3 WorldPosition;
         }
     }
 }

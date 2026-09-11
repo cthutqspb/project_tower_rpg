@@ -12,78 +12,68 @@ namespace ProjectTowerRpg.Core.UI
         
         protected VisualElement _root;
         protected WindowContext _context;
-        protected PanelRenderer _panelRenderer;
 
-        // Кэш для ECS-компонентов внутри этого окна, чтобы не сканировать дерево каждый кадр
-        private List<IEcsUiBufferReceiver<ItemSlot>> _cachedReceivers = new();
+        private readonly List<IEcsUiBufferReceiver<ItemSlot>> _cachedReceivers = new();
 
         public VisualElement Root => _root;
         public bool IsOpen => _context != null && _context.IsVisible;
 
-        protected virtual void Start()
-        {
-            _panelRenderer = FindAnyObjectByType<PanelRenderer>();
-            if (_panelRenderer == null)
-            {
-                Debug.LogError($"[{GetType().Name}] PanelRenderer не найден!");
-                return;
-            }
+        public abstract WindowType Type { get; }
+        public virtual Entity BoundEntity => Entity.Null;
 
-            _panelRenderer.RegisterUIReloadCallback(OnUIReloaded);
-        }
-
-        protected virtual void OnDestroy()
-        {
-            if (_panelRenderer != null) _panelRenderer.UnregisterUIReloadCallback(OnUIReloaded);
-            if (_context != null) WindowManager.Pop(_context);
-        }
-
-        private void OnUIReloaded(PanelRenderer renderer, VisualElement globalUiRoot, int version)
+        // 🦾 НАВЕДЕНА СТЕРИЛЬНОСТЬ: Окно больше ничего не ищет само!
+        // Его инициализирует фабрика, передавая живой корень интерфейса сцены.
+        public void InitializeWindow(VisualElement globalUiRoot)
         {
             if (globalUiRoot == null || _root != null) return;
+
+            Debug.Log($"🏗️ [{GetType().Name}.InitializeWindow]: Получен живой root от фабрики. Собираем окно...");
 
             _root = _windowUxml.CloneTree();
             _root.style.position = Position.Absolute;
             _root.pickingMode = PickingMode.Position;
+            _root.style.display = DisplayStyle.None;
+            
+            // Врезаем в правильный, изолированный слой панели
             globalUiRoot.Add(_root);
 
             _context = new WindowContext(
                 _root,
-                onClose: OnInternalWindowClosed, // Подменяем на внутренний безопасный метод
-                onShow: OnInternalWindowShown    // Подменяем на внутренний безопасный метод
+                onClose: OnInternalWindowClosed,
+                onShow: OnInternalWindowShown
             );
 
-            _root.style.display = DisplayStyle.None;
-
             OnWindowBuilt(_root);
+            ScanAndCacheReceivers();
+        }
 
-            // Сразу после сборки окна один раз сканируем его и находим все сетки/куклы на базе ItemSlot
+        protected virtual void OnDestroy()
+        {
+            if (_context != null) WindowManager.Pop(_context);
+            if (_root != null && _root.parent != null) _root.RemoveFromHierarchy();
+        }
+
+        protected void ScanAndCacheReceivers()
+        {
+            if (_root == null) return;
+            if (IsOpen) OnInternalWindowClosed();
+
             _cachedReceivers.Clear();
             _root.Query<VisualElement>().ForEach(element =>
             {
-                if (element is IEcsUiBufferReceiver<ItemSlot> receiver)
-                {
-                    _cachedReceivers.Add(receiver);
-                }
+                if (element is IEcsUiBufferReceiver<ItemSlot> receiver) _cachedReceivers.Add(receiver);
             });
 
-            Debug.Log($"[{GetType().Name}] Окно собрано. Авто-найдено ECS-приемников: {_cachedReceivers.Count}");
+            if (IsOpen) OnInternalWindowShown();
         }
-
-        // ================================================================
-        // 🛡️ АВТОМАТИЧЕСКИЙ СИСТЕМНЫЙ СТЕК (Аналог твоего Lua-модуля M.init)
-        // ================================================================
 
         private void OnInternalWindowShown()
         {
-            // Автоматически регистрируем в UIRegistry ВСЕ сетки, куклы и панели, которые есть в этом окне
             foreach (var receiver in _cachedReceivers)
             {
                 if (receiver.BoundEntity != Entity.Null)
                 {
                     UIRegistry.Register(receiver.BoundEntity, receiver);
-                    
-                    // Сразу форсируем чтение свежих данных из ECS при открытии
                     var em = World.DefaultGameObjectInjectionWorld.EntityManager;
                     if (em.HasBuffer<ItemSlot>(receiver.BoundEntity))
                     {
@@ -91,40 +81,22 @@ namespace ProjectTowerRpg.Core.UI
                     }
                 }
             }
-
-            // Вызываем кастомный коллбэк дочернего класса, если он ему нужен
             OnWindowShown();
         }
 
         private void OnInternalWindowClosed()
         {
-            // Автоматически ВЫПИСЫВАЕМ из UIRegistry абсолютно все ECS-компоненты окна
             foreach (var receiver in _cachedReceivers)
             {
-                if (receiver.BoundEntity != Entity.Null)
-                {
-                    UIRegistry.Unregister(receiver.BoundEntity, receiver);
-                }
+                if (receiver.BoundEntity != Entity.Null) UIRegistry.Unregister(receiver.BoundEntity, receiver);
             }
-
-            // Вызываем кастомный коллбэк дочернего класса
             OnWindowClosed();
         }
-
-        // ================================================================
-        // ПУБЛИЧНЫЕ МЕТОДЫ И ВИРТУАЛЬНЫЕ КОЛЛБЭКИ
-        // ================================================================
 
         public virtual void Open() { if (_context != null) _context.Show(); }
         public virtual void Close()
         {
-            // ✅ ОТМЕНЯЕМ ДРАГ ПРИ ЗАКРЫТИИ ЛЮБОГО ОКНА!
-            if (DragManager.Instance != null && DragManager.Instance.IsDragging)
-            {
-                DragManager.Instance.CancelDrag();
-                Debug.Log($"[{GetType().Name}] Драг отменён при закрытии окна.");
-            }
-
+            if (DragManager.Instance != null && DragManager.Instance.IsDragging) DragManager.Instance.CancelDrag();
             if (_context != null) _context.Close();
         }
         public virtual void Toggle() { if (_context != null) _context.Toggle(); }
@@ -132,6 +104,8 @@ namespace ProjectTowerRpg.Core.UI
         protected virtual void OnWindowBuilt(VisualElement root) { }
         protected virtual void OnWindowShown() { }
         protected virtual void OnWindowClosed() { }
+        public virtual void Setup(Entity entity) { }
+        public virtual void Unbind() { }
     }
 }
 

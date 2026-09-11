@@ -92,7 +92,7 @@ namespace ProjectTowerRpg.ECS.Reducers
             }
 
             // 🚀 Открываем окно контейнера
-            UIEvents.TriggerOpenContainerWindow(containerEntity);
+            UIEvents.TriggerOpenWindow(WindowType.Container , containerEntity);
         }
     }
 }

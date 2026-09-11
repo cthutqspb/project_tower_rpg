@@ -31,6 +31,22 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         public int SlotIndex { get; set; }
         public Entity ContainerEntity { get; set; }
+        
+        private static readonly string[] AbilityClasses = { 
+            "ability-mage",
+            "ability-warrior",
+            "ability-rogue",
+            "ability-priest",
+            "ability-default"
+        };
+        private static readonly string[] QualityClasses = {
+            "item-common",
+            "item-uncommon",
+            "item-rare",
+            "item-epic",
+            "item-legendary",
+            "item-artifact"
+        };
 
         public SlotElement()
         {
@@ -40,7 +56,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             
             _icon = new Label(); // ✅ Создаем как текстовый Label
             _icon.AddToClassList("slot-icon");
-            _icon.style.display = DisplayStyle.None;
             Add(_icon);
             
             _cooldownOverlay = new VisualElement();
@@ -50,23 +65,14 @@ namespace ProjectTowerRpg.Core.UI.Components
             
             _bindLabel = new Label();
             _bindLabel.AddToClassList("slot-bind-label");
-            _bindLabel.style.display = DisplayStyle.None;
             Add(_bindLabel);
             
             _amountLabel = new Label();
             _amountLabel.AddToClassList("slot-amount-label");
-            _amountLabel.style.display = DisplayStyle.None;
             Add(_amountLabel);
-
-            // 🎯 ДОБАВЛЯЕМ СЛОЙ ВСПЫШКИ: Он изначально скрыт (display: None)
-            _flashOverlay = new VisualElement();
-            _flashOverlay.AddToClassList("wow-flash-overlay");
-            _flashOverlay.style.display = DisplayStyle.None;
-            Add(_flashOverlay);
             
             _durationLabel = new Label();
             _durationLabel.AddToClassList("slot-duration-label");
-            _durationLabel.style.display = DisplayStyle.None;
             Add(_durationLabel);
 
             this.RegisterCallback<PointerOverEvent>(OnPointerOver);
@@ -203,8 +209,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 return;
             }
 
-            _icon.style.display = DisplayStyle.Flex;
-
+            _icon.RemoveFromClassList("hidden");
             string iconCharacter = "";
 
             var abilityConfig = AbilitiesDatabase.GetAbility(itemId);
@@ -228,30 +233,30 @@ namespace ProjectTowerRpg.Core.UI.Components
             // Количество (для стаков)
             if (amount > 1)
             {
-                _amountLabel.style.display = DisplayStyle.Flex;
+                _amountLabel.RemoveFromClassList("hidden");
                 _amountLabel.text = amount.ToString();
             }
             else
             {
-                _amountLabel.style.display = DisplayStyle.None;
+                _amountLabel.AddToClassList("hidden");
                 _amountLabel.text = "";
             }
 
             // Экшен-бар: бинд-клавиша и валидация
             if (isActionBar)
             {
-                _bindLabel.style.display = DisplayStyle.Flex;
+                _bindLabel.RemoveFromClassList("hidden");
                 _bindLabel.text = bindingText;
-                _bindLabel.style.color = SolarizedOsakaNight.Yellow;
+                //_bindLabel.style.color = SolarizedOsakaNight.Yellow;
                 //_icon.style.opacity = 1.0f;
 
                 ApplyValidation(validation);
             }
             else
             {
-                _bindLabel.style.display = DisplayStyle.None;
+                _bindLabel.AddToClassList("hidden");
                 _bindLabel.text = "";
-                _bindLabel.style.color = SolarizedOsakaNight.Yellow;
+                //_bindLabel.style.color = SolarizedOsakaNight.Yellow;
                 //_icon.style.opacity = 1.0f;
                 ResetValidationStyle();
             }
@@ -260,10 +265,8 @@ namespace ProjectTowerRpg.Core.UI.Components
         private void SetAbilityClass(string classType)
         {
             // Удаляем старый класс
-            _icon.RemoveFromClassList("ability-mage");
-            _icon.RemoveFromClassList("ability-warrior");
-            _icon.RemoveFromClassList("ability-rogue");
-            _icon.RemoveFromClassList("ability-priest");
+            foreach (var cls in AbilityClasses)
+                _icon.RemoveFromClassList(cls);
             
             // Добавляем новый
             string abilityClass = classType?.ToLower() switch
@@ -282,12 +285,8 @@ namespace ProjectTowerRpg.Core.UI.Components
         private void SetItemQualityClass(string quality)
         {
             // Удаляем старые классы
-            _icon.RemoveFromClassList("item-common");
-            _icon.RemoveFromClassList("item-uncommon");
-            _icon.RemoveFromClassList("item-rare");
-            _icon.RemoveFromClassList("item-epic");
-            _icon.RemoveFromClassList("item-legendary");
-            _icon.RemoveFromClassList("item-artifact");
+            foreach (var cls in QualityClasses)
+                _icon.RemoveFromClassList(cls);
             
             // Добавляем новый
             string qualityClass = quality?.ToLower() switch
@@ -310,7 +309,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         public void SetValidation(CastValidationResult validation)
         {
             // Если это не экшен-бар — выходим
-            if (_bindLabel.style.display == DisplayStyle.None) return;
+            if (_bindLabel.ClassListContains("hidden")) return;
 
             // Сбрасываем стили перед применением новых
             ResetValidationStyle();
@@ -450,18 +449,19 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 case "OUT_OF_RANGE":
                     _icon.AddToClassList("slot-icon-out-of-range");
-                    _bindLabel.style.color = SolarizedOsakaNight.Red;
+                    _bindLabel.AddToClassList("slot-bind-label-out-of-range");
                     break;
 
                 case "NO_MANA":
                     _icon.AddToClassList("slot-icon-no-mana");
-                    _bindLabel.style.color = SolarizedOsakaNight.Blue;
+                    _bindLabel.AddToClassList("slot-bind-label-no-mana");
                     break;
 
                 case "INVALID_TARGET":
                 case "NO_TARGET":
-                    _bindLabel.style.color = SolarizedOsakaNight.Red;
+                case "GCD_ACTIVE":
                     _icon.AddToClassList("slot-icon-invalid-target");
+                    _bindLabel.AddToClassList("slot-bind-label-invalid-target");
                     break;
             }
         }
@@ -475,9 +475,11 @@ namespace ProjectTowerRpg.Core.UI.Components
             _icon.RemoveFromClassList("slot-icon-no-mana");
             _icon.RemoveFromClassList("slot-icon-invalid-target");
             
-            _icon.style.backgroundColor = Color.clear;
+            //_icon.style.backgroundColor = Color.clear;
             //_icon.style.opacity = 1.0f;
-            _bindLabel.style.color = Color.yellow;
+            _bindLabel.RemoveFromClassList("slot-bind-label-out-of-range");
+            _bindLabel.RemoveFromClassList("slot-bind-label-no-mana");
+            _bindLabel.RemoveFromClassList("slot-bind-label-invalid-target");
         }
 
         // Метод Refresh() больше не лезет в ECS! Сетка сама обновит слот, когда прилетит буфер.
@@ -488,15 +490,17 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         public void ClearVisual()
         {
+            foreach (var cls in AbilityClasses) _icon.RemoveFromClassList(cls);
+            foreach (var cls in QualityClasses) _icon.RemoveFromClassList(cls);
             _icon.text = ""; // ✅ Очищаем символ-значок Nerd Font
-            _icon.style.display = DisplayStyle.None;
-            _icon.style.backgroundColor = Color.clear;
+            _icon.AddToClassList("hidden");
+            //_icon.style.backgroundColor = Color.clear;
             _bindLabel.text = "";
-            _bindLabel.style.display = DisplayStyle.None;
+            _bindLabel.AddToClassList("hidden");
             _amountLabel.text = "";
-            _amountLabel.style.display = DisplayStyle.None;
+            _amountLabel.AddToClassList("hidden");
             _durationLabel.text = "";
-            _durationLabel.style.display = DisplayStyle.None;
+            _durationLabel.AddToClassList("hidden");
             //_cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
             RemoveFromClassList("disabled");
             ResetValidationStyle();

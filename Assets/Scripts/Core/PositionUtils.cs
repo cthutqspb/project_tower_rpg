@@ -1,7 +1,8 @@
-using UnityEngine;
 using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
+using Camera = UnityEngine.Camera;
+using Debug = UnityEngine.Debug;
 using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.Utils
@@ -22,7 +23,7 @@ namespace ProjectTowerRpg.Core.Utils
             }
 
             // 2. Сущность с LocalTransform
-            if (em.HasComponent<LocalTransform>(entity))
+           if (em.HasComponent<LocalTransform>(entity))
             {
                 return em.GetComponentData<LocalTransform>(entity).Position;
             }
@@ -58,6 +59,41 @@ namespace ProjectTowerRpg.Core.Utils
         public static bool IsInRange(Entity a, Entity b, float range, EntityManager em)
         {
             return GetDistance(a, b, em) <= range;
+        }
+
+        /// <summary>
+        /// 🦾 ММО-КАНОН ВЫЛЕТА ЛУТА: Вычисляет точку сброса предмета перед игроком 
+        /// с учетом направления камеры и сочной веерной погрешностью, как в WoW/WC3!
+        /// </summary>
+        public static float3 GetDropPosition(float3 entityPosition)
+        {
+            var camera = Camera.main;
+            // Гвард: если камеры нет — просто кидаем шмотку чуть впереди-справа от игрока
+            if (camera == null) 
+            {
+                return entityPosition + new float3(1.5f, 0f, 1.5f);
+            }
+
+            // Вытаскиваем вектор взгляда камеры и намертво проецируем его на плоскость земли (X-Z)
+            var forward = (float3)camera.transform.forward;
+            forward.y = 0;
+            forward = math.normalize(forward);
+
+            // 🎯 СИ-РАНДОМ БЕЗ АЛЛОКАЦИЙ: Используем системный тик времени в качестве сида,
+            // чтобы не дергать тяжелый UnityEngine.Random и не мусорить в Managed Heap
+            uint seed = (uint)System.DateTime.Now.Ticks;
+            if (seed == 0) seed = 1; // Защита от нулевого сида в Unity.Mathematics
+            
+            var random = new Random(seed);
+            
+            // Задаем угол веера вылета (разброс влево-вправо)
+            float sideAngle = random.NextFloat(-0.3f, 0.3f);
+            
+            // Закручиваем вектор направления по часовой/против часовой стрелки
+            float3 direction = math.mul(quaternion.RotateY(sideAngle), forward);
+
+            // Возвращаем точку: позиция игрока + сочное случайное расстояние вылета перед ним
+            return entityPosition + direction * random.NextFloat(0.27f, 0.72f);
         }
     }
 }

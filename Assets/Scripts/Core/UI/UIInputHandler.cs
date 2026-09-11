@@ -65,7 +65,7 @@ namespace ProjectTowerRpg.Core.UI
 
         private void Update()
         {
-            if (_toggleCharacterAction.triggered) UIEvents.TriggerToggleCharacterWindow();
+            if (_toggleCharacterAction.triggered) UIEvents.TriggerOpenWindow(WindowType.Character);
             
             // ✅ ESC: СНАЧАЛА КОНТЕКСТНОЕ МЕНЮ, ПОТОМ ОКНА, ПОТОМ ГЛАВНОЕ МЕНЮ
             if (_closeWindowAction.triggered)

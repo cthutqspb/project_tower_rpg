@@ -7,6 +7,7 @@ using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.Core.UI.Components;
 using ProjectTowerRpg.Core.UI.Colors;
+using ProjectTowerRpg.Core.Utils;
 
 namespace ProjectTowerRpg.Core.UI
 {
@@ -107,21 +108,21 @@ namespace ProjectTowerRpg.Core.UI
             }
         }
 
-        private float3 GetDropPosition(float3 playerPosition)
-        {
-            var camera = Camera.main;
-            if (camera == null) return playerPosition + new float3(1.5f, 0, 1.5f);
-
-            var forward = camera.transform.forward;
-            forward.y = 0;
-            forward.Normalize();
-
-            var random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(1, 999999));
-            float sideAngle = random.NextFloat(-0.3f, 0.3f);
-            var direction = math.mul(quaternion.RotateY(sideAngle), forward);
-
-            return playerPosition + direction * random.NextFloat(0.27f, 0.72f);
-        }
+        // private float3 GetDropPosition(float3 playerPosition)
+        // {
+        //     var camera = Camera.main;
+        //     if (camera == null) return playerPosition + new float3(1.5f, 0, 1.5f);
+        //
+        //     var forward = camera.transform.forward;
+        //     forward.y = 0;
+        //     forward.Normalize();
+        //
+        //     var random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(1, 999999));
+        //     float sideAngle = random.NextFloat(-0.3f, 0.3f);
+        //     var direction = math.mul(quaternion.RotateY(sideAngle), forward);
+        //
+        //     return playerPosition + direction * random.NextFloat(0.27f, 0.72f);
+        // }
 
         private void HandleWorldDrop(Vector2 mousePosition)
         {
@@ -168,7 +169,7 @@ namespace ProjectTowerRpg.Core.UI
                 else
                 {
                     // СТАНДАРТНЫЙ МАТЕРИАЛЬНЫЙ ДРОП ШМОТОК НА ЗЕМЛЮ (Твой родной рабочий код)
-                    float3 dropPosition = GetDropPosition(playerPosition);
+                    float3 dropPosition = PositionUtils.GetDropPosition(playerPosition);
                     
                     em.AddComponentData(actionEntity, new ActionCommand
                     {

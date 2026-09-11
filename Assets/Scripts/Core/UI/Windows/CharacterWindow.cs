@@ -17,82 +17,163 @@ namespace ProjectTowerRpg.Core.UI.Windows
         private StaticGrid _inventoryGrid;
         private Paperdoll _paperdoll;
         private UnitStats _unitStats;
+        
+        private Entity _playerEntity = Entity.Null;
+        private bool _isContentBuilt = false; // 🦾 Флаг, гарантирующий ОДНОКРАТНУЮ сборку веток
+
+        public override WindowType Type => WindowType.Character;
+        public override Entity BoundEntity => _playerEntity;
 
         private void OnEnable()
         {
-            UIEvents.ToggleCharacterWindow += Toggle;
+            UIEvents.OnCloseWindow += OnCloseWindowRequested;
+            UIEvents.CloseAllWindows += Close;
         }
 
         private void OnDisable()
         {
-            UIEvents.ToggleCharacterWindow -= Toggle;
+            UIEvents.OnCloseWindow -= OnCloseWindowRequested;
+            UIEvents.CloseAllWindows -= Close;
+        }
+
+        public override void Setup(Entity entity)
+        {
+            _playerEntity = entity != Entity.Null ? entity : PlayerUtils.GetEntityByTag<PlayerTag>();
+            
+            if (_root != null) _root.userData = _playerEntity;
+
+            // 🦾 ПРАВИЛЬНЫЙ ТАЙМИНГ: Строим тяжелый визуал ОДИН раз за всю жизнь префаба!
+            if (!_isContentBuilt && _root != null && _playerEntity != Entity.Null)
+            {
+                BuildWindowContent(_root);
+            }
+            else if (_isContentBuilt && _playerEntity != Entity.Null)
+            {
+                // Если верстка уже готова — просто "переподвязываем" живые сетки к актуальной сущности за 0 наносекунд!
+                RebindExistingContent();
+            }
+
+            Open(); 
+        }
+
+        private void OnCloseWindowRequested(WindowType type, Entity entity)
+        {
+            if (type == WindowType.Character && _playerEntity == entity) Close();
+        }
+
+        public override void Close()
+        {
+            Unbind(); // Просто отвязываем данные, верстку не трогаем!
+            base.Close();
+        }
+
+        public override void Unbind()
+        {
+            // 🦾 МАКСИМАЛЬНАЯ СТЕРfieldsННОСТЬ: Выписываем компоненты из памяти UIRegistry,
+            // чтобы UIPullSystem перестала покадрово пушить в них данные...
+            if (_unitStats != null && _playerEntity != Entity.Null) UIRegistry.Unregister(_playerEntity, _unitStats);
+            if (_inventoryGrid != null) UIRegistry.Unregister(_inventoryGrid.BoundEntity, _inventoryGrid);
+            if (_paperdoll != null) UIRegistry.Unregister(_paperdoll.BoundEntity, _paperdoll);
+
+            _playerEntity = Entity.Null;
+            if (_root != null) _root.userData = null;
+            
+            // ❌ УБРАЛИ ОТСЮДА УНИЧТОЖЕНИЕ И ЗАНУЛЕНИЕ СЕТОК! Сетки остаются спать в памяти префаба.
         }
 
         protected override void OnWindowBuilt(VisualElement root)
         {
-            // Хедер
+            // Хедер собираем сразу — он статичен
             var headerContainer = root.Q<VisualElement>("header-container");
             if (headerContainer != null)
             {
-                _header = new HeaderComponent();
-                _header.Title = LocalizationManager.Get("character_window");
+                _header = new HeaderComponent { Title = LocalizationManager.Get("character_window") };
                 _header.OnClose += Close;
                 headerContainer.Add(_header);
-
-                var dragManipulator = new DragManipulator(dragElement: _header, targetElement: root, mode: DragMode.UIElement);
+                root.RegisterCallback<PointerDownEvent>(evt => root.BringToFront());
+                var dragManipulator = new DragManipulator(_header, root, DragMode.UIElement);
                 _header.AddManipulator(dragManipulator);
             }
+        }
 
-            Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
-            if (playerEntity == Entity.Null) return;
-
+        private void BuildWindowContent(VisualElement root)
+        {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
             
             // ================================================================
-            // 📊 ИНИЦИАЛИЗАЦИЯ И ОТРИСОВКА СТАТОВ И АТРИБУТОВ ИГРОКА
+            // 📊 ХАРАКТЕРИСТИКИ (Создаем ОДИН раз)
             // ================================================================
             var statsContainer = root.Q<VisualElement>("stats-container");
             if (statsContainer != null && _statsUxml != null)
             {
-                // Создаем компонент характеристик, скармливая ему ассет шаблона статов
                 _unitStats = new UnitStats(_statsUxml);
-                
-                // Привязываем к сущности игрока: он СРАЗУ вытянет стартовые Атрибуты из ECS!
-                _unitStats.BindToEntity(playerEntity);
-                
-                // Шёлково добавляем готовый элемент в левую колонку окна
+                _unitStats.BindToEntity(_playerEntity);
                 statsContainer.Add(_unitStats);
-                UIRegistry.Register(playerEntity, _unitStats);
+                UIRegistry.Register(_playerEntity, _unitStats);
             }
 
-            // 🦾 НАВЕДЕНА КРИСТАЛЬНАЯ ЧИСТОТА: Забираем прямые адреса карманов из паспорта связей за 0 наносекунд!
-            if (playerEntity != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntity))
+            // ================================================================
+            // 🎒 КАРМАНЫ (Инвентарь и Кукла создаются ОДИН раз)
+            // ================================================================
+            if (em.HasComponent<BuffersLinkComponent>(_playerEntity))
             {
-                var links = em.GetComponentData<BuffersLinkComponent>(playerEntity);
+                var links = em.GetComponentData<BuffersLinkComponent>(_playerEntity);
                 Entity inventoryEntity = links.Inventory;
                 Entity paperdollEntity = links.Paperdoll;
 
-                // Инвентарь
                 var inventoryContainer = root.Q<VisualElement>("inventory-container");
                 if (inventoryContainer != null && inventoryEntity != Entity.Null)
                 {
                     var inventoryComp = em.GetComponentData<ContainerConfigComponent>(inventoryEntity);
                     _inventoryGrid = new StaticGrid(inventoryComp.Columns, inventoryComp.Rows);
-                    
                     _inventoryGrid.BindToEntity(inventoryEntity); 
                     inventoryContainer.Add(_inventoryGrid);
                 }
 
-                // Кукла
                 var paperdollContainer = root.Q<VisualElement>("paperdoll-container");
                 if (paperdollContainer != null && paperdollEntity != Entity.Null)
                 {
                     _paperdoll = new Paperdoll(_paperdollUxml);
-                    
                     _paperdoll.BindToEntity(paperdollEntity); 
                     paperdollContainer.Add(_paperdoll);
                 }
             }
+
+            ScanAndCacheReceivers();
+            _isContentBuilt = true; // Фиксируем: окно полностью собрано в ОЗУ
+        }
+
+        /// <summary>
+        /// Быстрый Си-метод перепривязки живых компонентов к новой/старой сущности при взятии из пула
+        /// </summary>
+        private void RebindExistingContent()
+        {
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+
+            if (_unitStats != null)
+            {
+                _unitStats.BindToEntity(_playerEntity);
+                UIRegistry.Register(_playerEntity, _unitStats);
+            }
+
+            if (em.HasComponent<BuffersLinkComponent>(_playerEntity))
+            {
+                var links = em.GetComponentData<BuffersLinkComponent>(_playerEntity);
+                
+                if (_inventoryGrid != null && links.Inventory != Entity.Null)
+                {
+                    _inventoryGrid.BindToEntity(links.Inventory);
+                }
+
+                if (_paperdoll != null && links.Paperdoll != Entity.Null)
+                {
+                    _paperdoll.BindToEntity(links.Paperdoll);
+                }
+            }
+
+            // Перерегистрируем проснувшиеся живые ресиверы в UIRegistry
+            ScanAndCacheReceivers();
         }
     }
 }
+

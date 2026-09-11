@@ -22,44 +22,109 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         public Entity BoundEntity => _boundEntity;
 
-        public StaticGrid(int columns, int rows,  int startIndex = 0)
+        public StaticGrid(int columns, int rows, int startIndex = 0)
         {
             _columns = columns;
             _rows = rows;
             _startIndex = startIndex;
             
             this.AddToClassList("static-grid-container");
-            //this.AddToClassList($"grid-{gridType}");
-            
             this.pickingMode = PickingMode.Ignore;
+            
             this.style.width = columns * 48;
             this.style.flexDirection = FlexDirection.Row;
             this.style.flexWrap = Wrap.Wrap;
             this.style.flexShrink = 0;
             this.style.flexGrow = 0;
 
+            // 🦾 ЧИСТЫЙ КОНСТРУКТОР: Вызываем выделенный Си-метод создания
             for (int i = 0; i < columns * rows; i++)
             {
                 int bufferSlotIndex = _startIndex + i;
-
-                var slot = new SlotElement
-                {
-                    SlotIndex = bufferSlotIndex,
-                    name = $"slot-{i}",
-                    style =
-                    {
-                        width = 42,
-                        height = 42,
-                        marginTop = 2,
-                        marginRight = 2,
-                        marginBottom = 2,
-                        marginLeft = 2,
-                        backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f)
-                    }
-                };
-
+                var slot = CreateSlotElement(bufferSlotIndex, i);
+                
                 _slots.Add(slot);
                 Add(slot);
+            }
+        }
+
+        /// <summary>
+        /// Выделенный изолированный фабричный метод сборки SlotElement
+        /// </summary>
+        private SlotElement CreateSlotElement(int bufferSlotIndex, int visualIndex)
+        {
+            var slot = new SlotElement
+            {
+                SlotIndex = bufferSlotIndex,
+                ContainerEntity = _boundEntity, // Подхватит сущность, если она уже есть
+                name = $"slot-{visualIndex}",
+                style =
+                {
+                    width = 42,
+                    height = 42,
+                    marginTop = 2,
+                    marginRight = 2,
+                    marginBottom = 2,
+                    marginLeft = 2,
+                    backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f)
+                }
+            };
+
+            // Навешиваем обязательный манипулятор для работы Drag-and-Drop
+            var dragManipulator = new DragManipulator(slot, DragMode.Slot);
+            slot.AddManipulator(dragManipulator);
+
+            return slot;
+        }
+
+        /// <summary>
+        /// WoW-канон: Адаптирует сетку под размеры сундука. 
+        /// Если слотов в ОЗУ не хватает — динамически доращивает их через выделенный метод. 
+        /// Лишние слоты скрывает через display: None, полностью исключая фризы!
+        /// </summary>
+        public void ResizeAndExpand(int targetColumns, int targetRows)
+        {
+            _columns = targetColumns;
+            _rows = targetRows;
+
+            // Корректируем ширину контейнера под текущую геометрию сундука
+            this.style.width = targetColumns * 48;
+
+            int requiredSlotsCount = targetColumns * targetRows;
+
+            // 🦾 ЧИСТОЕ РАСШИРЕНИЕ ПУЛА: Если прилетел босс с огромным мешком лута
+            if (_slots.Count < requiredSlotsCount)
+            {
+                int currentCount = _slots.Count;
+                int slotsToCreate = requiredSlotsCount - currentCount;
+                Debug.Log($"🚀 [StaticGrid]: Расширяем пул слотов ({currentCount} -> {requiredSlotsCount}). Досоздаем {slotsToCreate} ячеек...");
+
+                for (int i = 0; i < slotsToCreate; i++)
+                {
+                    int slotVisualIndex = currentCount + i;
+                    int bufferSlotIndex = _startIndex + slotVisualIndex;
+
+                    // Вызываем тот же самый чистый метод без дублирования USS-стилей!
+                    var slot = CreateSlotElement(bufferSlotIndex, slotVisualIndex);
+
+                    _slots.Add(slot);
+                    Add(slot);
+                }
+            }
+
+            // 🦾 WoW-КАНОН УПРАВЛЕНИЯ ВИДИМОСТЬЮ:
+            // Включаем нужные ячейки, а лишние отправляем спать без уничтожения меша
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                if (i < requiredSlotsCount)
+                {
+                    _slots[i].style.display = DisplayStyle.Flex;
+                    _slots[i].ContainerEntity = _boundEntity; // Актуализируем паспорт сущности
+                }
+                else
+                {
+                    _slots[i].style.display = DisplayStyle.None;
+                }
             }
         }
 
@@ -119,7 +184,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
 
-                // =========================================================================
+        // =========================================================================
         // 🔮 РЕЛЬСЫ ЭКШЕН-БАРА (Слепо и реактивно рендерит ВСЕ хоткеи 0..23)
         // =========================================================================
         public void UpdateFromBuffer(

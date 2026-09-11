@@ -31,7 +31,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         // 📦 КОНТЕЙНЕР (Item)
                         if (SystemAPI.HasComponent<ItemComponent>(interaction.TargetEntity))
                         {
-                            UIEvents.TriggerCloseContainerWindow(interaction.TargetEntity);
+                            UIEvents.TriggerCloseWindow(WindowType.Container, interaction.TargetEntity);
                         }
                         
                         // 🧑 NPC (Unit) — закомментировано, пока нет реализации
