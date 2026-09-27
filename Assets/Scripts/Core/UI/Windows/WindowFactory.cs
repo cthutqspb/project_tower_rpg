@@ -61,12 +61,14 @@ namespace ProjectTowerRpg.Core.UI
         {
             UIEvents.OnOpenWindow += OnOpenWindowRequested;
             UIEvents.OnCloseWindow += OnCloseWindowRequested;
+            UIEvents.CloseAllWindows += CloseAll;
         }
 
         private void OnDisable()
         {
             UIEvents.OnOpenWindow -= OnOpenWindowRequested;
             UIEvents.OnCloseWindow -= OnCloseWindowRequested;
+            UIEvents.CloseAllWindows -= CloseAll;
         }
 
         private void OnOpenWindowRequested(WindowType type, Entity entity)
@@ -162,6 +164,7 @@ namespace ProjectTowerRpg.Core.UI
         public void ReturnToPool(WindowType type, UIWindow window)
         {
             if (window == null) return;
+                window.Close();
 
             if (!_pool.ContainsKey(type)) 
                 _pool[type] = new Queue<UIWindow>();

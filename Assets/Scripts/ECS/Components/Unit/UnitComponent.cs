@@ -12,5 +12,7 @@ namespace ProjectTowerRpg.ECS.Components
         public int Level;                    // 1, 5, 10...
         public float3 Position;              // позиция в мире
         public FixedString64Bytes LootTableId;
+        public FixedString32Bytes Faction;
+        public float AggroRadius;
     }
 }

@@ -58,7 +58,12 @@ namespace ProjectTowerRpg.ECS.Systems
                 float baseSpeed = dbCfg.parameters.base_speed;
                 float hitboxRadius = dbCfg.parameters.hitbox_radius;
 
-                // Теперь генерация Uid видит spawnPos идеально!
+                string markerFaction = markerData.Faction.ToString();
+                string faction = 
+                    !string.IsNullOrEmpty(markerFaction)          ? markerFaction :
+                    !string.IsNullOrEmpty(dbCfg.identity.faction) ? dbCfg.identity.faction :
+                    "neutral_humanoid";// Теперь генерация Uid видит spawnPos идеально!
+                
                 string generatedUid = $"c_{(int)math.floor(spawnPos.x + 0.5f)}_{(int)math.floor(spawnPos.z + 0.5f)}";
 
                 // 🏗️ 1. РОЖДАЕМ КРИСТАЛЬНО ЧИСТУЮ ECS-СУЩНОСТЬ ДУШИ С НУЛЯ
@@ -70,7 +75,9 @@ namespace ProjectTowerRpg.ECS.Systems
                     UnitId = markerData.UnitId, // Передаем FixedString
                     NameKey = isPlayer ? "player" : nameKey,
                     Level = markerData.Level,
-                    Position = spawnPos
+                    Position = spawnPos,
+                    Faction = faction,
+                    AggroRadius = dbCfg.ai != null ? dbCfg.ai.base_aggro_radius : 20f
                 });
 
                 em.AddComponentData(unitEntity, LocalTransform.FromPosition(spawnPos));

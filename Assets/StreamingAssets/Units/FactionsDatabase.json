@@ -1,0 +1,33 @@
+{
+  "neutral_humanoid": {
+    "neutral_humanoid": "FRIENDLY",
+    "undead": "HOSTILE",
+    "beast_neutral": "NEUTRAL",
+    "beast_aggressive": "HOSTILE",
+    "green_dragon": "NEUTRAL"
+  },
+  "undead": {
+    "neutral_humanoid": "HOSTILE",
+    "undead": "FRIENDLY",
+    "beast_neutral": "NEUTRAL",
+    "beast_aggressive": "NEUTRAL",
+    "green_dragon": "NEUTRAL"
+  },
+  "beast_neutral": {
+    "neutral_humanoid": "NEUTRAL",
+    "undead": "NEUTRAL",
+    "beast_neutral": "FRIENDLY",
+    "beast_aggressive": "NEUTRAL"
+  },
+  "beast_aggressive": {
+    "neutral_humanoid": "HOSTILE",
+    "undead": "NEUTRAL",
+    "beast_neutral": "NEUTRAL",
+    "beast_aggressive": "FRIENDLY"
+  },
+  "green_dragon": {
+    "neutral_humanoid": "NEUTRAL",
+    "undead": "NEUTRAL",
+    "green_dragon": "FRIENDLY"
+  }
+}

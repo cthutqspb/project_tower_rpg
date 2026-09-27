@@ -3,6 +3,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Units; // Возвращаем доступ к UnitsDatabase для строкового поиска
+using ProjectTowerRpg.Core.Abilities;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -11,6 +12,77 @@ namespace ProjectTowerRpg.ECS.Systems
     public partial class AiSystem : SystemBase
     {
         private Unity.Mathematics.Random _random;
+        
+        private static bool TrySelectBestAbility(
+            DynamicBuffer<ActiveCooldownElement> cooldowns, 
+            ResourceComponent sourceResource, 
+            UnitConfig dbCfg, 
+            float distanceToTarget, 
+            out string bestAbilityId, 
+            out float bestAbilityRange)
+        {
+            bestAbilityId = "melee_attack";
+            bestAbilityRange = 1.5f;
+
+            if (dbCfg.abilities == null || dbCfg.abilities.Count == 0)
+                return true;
+
+            float highestScore = -999999f;
+            bool foundValid = false;
+
+            for (int i = 0; i < dbCfg.abilities.Count; i++)
+            {
+                string abilityId = dbCfg.abilities[i];
+                var cfg = AbilitiesDatabase.GetAbility(abilityId);
+                if (cfg == null) continue;
+
+                bool isUsable = true;
+
+                // Проверка ресурсов
+                if (cfg.cost != null && cfg.cost.value > 0)
+                {
+                    if (sourceResource.Current < cfg.cost.value)
+                        isUsable = false;
+                }
+
+                // Проверка дистанции
+                if (isUsable && cfg.parameters != null)
+                {
+                    if (distanceToTarget > cfg.parameters.range)
+                        isUsable = false;
+                }
+
+                if (!isUsable) continue;
+
+                // Скоринг по тегам
+                float currentScore = 1.0f;
+
+                if (cfg.identity != null && cfg.identity.tags != null)
+                {
+                    for (int t = 0; t < cfg.identity.tags.Count; t++)
+                    {
+                        string tagName = cfg.identity.tags[t];
+
+                        if (dbCfg.ai.tag_weights != null 
+                            && dbCfg.ai.tag_weights.TryGetValue(tagName, out float multiplier))
+                        {
+                            currentScore *= multiplier;
+                        }
+                    }
+                }
+
+                // Выбор лучшего
+                if (currentScore > highestScore)
+                {
+                    highestScore = currentScore;
+                    bestAbilityId = abilityId;
+                    bestAbilityRange = cfg.parameters != null ? cfg.parameters.range : 1.5f;
+                    foundValid = true;
+                }
+            }
+
+            return foundValid;
+        }
 
         protected override void OnCreate()
         {

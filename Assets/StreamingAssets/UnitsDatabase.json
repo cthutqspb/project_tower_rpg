@@ -62,7 +62,7 @@
     },
     "ai": {
       "profile": "aggressive_patrol",
-      "base_aggro_radius": 450.0,
+      "base_aggro_radius": 45.0,
       "is_ranged": false,
       "flee_range": 0.0,
       "tag_weights": {
@@ -110,7 +110,7 @@
     },
     "ai": {
       "profile": "aggressive_patrol",
-      "base_aggro_radius": 450.0,
+      "base_aggro_radius": 45.0,
       "is_ranged": true,
       "flee_range": 140.0,
       "tag_weights": {
@@ -120,7 +120,7 @@
         "ranged_attack": 1.0
       }
     },
-    "abilities": ["melee_attack", "lightning_bolt"]
+    "abilities": ["melee_attack", "frostbolt", "lightning_bolt"]
   }
 }
 

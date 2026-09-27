@@ -20,6 +20,7 @@ namespace ProjectTowerRpg.ECS.Authoring
         public string unitId = "skeleton_warrior";
         public int level = 1;
         public string rank = "common"; // common, rare, elite, boss
+        public string faction = ""; 
         public string lootTableId = "";
         public bool isPlayer = false;
 
@@ -62,7 +63,8 @@ namespace ProjectTowerRpg.ECS.Authoring
                 SpawnPosition = authoring.transform.position,
                 IsPlayer = authoring.isPlayer,
                 IsDead = authoring.isDead,
-                LootTableId = authoring.lootTableId // Теперь маркер знает таблицу!
+                LootTableId = authoring.lootTableId, // Теперь маркер знает таблицу!
+                Faction = authoring.faction
             });
 
             // 2. 🦾 ЗАПЕКАНИЕ КАСТOМНOГO ЛУТА: 

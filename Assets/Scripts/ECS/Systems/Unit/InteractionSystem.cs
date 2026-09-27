@@ -23,23 +23,29 @@ namespace ProjectTowerRpg.ECS.Systems
                     float distance = PositionUtils.GetDistance(entity, interaction.TargetEntity, EntityManager);
 
                     if (distance > interaction.MaxDistance)
-                    {
-                        // ================================================================
-                        // 🔥 ОПРЕДЕЛЯЕМ ТИП ПО ТЕГАМ
-                        // ================================================================
-                        
-                        // 📦 КОНТЕЙНЕР (Item)
+                    {                        
+                        // 📦 1. СТАТИЧНЫЙ КОНТЕЙНЕР (Сундук / Мешок)
                         if (SystemAPI.HasComponent<ItemComponent>(interaction.TargetEntity))
                         {
                             UIEvents.TriggerCloseWindow(WindowType.Container, interaction.TargetEntity);
                         }
                         
-                        // 🧑 NPC (Unit) — закомментировано, пока нет реализации
-                        // else if (SystemAPI.HasComponent<UnitComponent>(interaction.TargetEntity))
-                        // {
-                        //     UIEvents.TriggerCloseNpcDialog(interaction.TargetEntity);
-                        // }
-                        
+                        // 🧑 2. СУЩЕСТВО (Труп монстра или NPC)
+                        if (SystemAPI.HasComponent<UnitComponent>(interaction.TargetEntity))
+                        {
+                            // 🦾 ГВАРД СМЕРТИ: Если юнит мертв, значит мы грабили его карманы как сундук!
+                            // Закрываем универсальное окно добычи ContainerWindow.
+                            if (SystemAPI.HasComponent<IsDeadTag>(interaction.TargetEntity))
+                            {
+                                UIEvents.TriggerCloseWindow(WindowType.Container, interaction.TargetEntity);
+                            }
+                            else
+                            {
+                                // В БУДУЩЕМ: Если живой — закрываем окно диалога / торговли
+                                // UIEvents.TriggerCloseNpcDialog(interaction.TargetEntity);
+                            }
+                        }
+
                         // 🚪 ОБЪЕКТ (Object) — закомментировано, пока нет реализации
                         // else if (SystemAPI.HasComponent<ObjectComponent>(interaction.TargetEntity))
                         // {

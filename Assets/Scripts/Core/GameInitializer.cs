@@ -2,6 +2,7 @@ using UnityEngine;
 using ProjectTowerRpg.Core.Localization;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Units; // ← Добавь юзинг базы юнитов
+//using ProjectTowerRpg.Core.Factions;
 using ProjectTowerRpg.Core.Abilities;
 
 public class GameInitializer : MonoBehaviour
@@ -15,6 +16,7 @@ public class GameInitializer : MonoBehaviour
         ItemsDatabase.Load();
         LootTables.Load();
         AbilitiesDatabase.Load();
+        FactionsDatabase.Load();
 
         // 🌟 3. НАКАТЫВАЕМ БАЗУ ДАННЫХ СУЩЕСТВ (Исправляет слепоту UI на чистой сцене!)
         if (!UnitsDatabase.IsLoaded)

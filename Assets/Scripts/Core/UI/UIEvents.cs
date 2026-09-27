@@ -24,12 +24,7 @@ namespace ProjectTowerRpg.Core.UI
     }
 
     public static class UIEvents
-    {
-        // public static event System.Action ToggleCharacterWindow;
-        // 
-        // public static event Action<Entity> OpenContainerWindow;
-        // public static event Action<Entity> CloseContainerWindow;
-        
+    {        
         public static System.Action<WindowType, Entity> OnOpenWindow;
         public static System.Action<WindowType, Entity> OnCloseWindow;
         public static event System.Action CloseAllWindows;
@@ -53,21 +48,7 @@ namespace ProjectTowerRpg.Core.UI
         {
             OnCloseWindow?.Invoke(type, entity);
         }
-        // public static void TriggerToggleCharacterWindow()
-        // {
-        //     ToggleCharacterWindow?.Invoke();
-        // }
-        //
-        // public static void TriggerOpenContainerWindow(Entity containerEntity)
-        // {
-        //     OpenContainerWindow?.Invoke(containerEntity);
-        // }
-        //
-        // public static void TriggerCloseContainerWindow(Entity containerEntity)
-        // {
-        //     CloseContainerWindow?.Invoke(containerEntity);
-        // }
-
+        
         public static void TriggerCloseAllWindows()
         {
             CloseAllWindows?.Invoke();

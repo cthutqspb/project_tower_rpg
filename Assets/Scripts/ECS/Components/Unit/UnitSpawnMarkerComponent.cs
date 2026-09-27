@@ -13,6 +13,7 @@ namespace ProjectTowerRpg.ECS.Components
         public int Level;
         public Unity.Collections.FixedString32Bytes Rank;
         public Unity.Collections.FixedString64Bytes LootTableId;
+        public Unity.Collections.FixedString32Bytes Faction; 
     }
 }
 
