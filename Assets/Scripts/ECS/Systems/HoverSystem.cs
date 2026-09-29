@@ -38,11 +38,11 @@ namespace ProjectTowerRpg.ECS.Systems
 
             // Вычистили уродливый инлайн-префикс UnityEngine.InputSystem.Mouse
             var currentMouse = UnityEngine.InputSystem.Mouse.current;
-            Vector2 mousePos = currentMouse != null 
+            Vector2 mousePosition = currentMouse != null 
                 ? currentMouse.position.ReadValue() 
                 : Vector2.zero;
 
-            Ray ray = mainCamera.ScreenPointToRay(mousePos);
+            Ray ray = mainCamera.ScreenPointToRay(mousePosition);
             
             if (Physics.SphereCast(ray, 0.3f, out RaycastHit hit, 100f))
             {

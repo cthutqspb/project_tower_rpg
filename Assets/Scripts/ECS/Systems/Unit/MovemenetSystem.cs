@@ -161,7 +161,8 @@ namespace ProjectTowerRpg.ECS.Systems
                     float3 wallRayStart = new float3(transform.ValueRO.Position.x, transform.ValueRO.Position.y + 0.5f, transform.ValueRO.Position.z);
                     float3 moveDirection = math.normalize(flatMoveVector);
 
-                    if (Physics.Raycast(wallRayStart, moveDirection, out RaycastHit wallHit, 0.5f))
+                    if (Physics.Raycast(wallRayStart, moveDirection, out RaycastHit wallHit, 0.5f, 
+                        Physics.DefaultRaycastLayers, UnityEngine.QueryTriggerInteraction.Ignore))
                     {
                         if (wallHit.collider != null && wallHit.collider.gameObject.name != "Terrain")
                         {

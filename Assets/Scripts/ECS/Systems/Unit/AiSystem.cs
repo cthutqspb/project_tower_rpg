@@ -1,60 +1,52 @@
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.Units; // Возвращаем доступ к UnitsDatabase для строкового поиска
+using ProjectTowerRpg.Core.Units;
 using ProjectTowerRpg.Core.Abilities;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
-    // Система тикает в главном симуляционном цикле DOTS
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial class AiSystem : SystemBase
     {
         private Unity.Mathematics.Random _random;
-        
-        private static bool TrySelectBestAbility(
-            DynamicBuffer<ActiveCooldownElement> cooldowns, 
-            ResourceComponent sourceResource, 
-            UnitConfig dbCfg, 
-            float distanceToTarget, 
-            out string bestAbilityId, 
-            out float bestAbilityRange)
-        {
-            bestAbilityId = "melee_attack";
-            bestAbilityRange = 1.5f;
 
-            if (dbCfg.abilities == null || dbCfg.abilities.Count == 0)
+        private const float SEPARATION_BUBBLE = 0.8f;
+        private const float BLEND_MOVE = 0.3f;
+        private const float BLEND_AVOID = 0.7f;
+        private const float LEASH_MULTIPLIER = 2.5f;
+        private const float ATTACK_COOLDOWN_FALLBACK = 1.5f;
+
+        // ================================================================
+        // ВЫБОР ЛУЧШЕЙ СПОСОБНОСТИ — через AbilityValidator
+        // ================================================================
+        private static bool TrySelectAbility(
+            UnitConfig unitCfg,
+            Entity caster,
+            EntityManager em,
+            out string selectedAbilityId,
+            out float selectedAbilityRange)
+        {
+            selectedAbilityId = "melee_attack";
+            selectedAbilityRange = 1.5f;
+
+            if (unitCfg.abilities == null || unitCfg.abilities.Count == 0)
                 return true;
 
             float highestScore = -999999f;
             bool foundValid = false;
 
-            for (int i = 0; i < dbCfg.abilities.Count; i++)
+            for (int i = 0; i < unitCfg.abilities.Count; i++)
             {
-                string abilityId = dbCfg.abilities[i];
+                string abilityId = unitCfg.abilities[i];
                 var cfg = AbilitiesDatabase.GetAbility(abilityId);
                 if (cfg == null) continue;
 
-                bool isUsable = true;
+                var validation = AbilityValidator.CheckCastPossibility(abilityId, caster, em);
+                if (!validation.IsPossible) continue;
 
-                // Проверка ресурсов
-                if (cfg.cost != null && cfg.cost.value > 0)
-                {
-                    if (sourceResource.Current < cfg.cost.value)
-                        isUsable = false;
-                }
-
-                // Проверка дистанции
-                if (isUsable && cfg.parameters != null)
-                {
-                    if (distanceToTarget > cfg.parameters.range)
-                        isUsable = false;
-                }
-
-                if (!isUsable) continue;
-
-                // Скоринг по тегам
                 float currentScore = 1.0f;
 
                 if (cfg.identity != null && cfg.identity.tags != null)
@@ -63,20 +55,20 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         string tagName = cfg.identity.tags[t];
 
-                        if (dbCfg.ai.tag_weights != null 
-                            && dbCfg.ai.tag_weights.TryGetValue(tagName, out float multiplier))
+                        if (unitCfg.ai != null
+                            && unitCfg.ai.tag_weights != null
+                            && unitCfg.ai.tag_weights.TryGetValue(tagName, out float multiplier))
                         {
                             currentScore *= multiplier;
                         }
                     }
                 }
 
-                // Выбор лучшего
                 if (currentScore > highestScore)
                 {
                     highestScore = currentScore;
-                    bestAbilityId = abilityId;
-                    bestAbilityRange = cfg.parameters != null ? cfg.parameters.range : 1.5f;
+                    selectedAbilityId = abilityId;
+                    selectedAbilityRange = cfg.parameters != null ? cfg.parameters.range : 1.5f;
                     foundValid = true;
                 }
             }
@@ -84,100 +76,270 @@ namespace ProjectTowerRpg.ECS.Systems
             return foundValid;
         }
 
+        private float3 ApplySeparation(
+            Entity currentUnitEntity, float3 currentUnitPosition, float3 moveDirection,
+            string currentUnitFaction, float currentUnitHitbox,
+            NativeArray<Entity> allUnits, EntityManager em)
+        {
+            float3 avoidDirection = float3.zero;
+            int neighborsCount = 0;
+
+            for (int i = 0; i < allUnits.Length; i++)
+            {
+                var otherUnitEntity = allUnits[i];
+                if (otherUnitEntity == currentUnitEntity) continue;
+                if (em.HasComponent<IsDeadTag>(otherUnitEntity)) continue;
+                if (em.HasComponent<PlayerTag>(otherUnitEntity)) continue;
+
+                var otherUnit = em.GetComponentData<UnitComponent>(otherUnitEntity);
+                if (otherUnit.Faction.ToString() != currentUnitFaction) continue;
+                if (!em.HasComponent<LocalTransform>(otherUnitEntity)) continue;
+                if (!em.HasComponent<MovementComponent>(otherUnitEntity)) continue;
+
+                float3 otherUnitPosition = em.GetComponentData<LocalTransform>(otherUnitEntity).Position;
+                float otherUnitHitbox = em.GetComponentData<MovementComponent>(otherUnitEntity).HitboxRadius;
+
+                float3 differenceVector = otherUnitPosition - currentUnitPosition;
+                differenceVector.y = 0f;
+                float distanceSquared = math.lengthsq(differenceVector);
+                float minAllowedDistance = currentUnitHitbox + otherUnitHitbox + SEPARATION_BUBBLE;
+
+                if (distanceSquared > 0.0001f && distanceSquared <= minAllowedDistance * minAllowedDistance)
+                {
+                    float3 separationVector = currentUnitPosition - otherUnitPosition;
+                    separationVector.y = 0f;
+
+                    float3 tangent = new float3(-separationVector.z, 0f, separationVector.x);
+                    if (math.dot(tangent, moveDirection) < 0)
+                        tangent = -tangent;
+
+                    avoidDirection += math.normalize(tangent);
+                    neighborsCount++;
+                }
+            }
+
+            if (neighborsCount > 0)
+            {
+                avoidDirection = math.normalize(avoidDirection);
+                float3 blended = moveDirection * BLEND_MOVE + avoidDirection * BLEND_AVOID;
+                return math.normalize(blended);
+            }
+
+            return moveDirection;
+        }
+
         protected override void OnCreate()
         {
-            // Сид для генерации случайных чисел (каноничный, как в твоем unit_ai.lua)
             _random = new Unity.Mathematics.Random(98765);
         }
 
         protected override void OnUpdate()
         {
-            // Берем текущее системное Си-время рантайма и дельту кадра
-            float currentTime = (float)SystemAPI.Time.ElapsedTime;
-            float dt = SystemAPI.Time.DeltaTime;
+            var em = EntityManager;
+            var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+                .CreateCommandBuffer(World.Unmanaged);
 
-            // Обновляем состояние рандома от времени кадра, чтобы сид не зацикливался внутри partial-системы
+            float currentTime = (float)SystemAPI.Time.ElapsedTime;
+            float deltaTime = SystemAPI.Time.DeltaTime;
+
             _random = new Unity.Mathematics.Random((uint)(currentTime * 10000) + 1);
 
-            // 🚀 СОВРЕМЕННЫЙ DOTS-КОНВЕЙЕР ИИ (Чистый, быстрый и без ошибок компиляции!):
-            // Перебираем твои новые компоненты стейта, твой родной MovementComponent
-            // и стандартный LocalTransform через нативный SystemAPI.Query
-            foreach (var (ai, move, combat, transform, unitData) in 
-                     SystemAPI.Query<RefRW<AiComponent>, RefRW<MovementComponent>, RefRO<CombatStateComponent>, RefRW<LocalTransform>, RefRO<UnitComponent>>().WithNone<IsDeadTag>())
-            {                // 🛡️ WOW-КАНОН ОПТИМИЗАЦИИ (Твой оригинальный Lua-гвард):
-                // Если этот юнит не из фабрики (например, игрок или редакторный призрак) —
-                // мы мгновенно прерываем апдейт. Ему запрещено покадрово думать и патрулировать!
+            var allUnits = em.CreateEntityQuery(
+                ComponentType.ReadOnly<UnitComponent>(),
+                ComponentType.ReadOnly<LocalTransform>(),
+                ComponentType.ReadOnly<MovementComponent>(),
+                ComponentType.Exclude<IsDeadTag>()
+            ).ToEntityArray(Allocator.Temp);
+
+            foreach (var (ai, movement, combatState, localTransform, unit, entity) in
+                     SystemAPI.Query<RefRW<AiComponent>, RefRW<MovementComponent>,
+                                     RefRO<CombatStateComponent>, RefRW<LocalTransform>,
+                                     RefRO<UnitComponent>>()
+                     .WithEntityAccess()
+                     .WithNone<IsDeadTag>())
+            {
                 if (!ai.ValueRO.IsFromFactory) continue;
 
-                // // TODO: WoW-Канон Боевой фазы на будущее (Utility AI, CHASE / ATTACK, Кайтинг магов)
-                // if (combat.ValueRO.IsInCombat) { continue; }
+                string uIdStr = unit.ValueRO.UnitId.ToString().ToLower().Trim();
+                var unitCfg = UnitsDatabase.GetUnit(uIdStr);
+                if (unitCfg == null) continue;
 
-                // ================================================================
-                // СТАБИЛЬНЫЙ СТРОКОВЫЙ ПОИСК КОНФИГА ИЗ ТВОЕЙ БАЗЫ ДАННЫХ
-                // ================================================================
-                string uIdStr = unitData.ValueRO.UnitId.ToString().ToLower().Trim();
-                var dbCfg = UnitsDatabase.GetUnit(uIdStr);
-                if (dbCfg == null) continue;
+                string faction = unit.ValueRO.Faction.ToString();
+                float hitbox = movement.ValueRO.HitboxRadius;
 
-                // ================================================================
-                // ФАЗА ПАССИВНОГО МИРНОГО ПОКОЯ (Твой unit_ai.lua один в один)
-                // ================================================================
-                
-                // 🛑 СТEЙТ 1: IDLE (Время раздумий на точке)
-                if (!ai.ValueRO.HasTarget && currentTime >= ai.ValueRO.NextActionTime)
+                var aiRW = ai.ValueRW;
+                var moveRW = movement.ValueRW;
+                var combatRO = combatState.ValueRO;
+
+                // ============================================================
+                // 🆕 ПЕРЕХОД Idle/Patrol → Chase по сигналу Perception
+                // ============================================================
+                if (combatRO.IsInCombat 
+                    && combatRO.CurrentTarget != Entity.Null
+                    && em.Exists(combatRO.CurrentTarget)
+                    && (aiRW.State == AiState.Idle || aiRW.State == AiState.Patrol))
                 {
-                    // Выбираем случайную точку патруля в радиусе ±70 единиц от дома (StartPoint)
-                    float2 offset = _random.NextFloat2Direction() * _random.NextFloat(20f, ai.ValueRO.PatrolRadius);
-                    ai.ValueRW.CurrentTarget = ai.ValueRO.StartPoint + new float3(offset.x, 0f, offset.y);
-                    ai.ValueRW.HasTarget = true;
-                    ai.ValueRW.IsPatrolling = true; // Взводим флаг патруля для снижения скорости
+                    aiRW.State = AiState.Chase;
+                    aiRW.HasPatrolTarget = false;
+                    aiRW.IsPatrolling = false;
                 }
 
-                // 🏃‍♂️ СТEЙТ 2: PATROL (Покадровый расчет вектора и сдвиг)
-                if (ai.ValueRO.HasTarget)
+                // ============================================================
+                // СБРОС: если бой закончился (Perception убрал цель)
+                // ============================================================
+                if (!combatRO.IsInCombat || combatRO.CurrentTarget == Entity.Null)
                 {
-                    // 1. Считаем сырой вектор до цели патруля
-                    float3 vectorToTarget = ai.ValueRO.CurrentTarget - transform.ValueRO.Position;
-
-                    // =========================================================================
-                    // 🚀 КАНОН ВЕРТИКАЛЬНОСТИ ИЗ КИШЕК DEFOLD (ИСПРАВЛЕНО НАМЕРТВО):
-                    // Мы КАТЕГОРИЧЕСКИ обнуляем ось Y ДО нормализации вектора!
-                    // Математический калькулятор ИИ выдаст абсолютно плоский вектор движения по земле.
-                    // =========================================================================
-                    vectorToTarget.y = 0f; 
-
-                    float distance = math.length(vectorToTarget);
-
-                    // Успешно пришли в точку патрулирования? (Допуск 0.4 метра)
-                    if (distance < 0.4f)
+                    if (aiRW.State == AiState.Chase || aiRW.State == AiState.Attack)
                     {
-                        move.ValueRW.Direction = float3.zero; // Обнуляем вектор в твоем компоненте
-                        ai.ValueRW.HasTarget = false;
-                        ai.ValueRW.IsPatrolling = false;
-                        
-                        float randomDelay = _random.NextInt(10, 31) / 10f;
-                        ai.ValueRW.NextActionTime = currentTime + randomDelay;
+                        aiRW.State = AiState.Idle;
+                        aiRW.AttackTimer = 0f;
+                        aiRW.HasPatrolTarget = false;
+                        aiRW.IsPatrolling = false;
+                        moveRW.Direction = float3.zero;
+
+                        ai.ValueRW = aiRW;
+                        movement.ValueRW = moveRW;
+                        continue;
+                    }
+                }
+
+                // ============================================================
+                // STATE: ATTACK / CHASE
+                // ============================================================
+                if (aiRW.State == AiState.Attack || aiRW.State == AiState.Chase)
+                {
+                    if (!em.Exists(combatRO.CurrentTarget) || em.HasComponent<IsDeadTag>(combatRO.CurrentTarget))
+                    {
+                        aiRW.State = AiState.Idle;
+                        aiRW.AttackTimer = 0f;
+                        moveRW.Direction = float3.zero;
+
+                        ai.ValueRW = aiRW;
+                        movement.ValueRW = moveRW;
                         continue;
                     }
 
-                    // 2. Теперь нормализуем АБСОЛЮТНО ПЛОСКИЙ вектор и пушим в твой MovementComponent!
-                    // move.direction.y гарантированно станет равен СТРОГО 0.0000f!
-                    move.ValueRW.Direction = math.normalize(vectorToTarget);
+                    float3 toTarget = em.GetComponentData<LocalTransform>(combatRO.CurrentTarget).Position - localTransform.ValueRO.Position;
+                    toTarget.y = 0f;
+                    float distanceToTarget = math.length(toTarget);
 
-                    // 🦾 ИСПРАВЛЕНИЕ СКОРОСТИ ДЛЯ ПАТРУЛЯ: 
-                    // Задаем скорость напрямую из стабильного JSON-конфига юнита!
-                    float workingSpeed = dbCfg.parameters.base_speed;
-                    if (ai.ValueRO.IsPatrolling)
+                    float leashDistance = unit.ValueRO.AggroRadius * LEASH_MULTIPLIER;
+                    if (distanceToTarget > leashDistance)
                     {
-                        workingSpeed = workingSpeed * 0.5f; 
+                        aiRW.State = AiState.Idle;
+                        aiRW.AttackTimer = 0f;
+                        moveRW.Direction = float3.zero;
+
+                        ai.ValueRW = aiRW;
+                        movement.ValueRW = moveRW;
+                        continue;
                     }
-                    move.ValueRW.CurrentSpeed = workingSpeed;
 
-                    // ❌ СДВИГ КООРДИНАТ (transform.Position += ...) ОТСЮДА УДАЛЕН НАВСЕГДА!
-                    // Твоя родная монолитная MovementSystem сама шёлково передвинет тушу в ОЗУ.
+                    bool isCasting = em.HasComponent<CastComponent>(entity)
+                                     && em.GetComponentData<CastComponent>(entity).IsActive;
+                    if (isCasting)
+                    {
+                        moveRW.Direction = float3.zero;
+                        movement.ValueRW = moveRW;
+                        continue;
+                    }
+
+                    if (aiRW.AttackTimer > 0f)
+                    {
+                        aiRW.AttackTimer -= deltaTime;
+                        moveRW.Direction = float3.zero;
+
+                        ai.ValueRW = aiRW;
+                        movement.ValueRW = moveRW;
+                        continue;
+                    }
+
+                    bool hasAbility = TrySelectAbility(
+                        unitCfg, entity, em,
+                        out string selectedAbilityId, out float selectedAbilityRange);
+
+                    if (hasAbility)
+                    {
+                        aiRW.State = AiState.Attack;
+                        aiRW.AttackRange = selectedAbilityRange;
+                        aiRW.PrimaryAbility = selectedAbilityId;
+                        aiRW.AttackTimer = ATTACK_COOLDOWN_FALLBACK;
+                        moveRW.Direction = float3.zero;
+
+                        Entity requestEntity = ecb.CreateEntity();
+                        ecb.AddComponent(requestEntity, new CastRequest
+                        {
+                            Caster = entity,
+                            AbilityId = selectedAbilityId,
+                            TargetEntity = combatRO.CurrentTarget,
+                        });
+                    }
+                    else
+                    {
+                        aiRW.State = AiState.Chase;
+
+                        float3 direction = math.normalize(toTarget);
+                        direction = ApplySeparation(entity, localTransform.ValueRO.Position, direction, faction, hitbox, allUnits, em);
+
+                        moveRW.Direction = direction;
+                        moveRW.CurrentSpeed = unitCfg.parameters.base_speed;
+                    }
+
+                    ai.ValueRW = aiRW;
+                    movement.ValueRW = moveRW;
+                    continue;
                 }
-            }
-        }
-   }
-}
 
+                // ============================================================
+                // STATE: IDLE / PATROL
+                // ============================================================
+                if (aiRW.State == AiState.Idle && currentTime >= aiRW.NextActionTime)
+                {
+                    float2 offset = _random.NextFloat2Direction() * _random.NextFloat(2f, aiRW.PatrolRadius);
+                    aiRW.PatrolPoint = aiRW.StartPoint + new float3(offset.x, 0f, offset.y);
+                    aiRW.HasPatrolTarget = true;
+                    aiRW.IsPatrolling = true;
+                    aiRW.State = AiState.Patrol;
+                }
+
+                if (aiRW.State == AiState.Patrol && aiRW.HasPatrolTarget)
+                {
+                    float3 vectorToTarget = aiRW.PatrolPoint - localTransform.ValueRO.Position;
+                    vectorToTarget.y = 0f;
+                    float distanceToPatrolPoint = math.length(vectorToTarget);
+
+                    if (distanceToPatrolPoint < 0.4f)
+                    {
+                        moveRW.Direction = float3.zero;
+                        aiRW.HasPatrolTarget = false;
+                        aiRW.IsPatrolling = false;
+                        aiRW.State = AiState.Idle;
+
+                        float randomDelay = _random.NextInt(10, 31) / 10f;
+                        aiRW.NextActionTime = currentTime + randomDelay;
+
+                        ai.ValueRW = aiRW;
+                        movement.ValueRW = moveRW;
+                        continue;
+                    }
+
+                    float3 direction = math.normalize(vectorToTarget);
+                    direction = ApplySeparation(entity, localTransform.ValueRO.Position, direction, faction, hitbox, allUnits, em);
+
+                    moveRW.Direction = direction;
+
+                    float workingSpeed = unitCfg.parameters.base_speed;
+                    if (aiRW.IsPatrolling)
+                        workingSpeed *= 0.5f;
+
+                    moveRW.CurrentSpeed = workingSpeed;
+                }
+
+                ai.ValueRW = aiRW;
+                movement.ValueRW = moveRW;
+            }
+
+            allUnits.Dispose();
+        }
+    }
+}

@@ -15,6 +15,13 @@ namespace ProjectTowerRpg.ECS.Systems
             var em = EntityManager;
             var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
 
+            // 🦾 ШИННЫЙ ГВАРД: Находим синглтон-сущность нашего буфера презентационных событий
+            Entity eventBufferSingleton = Entity.Null;
+            if (SystemAPI.TryGetSingletonEntity<PresentationEventBufferTag>(out var bufferEntity))
+            {
+                eventBufferSingleton = bufferEntity;
+            }
+
             // =========================================================================
             // ПОТОК 1: ПРИЕМ И ВАЛИДАЦИЯ ЗАПРОСОВ (Серверный шлюз на старте)
             // =========================================================================
@@ -25,120 +32,126 @@ namespace ProjectTowerRpg.ECS.Systems
 
                 if (casterEntity != Entity.Null && em.Exists(casterEntity))
                 {
-                    // 🚀 ШАГ 1: Сначала хладнокровно прогоняем абсолютный шлюз безопасности!
-                    // Если ГКД тикает — метод выдаст GCD_ACTIVE, и спам кнопки мгновенно разобьется о гвард!
                     var validationResult = AbilityValidator.CheckCastPossibility(abilityIdStr, casterEntity, em);
 
                     if (validationResult.IsPossible)
                     {
-                        // 🚀 ШАГ 2: Валидация конвейера пройдена! Только ТЕПЕРЬ проверяем, не читает ли туша спелл прямо сейчас.
-                        // По канону WoW: если маг уже кастует Frostbolt и нагло жмет Frostbolt еще раз — 
-                        // этот спам просто игнорируется симуляцией, не прерывая текущую полоску!
                         bool isAlreadyCasting = em.HasComponent<CastComponent>(casterEntity) && em.GetComponentData<CastComponent>(casterEntity).IsActive;
 
                         if (!isAlreadyCasting)
                         {
                             var abilityCfg = AbilitiesDatabase.GetAbility(abilityIdStr);
                             
-                            // ⏳ ВЗВОД ГКД НА СЕРВЕРЕ (Твой чистый изолированный Си-блок)
+                            // ⏳ ВЗВОД ГКД НА СЕРВЕРЕ
                             if (abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.triggers_gcd)
                             {
                                 float calculatedGcd = 1.2f; 
 
                                 if (em.HasComponent<CombatStateComponent>(casterEntity))
                                 {
-                                    var combat = em.GetComponentData<CombatStateComponent>(casterEntity);
-                                    
-                                    combat.GcdDuration = calculatedGcd;
-                                    combat.GcdRemaining = calculatedGcd;
-                                    
-                                    em.SetComponentData(casterEntity, combat);
+                                    var combatState = em.GetComponentData<CombatStateComponent>(casterEntity);
+                                    combatState.GcdDuration = calculatedGcd;
+                                    combatState.GcdRemaining = calculatedGcd;
+                                    em.SetComponentData(casterEntity, combatState);
                                     Debug.Log($"⏳ [CastSystem]: На боевой стейт {casterEntity} наложено ГКД: {calculatedGcd}с.");
                                 }
                             }
 
-                            // =========================================================================
-                            // 🎯 ВЗВОД ОБЫЧНОГО КУЛДАУНА ДЛЯ МГНОВЕННЫХ СПОСОБНОСТЕЙ (WoW-канон)
-                            // =========================================================================
+                            // 🎯 ВЗВОД ОБЫЧНОГО КУЛДАУНА ДЛЯ МГНОВЕННЫХ СПОСОБНОСТЕЙ
                             float castTime = abilityCfg != null && abilityCfg.parameters != null 
                                 ? abilityCfg.parameters.cast_time 
                                 : 1.7f;
 
-                            // Если у способности есть КД, и она мгновенная — вешаем КД прямо сейчас
                             if (abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.cooldown > 0f)
                             {
-                                if (castTime <= 0f) // Только для Instant способностей!
+                                if (castTime <= 0f) 
                                 {
                                     if (SystemAPI.HasBuffer<ActiveCooldownElement>(casterEntity))
                                     {
                                         var cooldownsBuffer = SystemAPI.GetBuffer<ActiveCooldownElement>(casterEntity);
-                                        
-                                        // Извлекаем CooldownGroup (например, из конфига или как хэш от AbilityId)
-                                        FixedString32Bytes cdGroup = abilityCfg.parameters.cooldown_group ?? abilityIdStr;
-                                        float cdDuration = abilityCfg.parameters.cooldown;
+                                        FixedString32Bytes cooldownGroup = string.IsNullOrEmpty(abilityCfg.parameters.cooldown_group) 
+                                            ? abilityIdStr
+                                            : abilityCfg.parameters.cooldown_group;
 
-                                        // Проверяем, нет ли уже такого КД в буфере, чтобы не дублировать
-                                        bool alreadyHasCd = false;
-                                        for (int c = 0; c < cooldownsBuffer.Length; c++)
+                                        float cooldownDuration = abilityCfg.parameters.cooldown;
+
+                                        bool alreadyHasCooldown = false;
+                                        for (int i = 0; i < cooldownsBuffer.Length; i++)
                                         {
-                                            if (cooldownsBuffer[c].CooldownGroup == cdGroup)
+                                            if (cooldownsBuffer[i].CooldownGroup == cooldownGroup)
                                             {
-                                                alreadyHasCd = true;
+                                                alreadyHasCooldown = true;
                                                 break;
                                             }
                                         }
 
-                                        if (!alreadyHasCd)
+                                        if (!alreadyHasCooldown)
                                         {
                                             cooldownsBuffer.Add(new ActiveCooldownElement
                                             {
-                                                CooldownGroup = cdGroup,
-                                                Remaining = cdDuration,
-                                                Duration = cdDuration
+                                                CooldownGroup = cooldownGroup,
+                                                Remaining = cooldownDuration,
+                                                Duration = cooldownDuration
                                             });
-                                            Debug.Log($"🎯 [CastSystem]: На юнита {casterEntity} наложен КД группы '{cdGroup}': {cdDuration}с.");
+                                            Debug.Log($"🎯 [CastSystem]: На юнита {casterEntity} наложен КД группы '{cooldownGroup}': {cooldownDuration}с.");
                                         }
                                     }
                                 }
                             }
-                            // =========================================================================
 
                             bool isChanneling = abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.is_channeling;
 
+                            // 🦾 ВЗВОД СТEЙТА В ЧАНКЕ ПАМЯТИ ECS
+                            var newCastData = new CastComponent
+                            {
+                                IsActive = true,
+                                AbilityId = request.ValueRO.AbilityId,
+                                CastTime = castTime,
+                                Progress = 0f,
+                                IsChanneling = isChanneling,
+                                Target = request.ValueRO.TargetEntity
+                            };
+
                             if (!em.HasComponent<CastComponent>(casterEntity))
                             {
-                                ecb.AddComponent(casterEntity, new CastComponent
-                                {
-                                    IsActive = true,
-                                    AbilityId = request.ValueRO.AbilityId,
-                                    CastTime = castTime,
-                                    Progress = 0f,
-                                    IsChanneling = isChanneling,
-                                    Target = request.ValueRO.TargetEntity
-                                });
+                                ecb.AddComponent(casterEntity, newCastData);
                             }
                             else
                             {
-                                em.SetComponentData(casterEntity, new CastComponent
-                                {
-                                    IsActive = true,
-                                    AbilityId = request.ValueRO.AbilityId,
-                                    CastTime = castTime,
-                                    Progress = 0f,
-                                    IsChanneling = isChanneling,
-                                    Target = request.ValueRO.TargetEntity
-                                });
+                                em.SetComponentData(casterEntity, newCastData);
                             }
+
+                            // =========================================================================
+                            // 🚀 ТРАНСЛЯЦИЯ СОБЫТИЯ В КЛИЕНТСКИЙ АНИМАТОР (Событийная шина Дипсика!)
+                            // =========================================================================
+                            if (eventBufferSingleton != Entity.Null)
+                            {
+                                // Мгновенно вычисляем: это инстант-атака или запуск длинного заклинания?
+                                PresentationEventKind eventKind = castTime <= 0f 
+                                    ? PresentationEventKind.Attack 
+                                    : PresentationEventKind.CastStart;
+
+                                // 🦾 СИ-ФИКС: Передаем экземпляр PresentationEvent прямо в аргументы AppendToBuffer!
+                                ecb.AppendToBuffer(eventBufferSingleton, new PresentationEvent
+                                {
+                                    Kind = eventKind,
+                                    Source = casterEntity,
+                                    Target = request.ValueRO.TargetEntity,
+                                    Param = request.ValueRO.AbilityId // Передаем FixedString спелла ("frostbolt")
+                                });
+
+                                Debug.Log($"📡 [CastSystem]: В шину презентации улетело событие {eventKind} от юнита {casterEntity.Index}.");
+                            }
+
                         }
                     }
                     else
                     {
-                        // Сюда со свистом летят все наши варнинги о спаме кнопок во время ГКД!
                         Debug.LogWarning($"❌ [CastSystem]: Сервер отклонил старт каста '{abilityIdStr}'. Причина: {validationResult.Reason}");
                     }
                 }
 
-                // Стираем отработавший пакет-запрос из ОЗУ текущего кадра
+                // Очищаем отработанную сущность запроса
                 ecb.DestroyEntity(requestEntity);
             }
 
@@ -154,8 +167,8 @@ namespace ProjectTowerRpg.ECS.Systems
                 // WoW-ГВАРД ДВИЖЕНИЯ: Срыв каста шагом на WASD (мана сохраняется!)
                 if (!cast.IsChanneling && SystemAPI.HasComponent<MovementComponent>(entity))
                 {
-                    var move = SystemAPI.GetComponent<MovementComponent>(entity);
-                    bool isMoving = math.lengthsq(move.Direction) > 0.001f && move.CurrentSpeed > 0.001f; 
+                    var movement = SystemAPI.GetComponent<MovementComponent>(entity);
+                    bool isMoving = math.lengthsq(movement.Direction) > 0.001f && movement.CurrentSpeed > 0.001f; 
 
                     if (isMoving)
                     {
@@ -174,10 +187,10 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (cast.Progress >= cast.CastTime)
                 {
                     cast.IsActive = false; 
-                    string finishedAbilityId = cast.AbilityId.ToString();
+                    string abilityIdStr = cast.AbilityId.ToString();
 
                     // Перед тем как выпустить стрелу, еще раз проверяем ману (на случай десинхрона) и списываем её!
-                    var abilityCfg = AbilitiesDatabase.GetAbility(finishedAbilityId);
+                    var abilityCfg = AbilitiesDatabase.GetAbility(abilityIdStr);
                     
                     if (abilityCfg != null && abilityCfg.cost != null && !string.IsNullOrEmpty(abilityCfg.cost.resource))
                     {
@@ -190,7 +203,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             resources.Current = math.max(0f, resources.Current - costValue);
                             em.SetComponentData(entity, resources);
 
-                            Debug.Log($"🧪 [CastSystem]: Юнит {entity} успешно ДОКАСТОВАЛ '{finishedAbilityId}' и потратил {costValue} {abilityCfg.cost.resource}. Осталось: {resources.Current}");
+                            Debug.Log($"🧪 [CastSystem]: Юнит {entity} успешно ДОКАСТОВАЛ '{abilityIdStr}' и потратил {costValue} {abilityCfg.cost.resource}. Осталось: {resources.Current}");
                         }
                     }
 
@@ -205,28 +218,28 @@ namespace ProjectTowerRpg.ECS.Systems
                             if (SystemAPI.HasBuffer<ActiveCooldownElement>(entity))
                             {
                                 var cooldownsBuffer = SystemAPI.GetBuffer<ActiveCooldownElement>(entity);
-                                FixedString32Bytes cdGroup = abilityCfg.parameters.cooldown_group ?? finishedAbilityId;
-                                float cdDuration = abilityCfg.parameters.cooldown;
+                                FixedString32Bytes cooldownGroup = abilityCfg.parameters.cooldown_group ?? abilityIdStr;
+                                float cooldownDuration = abilityCfg.parameters.cooldown;
 
-                                bool alreadyHasCd = false;
-                                for (int c = 0; c < cooldownsBuffer.Length; c++)
+                                bool alreadyHasCooldown = false;
+                                for (int i = 0; i < cooldownsBuffer.Length; i++)
                                 {
-                                    if (cooldownsBuffer[c].CooldownGroup == cdGroup)
+                                    if (cooldownsBuffer[i].CooldownGroup == cooldownGroup)
                                     {
-                                        alreadyHasCd = true;
+                                        alreadyHasCooldown = true;
                                         break;
                                     }
                                 }
 
-                                if (!alreadyHasCd)
+                                if (!alreadyHasCooldown)
                                 {
                                     cooldownsBuffer.Add(new ActiveCooldownElement
                                     {
-                                        CooldownGroup = cdGroup,
-                                        Remaining = cdDuration,
-                                        Duration = cdDuration
+                                        CooldownGroup = cooldownGroup,
+                                        Remaining = cooldownDuration,
+                                        Duration = cooldownDuration
                                     });
-                                    Debug.Log($"🎯 [CastSystem]: На юнита {entity} наложен КД группы '{cdGroup}': {cdDuration}с.");
+                                    Debug.Log($"🎯 [CastSystem]: На юнита {entity} наложен КД группы '{cooldownGroup}': {cooldownDuration}с.");
                                 }
                             }
                         }
@@ -247,11 +260,11 @@ namespace ProjectTowerRpg.ECS.Systems
                             AbilityId = cast.AbilityId
                         });
 
-                        Debug.Log($"🔥 [CastSystem]: Каст завершен! Рожден CombatEventRequest для '{finishedAbilityId}'. Урон летит в ЗАФИКСИРОВАННУЮ НА СТАРТЕ цель: {castTarget}");
+                        Debug.Log($"🔥 [CastSystem]: Каст завершен! Рожден CombatEventRequest для '{abilityIdStr}'. Урон летит в ЗАФИКСИРОВАННУЮ НА СТАРТЕ цель: {castTarget}");
                     }
                     else
                     {
-                        Debug.LogWarning($"❌ [CastSystem]: Каст '{finishedAbilityId}' дочитан, но зафиксированная на старте цель {castTarget} умерла или исчезла из чанков ОЗУ мира! Урон отменен.");
+                        Debug.LogWarning($"❌ [CastSystem]: Каст '{abilityIdStr}' дочитан, но зафиксированная на старте цель {castTarget} умерла или исчезла из чанков ОЗУ мира! Урон отменен.");
                     }
                 }
 

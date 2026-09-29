@@ -50,7 +50,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     continue;
                 }
 
-                float3 spawnPos = markerData.SpawnPosition;
+                float3 spawnPosition = markerData.SpawnPosition;
                 bool isPlayer = markerData.IsPlayer;
 
                 // Вытаскиваем параметры из нашей статической JSON ДНК
@@ -62,9 +62,9 @@ namespace ProjectTowerRpg.ECS.Systems
                 string faction = 
                     !string.IsNullOrEmpty(markerFaction)          ? markerFaction :
                     !string.IsNullOrEmpty(dbCfg.identity.faction) ? dbCfg.identity.faction :
-                    "neutral_humanoid";// Теперь генерация Uid видит spawnPos идеально!
+                    "neutral_humanoid";// Теперь генерация Uid видит spawnPosition идеально!
                 
-                string generatedUid = $"c_{(int)math.floor(spawnPos.x + 0.5f)}_{(int)math.floor(spawnPos.z + 0.5f)}";
+                string generatedUid = $"c_{(int)math.floor(spawnPosition.x + 0.5f)}_{(int)math.floor(spawnPosition.z + 0.5f)}";
 
                 // 🏗️ 1. РОЖДАЕМ КРИСТАЛЬНО ЧИСТУЮ ECS-СУЩНОСТЬ ДУШИ С НУЛЯ
                 Entity unitEntity = em.CreateEntity();
@@ -75,12 +75,12 @@ namespace ProjectTowerRpg.ECS.Systems
                     UnitId = markerData.UnitId, // Передаем FixedString
                     NameKey = isPlayer ? "player" : nameKey,
                     Level = markerData.Level,
-                    Position = spawnPos,
+                    Position = spawnPosition,
                     Faction = faction,
                     AggroRadius = dbCfg.ai != null ? dbCfg.ai.base_aggro_radius : 20f
                 });
 
-                em.AddComponentData(unitEntity, LocalTransform.FromPosition(spawnPos));
+                em.AddComponentData(unitEntity, LocalTransform.FromPosition(spawnPosition));
 
                 em.AddComponentData(unitEntity, new MovementComponent
                 {   
@@ -202,13 +202,18 @@ namespace ProjectTowerRpg.ECS.Systems
                 // Забиваем параметры структуры сразу в зависимости от того, игрок это или моб!
                 em.AddComponentData(unitEntity, new AiComponent
                 {
-                    IsFromFactory = !isPlayer, 
-                    StartPoint = spawnPos, 
+                    IsFromFactory = !isPlayer,
+                    StartPoint = spawnPosition,
                     PatrolRadius = isPlayer ? 0f : 4.0f,
-                    CurrentTarget = spawnPos, 
-                    NextActionTime = 0f, 
-                    HasTarget = false, 
-                    IsPatrolling = false
+                    PatrolPoint = spawnPosition,
+                    NextActionTime = 0f,
+                    HasPatrolTarget = false,
+                    IsPatrolling = false,
+
+                    State = AiState.Idle,
+                    AttackTimer = 0f,
+                    AttackRange = 0f,
+                    PrimaryAbility = ""
                 });
 
                 if (isPlayer)

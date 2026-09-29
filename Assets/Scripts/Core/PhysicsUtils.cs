@@ -19,7 +19,7 @@ namespace ProjectTowerRpg.Core
             // 🌟 ИСПРАВЛЕНО: Добавлен флаг QueryTriggerInteraction.Ignore!
             // Теперь луч напрочь проигнорирует триггерную капсулу на голове персонажа
             // и шёлково врежется строго под ноги — в хардварный Terrain или MeshCollider лестницы!
-            if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 55f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 55f, LayerMask.GetMask("Terrain"), QueryTriggerInteraction.Ignore))
             {
                 return hit.point.y; // Возвращаем чистую высоту холма
             }

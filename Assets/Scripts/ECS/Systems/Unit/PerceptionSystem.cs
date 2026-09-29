@@ -4,7 +4,6 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using ProjectTowerRpg.Core.Units;
 using ProjectTowerRpg.ECS.Components;
-using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -14,117 +13,65 @@ namespace ProjectTowerRpg.ECS.Systems
     {
         private const float LEASH_MULTIPLIER = 1.5f;
 
-        // Логи включаем только раз в N секунд, чтобы не спамить
-        private float _lastLogTime = 0f;
-        private const float LOG_INTERVAL = 2f;
-
         protected override void OnUpdate()
         {
             var em = EntityManager;
-            float currentTime = (float)SystemAPI.Time.ElapsedTime;
-            bool doLog = (currentTime - _lastLogTime) >= LOG_INTERVAL;
-
-            if (doLog)
-                _lastLogTime = currentTime;
 
             // ================================================================
             // 1. СОБИРАЕМ ВСЕХ ЖИВЫХ ЮНИТОВ
             // ================================================================
-            var aliveQuery = em.CreateEntityQuery(
+            var aliveUnits = em.CreateEntityQuery(
                 ComponentType.ReadOnly<UnitComponent>(),
                 ComponentType.ReadOnly<LocalTransform>(),
                 ComponentType.Exclude<IsDeadTag>()
-            );
-            var aliveEntities = aliveQuery.ToEntityArray(Allocator.Temp);
-
-            if (doLog)
-            {
-                Debug.Log($"[Perception] Живых юнитов в мире: {aliveEntities.Length}");
-
-                for (int i = 0; i < aliveEntities.Length; i++)
-                {
-                    var e = aliveEntities[i];
-                    var u = em.GetComponentData<UnitComponent>(e);
-                    bool isPlayer = em.HasComponent<PlayerTag>(e);
-                    Debug.Log($"  └─ Entity {e.Index}: uid={u.Uid} faction={u.Faction} aggro={u.AggroRadius} player={isPlayer}");
-                }
-            }
+            ).ToEntityArray(Allocator.Temp);
 
             // ================================================================
             // 2. СОБИРАЕМ ВСЕХ МОБОВ
             // ================================================================
-            var mobQuery = em.CreateEntityQuery(
+            var aiControlledUnits = em.CreateEntityQuery(
                 ComponentType.ReadWrite<AiComponent>(),
                 ComponentType.ReadWrite<CombatStateComponent>(),
                 ComponentType.ReadOnly<UnitComponent>(),
                 ComponentType.ReadOnly<LocalTransform>(),
                 ComponentType.Exclude<IsDeadTag>()
-            );
-            var mobEntities = mobQuery.ToEntityArray(Allocator.Temp);
+            ).ToEntityArray(Allocator.Temp);
 
-            if (doLog)
-                Debug.Log($"[Perception] Мобов для проверки: {mobEntities.Length}");
-
-            foreach (var mobEntity in mobEntities)
+            foreach (var aiControlledUnit in aiControlledUnits)
             {
-                var ai = em.GetComponentData<AiComponent>(mobEntity);
+                var ai = em.GetComponentData<AiComponent>(aiControlledUnit);
+                if (!ai.IsFromFactory) continue;
 
-                if (!ai.IsFromFactory)
-                {
-                    if (doLog)
-                    {
-                        var u = em.GetComponentData<UnitComponent>(mobEntity);
-                        Debug.Log($"[Perception] Скип {u.Uid}: IsFromFactory=false");
-                    }
-                    continue;
-                }
-
-                var selfUnit = em.GetComponentData<UnitComponent>(mobEntity);
-                var selfTransform = em.GetComponentData<LocalTransform>(mobEntity);
-                var selfCombat = em.GetComponentData<CombatStateComponent>(mobEntity);
-
-                if (doLog)
-                {
-                    Debug.Log($"[Perception] Моб {selfUnit.Uid} (E{mobEntity.Index}): faction={selfUnit.Faction}, " +
-                              $"aggro={selfUnit.AggroRadius}, pos={selfTransform.Position}, " +
-                              $"inCombat={selfCombat.IsInCombat}, currentTarget={selfCombat.CurrentTarget.Index}");
-                }
+                var unit = em.GetComponentData<UnitComponent>(aiControlledUnit);
+                var localTransform = em.GetComponentData<LocalTransform>(aiControlledUnit);
+                var combatState = em.GetComponentData<CombatStateComponent>(aiControlledUnit);
 
                 // ------------------------------------------------------------
                 // ФАЗА А: ЕСТЬ ЦЕЛЬ
                 // ------------------------------------------------------------
-                if (selfCombat.CurrentTarget != Entity.Null)
+                if (combatState.CurrentTarget != Entity.Null)
                 {
-                    bool targetDead = !em.Exists(selfCombat.CurrentTarget)
-                                      || em.HasComponent<IsDeadTag>(selfCombat.CurrentTarget);
+                    bool targetDead = !em.Exists(combatState.CurrentTarget)
+                                      || em.HasComponent<IsDeadTag>(combatState.CurrentTarget);
 
                     if (targetDead)
                     {
-                        if (doLog)
-                            Debug.Log($"[Perception] {selfUnit.Uid}: цель мертва — сбрасываем");
-
-                        selfCombat.CurrentTarget = Entity.Null;
-                        selfCombat.IsInCombat = false;
-                        em.SetComponentData(mobEntity, selfCombat);
+                        combatState.CurrentTarget = Entity.Null;
+                        combatState.IsInCombat = false;
+                        em.SetComponentData(aiControlledUnit, combatState);
                     }
                     else
                     {
-                        float3 toTarget = em.GetComponentData<LocalTransform>(selfCombat.CurrentTarget).Position - selfTransform.Position;
-                        toTarget.y = 0f;
-                        float dist = math.length(toTarget);
-                        float leash = selfUnit.AggroRadius * LEASH_MULTIPLIER;
+                        float3 vectorToTarget = em.GetComponentData<LocalTransform>(combatState.CurrentTarget).Position - localTransform.Position;
+                        vectorToTarget.y = 0f;
+                        float distanceToTarget = math.length(vectorToTarget);
+                        float leashDistance = unit.AggroRadius * LEASH_MULTIPLIER;
 
-                        if (doLog)
-                            Debug.Log($"[Perception] {selfUnit.Uid}: цель жива, dist={dist:F1}, leash={leash:F1}");
-
-                        if (dist > leash)
+                        if (distanceToTarget > leashDistance)
                         {
-                            if (doLog)
-                                Debug.Log($"[Perception] {selfUnit.Uid}: цель убежала — теряем");
-
-                            selfCombat.CurrentTarget = Entity.Null;
-                            selfCombat.IsInCombat = false;
-                            em.SetComponentData(mobEntity, selfCombat);
+                            combatState.CurrentTarget = Entity.Null;
+                            combatState.IsInCombat = false;
+                            em.SetComponentData(aiControlledUnit, combatState);
                         }
                         else
                         {
@@ -136,74 +83,49 @@ namespace ProjectTowerRpg.ECS.Systems
                 // ------------------------------------------------------------
                 // ФАЗА Б: ПОИСК ЦЕЛИ
                 // ------------------------------------------------------------
-                if (selfUnit.AggroRadius <= 0f)
+                if (unit.AggroRadius <= 0f) continue;
+
+                float3 currentUnitPosition = localTransform.Position;
+                string currentUnitFaction = unit.Faction.ToString();
+                float radiusSquared = unit.AggroRadius * unit.AggroRadius;
+
+                Entity closestTarget = Entity.Null;
+                float minDistanceSq = float.MaxValue; 
+
+                for (int i = 0; i < aliveUnits.Length; i++)
                 {
-                    if (doLog)
-                        Debug.Log($"[Perception] {selfUnit.Uid}: aggro=0 — скип");
-                    continue;
-                }
+                    var otherUnitEntity = aliveUnits[i];
+                    if (otherUnitEntity == aiControlledUnit) continue;
 
-                float3 selfPos = selfTransform.Position;
-                string selfFaction = selfUnit.Faction.ToString();
-                float radiusSq = selfUnit.AggroRadius * selfUnit.AggroRadius;
+                    var otherUnit = em.GetComponentData<UnitComponent>(otherUnitEntity);
+                    string otherUnitFaction = otherUnit.Faction.ToString();
 
-                if (doLog)
-                    Debug.Log($"[Perception] {selfUnit.Uid}: ищем врагов, faction={selfFaction}, radius={selfUnit.AggroRadius}");
+                    if (!FactionsDatabase.IsHostile(currentUnitFaction, otherUnitFaction)) continue;
 
-                Entity bestTarget = Entity.Null;
-                float bestDistSq = float.MaxValue;
+                    float3 otherUnitPosition = em.GetComponentData<LocalTransform>(otherUnitEntity).Position;
+                    float3 differenceVector = otherUnitPosition - currentUnitPosition;
+                    differenceVector.y = 0f;
+                    float distanceSquared = math.lengthsq(differenceVector);
 
-                for (int i = 0; i < aliveEntities.Length; i++)
-                {
-                    var other = aliveEntities[i];
-                    if (other == mobEntity) continue;
+                    if (distanceSquared > radiusSquared) continue;
 
-                    var otherUnit = em.GetComponentData<UnitComponent>(other);
-                    string otherFaction = otherUnit.Faction.ToString();
-
-                    bool hostile = FactionsDatabase.IsHostile(selfFaction, otherFaction);
-                    bool isPlayer = em.HasComponent<PlayerTag>(other);
-
-                    float3 otherPos = em.GetComponentData<LocalTransform>(other).Position;
-                    float3 diff = otherPos - selfPos;
-                    diff.y = 0f;
-                    float distSq = math.lengthsq(diff);
-                    float dist = math.sqrt(distSq);
-
-                    if (doLog && isPlayer)
+                    if (distanceSquared < minDistanceSq)
                     {
-                        Debug.Log($"  └─ Проверка игрока E{other.Index}: " +
-                                  $"faction={otherFaction}, hostile={hostile}, dist={dist:F1}, " +
-                                  $"inRadius={distSq <= radiusSq}");
-                    }
-
-                    if (!hostile) continue;
-                    if (distSq > radiusSq) continue;
-
-                    if (distSq < bestDistSq)
-                    {
-                        bestDistSq = distSq;
-                        bestTarget = other;
+                        minDistanceSq = distanceSquared;
+                        closestTarget = otherUnitEntity;
                     }
                 }
 
-                if (bestTarget != Entity.Null)
+                if (closestTarget != Entity.Null)
                 {
-                    selfCombat.CurrentTarget = bestTarget;
-                    selfCombat.IsInCombat = true;
-                    em.SetComponentData(mobEntity, selfCombat);
-
-                    Debug.Log($"👿 [Perception] Моб {selfUnit.Uid} заагрил E{bestTarget.Index} (dist={math.sqrt(bestDistSq):F1})");
-                }
-                else
-                {
-                    if (doLog)
-                        Debug.Log($"[Perception] {selfUnit.Uid}: никого не нашли");
+                    combatState.CurrentTarget = closestTarget;
+                    combatState.IsInCombat = true;
+                    em.SetComponentData(aiControlledUnit, combatState);
                 }
             }
 
-            aliveEntities.Dispose();
-            mobEntities.Dispose();
+            aliveUnits.Dispose();
+            aiControlledUnits.Dispose();
         }
     }
 }

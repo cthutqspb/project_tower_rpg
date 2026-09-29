@@ -198,7 +198,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: isDead
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: unitId
@@ -291,7 +291,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: level
-      value: 4
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 655480412478799587, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: isDead

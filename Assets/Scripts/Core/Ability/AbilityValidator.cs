@@ -1,4 +1,3 @@
-using UnityEngine;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -105,7 +104,9 @@ namespace ProjectTowerRpg.Core.Abilities
                 return new CastValidationResult { IsPossible = true, Reason = null };
 
             // Определяем целевую группу КД. Если в конфиге null — падаем на дефолтный abilityId
-            FixedString32Bytes cooldownGroup = ability.parameters.cooldown_group;
+            FixedString32Bytes cooldownGroup = string.IsNullOrEmpty(ability.parameters.cooldown_group)
+                ? ability.id
+                : ability.parameters.cooldown_group;
             
             if (em.HasBuffer<ActiveCooldownElement>(caster))
             {
@@ -140,7 +141,7 @@ namespace ProjectTowerRpg.Core.Abilities
             }
 
             // Вытаскиваем строковое имя требуемого ресурса из конфига (например, "Mana" или "Energy")
-            string requiredResourceStr = ability.cost.resource;
+            string requiredResource = ability.cost.resource;
             float resourceCost = ability.cost.value;
 
             // Если способность бесплатная (цена 0) — пропускаем без проверок
@@ -166,7 +167,7 @@ namespace ProjectTowerRpg.Core.Abilities
 
             // 3. АППАРАТНЫЙ СВИТЧ ПРОВЕРКИ (Wow-Канон полиморфизма ресурсов)
             // Мы парсим строку из JSON в твой нативный C# enum ResourceType за 0 наносекунд
-            if (System.Enum.TryParse<ResourceType>(requiredResourceStr, true, out var requiredType))
+            if (System.Enum.TryParse<ResourceType>(requiredResource, true, out var requiredType))
             {
                 // Проверяем, совпадает ли биологический тип энергии спелла с тем, что сейчас залито в тушу кастера
                 if (currentResources.Type != requiredType)
@@ -184,7 +185,7 @@ namespace ProjectTowerRpg.Core.Abilities
             }
             else
             {
-                UnityEngine.Debug.LogError($"[AbilityValidator]: Ошибка парсинга типа ресурса '{requiredResourceStr}' в конфиге абилки {ability.id}");
+                UnityEngine.Debug.LogError($"[AbilityValidator]: Ошибка парсинга типа ресурса '{requiredResource}' в конфиге абилки {ability.id}");
                 return new CastValidationResult { IsPossible = false, Reason = "UNKNOWN_RESOURCE_TYPE" };
             }
 
@@ -228,18 +229,18 @@ namespace ProjectTowerRpg.Core.Abilities
                 // КЕЙС В: Расчет Edge-to-Edge расстояния в мире через хитбоксы WoW-канона
                 if (em.HasComponent<LocalTransform>(caster) && em.HasComponent<LocalTransform>(target))
                 {
-                    float3 casterPos = em.GetComponentData<LocalTransform>(caster).Position;
-                    float3 targetPos = em.GetComponentData<LocalTransform>(target).Position;
+                    float3 casterPosition = em.GetComponentData<LocalTransform>(caster).Position;
+                    float3 targetPosition = em.GetComponentData<LocalTransform>(target).Position;
 
                     // Вычисляем чистую дистанцию между точками в ОЗУ мира
-                    float distance = math.distance(casterPos, targetPos);
+                    float distance = math.distance(casterPosition, targetPosition);
 
                     // Извлекаем базовый ренж из Data-Driven параметров конфига
                     float baseRange = ability.parameters.range;
                     float maxAllowedRange = baseRange;
 
                     // Дифференциация ближнего и дальнего боя по хитбоксам (WoW-канон)
-                    if (baseRange < 2.7f)
+                    if (baseRange < 0.4f)
                     {
                         float casterRadius = em.HasComponent<MovementComponent>(caster) 
                             ? em.GetComponentData<MovementComponent>(caster).HitboxRadius 

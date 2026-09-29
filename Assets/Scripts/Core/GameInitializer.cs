@@ -1,4 +1,6 @@
 using UnityEngine;
+using Unity.Entities;
+using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Localization;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Units; // ← Добавь юзинг базы юнитов
@@ -22,6 +24,26 @@ public class GameInitializer : MonoBehaviour
         if (!UnitsDatabase.IsLoaded)
         {
             UnitsDatabase.Load();
+        }
+
+        // =========================================================================
+        // 🦾 ШАГ 4: РОЖДЕНИЕ ЦЕНТРАЛЬНОЙ ШИНЫ СОБЫТИЙ (Канон Presentation Buffer)
+        // =========================================================================
+        var world = World.DefaultGameObjectInjectionWorld;
+        if (world != null)
+        {
+            var em = world.EntityManager;
+
+            // Создаем чистую синглтон-сущность для трансляции анимаций
+            Entity eventBufferEntity = em.CreateEntity();
+            
+            // Навешиваем тег-паспорт, по которому Диспетчер найдет этот буфер
+            em.AddComponentData(eventBufferEntity, new PresentationEventBufferTag());
+            
+            // Генерируем сам DynamicBuffer в ОЗУ симуляции
+            em.AddBuffer<PresentationEvent>(eventBufferEntity);
+
+            Debug.Log("🌐 [GameInitializer]: Синглтон шины PresentationEvent успешно развернут в ECS!");
         }
 
         // =========================================================================

@@ -87,15 +87,17 @@ namespace ProjectTowerRpg.ECS.Authoring
 
             // Память ИИ (по умолчанию включен, фабрика выключит его, если это Игрок)
             AddComponent(entity, new AiComponent
-            {   
-                IsFromFactory = true, 
-                StartPoint = float3.zero,
-                PatrolRadius = 4.0f,
-                CurrentTarget = float3.zero,
+            {
                 NextActionTime = 0f,
-                HasTarget = false,
-                IsPatrolling = false
+                HasPatrolTarget = false,
+                IsPatrolling = false,
+
+                State = AiState.Idle,
+                AttackTimer = 0f,
+                AttackRange = 0f,
+                PrimaryAbility = ""
             });
+
 
             // ================================================================
             // 🎒 ИНВЕНТАРЬ (Запекаем базовую сетку под размер будущего игрока)

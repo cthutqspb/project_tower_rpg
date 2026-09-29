@@ -74,14 +74,14 @@ namespace ProjectTowerRpg.Core.UI
             var mouse = Mouse.current;
             if (mouse == null) return;
 
-            Vector2 mousePos = mouse.position.ReadValue();
-            _ghost.style.left = mousePos.x;
-            _ghost.style.top = Screen.height - mousePos.y;
+            Vector2 mousePosition = mouse.position.ReadValue();
+            _ghost.style.left = mousePosition.x;
+            _ghost.style.top = Screen.height - mousePosition.y;
 
             if (!mouse.leftButton.isPressed)
             {
-                var localPos = new Vector2(mousePos.x, Screen.height - mousePos.y);
-                var picked = _panel?.Pick(localPos);
+                var localPosition = new Vector2(mousePosition.x, Screen.height - mousePosition.y);
+                var picked = _panel?.Pick(localPosition);
 
                 if (picked != null && picked != _root)
                 {
@@ -104,7 +104,7 @@ namespace ProjectTowerRpg.Core.UI
                     }
                 }
 
-                HandleWorldDrop(mousePos);
+                HandleWorldDrop(mousePosition);
             }
         }
 
@@ -210,9 +210,9 @@ namespace ProjectTowerRpg.Core.UI
             var mouse = Mouse.current;
             if (mouse != null)
             {
-                Vector2 mousePos = mouse.position.ReadValue();
-                _ghost.style.left = mousePos.x;
-                _ghost.style.top = Screen.height - mousePos.y;
+                Vector2 mousePosition = mouse.position.ReadValue();
+                _ghost.style.left = mousePosition.x;
+                _ghost.style.top = Screen.height - mousePosition.y;
             }
 
             foreach (var className in data.Icon.Classes)

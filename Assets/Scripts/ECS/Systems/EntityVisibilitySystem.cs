@@ -10,6 +10,11 @@ using Object = UnityEngine.Object;
 using FindObjectsInactive = UnityEngine.FindObjectsInactive;
 using Debug = UnityEngine.Debug;
 
+using Unity.Entities;
+using Unity.Transforms;
+using Unity.Mathematics;
+using UnityEngine;
+
 namespace ProjectTowerRpg.ECS.Systems
 {
     [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -33,36 +38,39 @@ namespace ProjectTowerRpg.ECS.Systems
             
             var playerEntity = _playerQuery.GetSingletonEntity();
             var playerTransform = EntityManager.GetComponentData<LocalTransform>(playerEntity);
-            float3 playerPos = playerTransform.Position;
+            float3 playerPosition = playerTransform.Position;
 
             // =========================================================================
             // 🎒 [РАЗДЕЛ ПРЕДМЕТОВ] КЕЙС А: СПАВН ГРАФИКИ ПРЕДМЕТОВ
             // =========================================================================
-            foreach (var (transform, itemData, entity) in 
+            foreach (var (transform, item, entity) in 
                      SystemAPI.Query<RefRO<LocalTransform>, RefRO<ItemComponent>>()
                      .WithNone<StoredTag>()     
                      .WithNone<VisualizedTag>() 
                      .WithEntityAccess())
             {
-                float3 itemPos = transform.ValueRO.Position;
-                if (math.distance(playerPos, itemPos) <= 50f)
+                float3 itemPosition = transform.ValueRO.Position;
+                if (math.distance(playerPosition, itemPosition) <= 50f)
                 {
-                    var universalPrefab = Resources.Load<GameObject>("Items/default_item");
-                    if (universalPrefab != null)
+                    // Исправлено: itemPrefab вместо unitPrefab
+                    var itemPrefab = Resources.Load<GameObject>("Items/default_item");
+                    if (itemPrefab != null)
                     {
-                        var spawnedModel = Object.Instantiate(universalPrefab, itemPos, Quaternion.identity);
+                        var itemInstance = Object.Instantiate(itemPrefab, itemPosition, Quaternion.identity);
                         
-                        string generatedUidStr = $"i_{(int)itemPos.x}_{(int)itemPos.z}";
-                        string itemIdStr = itemData.ValueRO.ItemId.ToString();
-                        spawnedModel.name = $"{itemIdStr}_{generatedUidStr}";
+                        // Исправлено: чистый нейминг без суффикса Str
+                        string generatedUid = $"i_{(int)itemPosition.x}_{(int)itemPosition.z}";
+                        string itemId = item.ValueRO.ItemId.ToString();
+                        itemInstance.name = $"{itemId}_{generatedUid}";
 
-                        var view = spawnedModel.GetComponent<ItemView>();
-                        if (view != null)
+                        // Исправлено: itemView вместо абстрактного view
+                        var itemView = itemInstance.GetComponent<ItemView>();
+                        if (itemView != null)
                         {
-                            view.uid = generatedUidStr;
-                            view.itemId = itemIdStr;
-                            view.IsLinked = true;
-                            view.Entity = entity;
+                            itemView.uid = generatedUid;
+                            itemView.itemId = itemId;
+                            itemView.IsLinked = true;
+                            itemView.Entity = entity;
                         }
 
                         ecb.AddComponent<VisualizedTag>(entity);
@@ -79,14 +87,14 @@ namespace ProjectTowerRpg.ECS.Systems
                      .WithAll<VisualizedTag>() 
                      .WithEntityAccess())
             {
-                if (math.distance(playerPos, transform.ValueRO.Position) > 55f)
+                if (math.distance(playerPosition, transform.ValueRO.Position) > 55f)
                 {
-                    var views = Object.FindObjectsByType<ItemView>(FindObjectsInactive.Exclude);
-                    foreach (var view in views)
+                    var itemViews = Object.FindObjectsByType<ItemView>(FindObjectsInactive.Exclude);
+                    foreach (var itemView in itemViews)
                     {
-                        if (view.Entity == entity)
+                        if (itemView.Entity == entity)
                         {
-                            Object.Destroy(view.gameObject);
+                            Object.Destroy(itemView.gameObject);
                             break;
                         }
                     }
@@ -97,16 +105,16 @@ namespace ProjectTowerRpg.ECS.Systems
             // =========================================================================
             // 💀 [РАЗДЕЛ ЮНИТОВ] КЕЙС А: МАТЕРИАЛИЗАЦИЯ МОНСТРОВ / NPC / ИГРОКА
             // =========================================================================
-            foreach (var (transform, unitData, entity) in 
+            foreach (var (transform, unit, entity) in 
                      SystemAPI.Query<RefRO<LocalTransform>, RefRO<UnitComponent>>()
                      .WithNone<VisualizedTag>() 
                      .WithEntityAccess())
             {
-                float3 unitPos = transform.ValueRO.Position;
-                if (math.distance(playerPos, unitPos) <= 50f)
+                float3 unitPosition = transform.ValueRO.Position;
+                if (math.distance(playerPosition, unitPosition) <= 50f)
                 {
-                    string unitIdStr = unitData.ValueRO.UnitId.ToString();
-                    var unitPrefab = Resources.Load<GameObject>($"Units/{unitIdStr}");
+                    string unitId = unit.ValueRO.UnitId.ToString();
+                    var unitPrefab = Resources.Load<GameObject>($"Units/{unitId}");
                     
                     if (unitPrefab == null)
                     {
@@ -115,37 +123,35 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     if (unitPrefab != null)
                     {
-                        var spawnedModel = Object.Instantiate(unitPrefab, unitPos, Quaternion.identity);
+                        var unitInstance = Object.Instantiate(unitPrefab, unitPosition, Quaternion.identity);
                         
-                        string currentUid = unitData.ValueRO.Uid.ToString();
+                        string currentUid = unit.ValueRO.Uid.ToString();
                         bool isPlayerEntity = EntityManager.HasComponent<PlayerTag>(entity);
-                        spawnedModel.name = $"{unitIdStr}_{(isPlayerEntity ? "player" : currentUid)}";
+                        unitInstance.name = $"{unitId}_{(isPlayerEntity ? "player" : currentUid)}";
 
-                        var view = spawnedModel.GetComponent<UnitView>();
-                        if (view != null)
+                        // Исправлено: unitView вместо абстрактного view
+                        var unitView = unitInstance.GetComponent<UnitView>();
+                        if (unitView != null)
                         {
-                            view.uid = currentUid;
-                            view.unitId = unitIdStr;
-                            view.IsLinked = true;
-                            view.entity = entity; 
+                            unitView.uid = currentUid;
+                            unitView.unitId = unitId;
+                            
+                            unitView.LinkToEntity(entity);
                         }
 
-                        var syncTransform = spawnedModel.GetComponent<SyncTransformWithEntity>();
+                        var syncTransform = unitInstance.GetComponent<SyncTransformWithEntity>();
                         if (syncTransform != null)
                         {
                             syncTransform.Initialize(entity);
                         }
 
-                        // 🎥 🦾 АВТО-ПРИВЯЗКА КАМЕРЫ ДЛЯ ИГРОКА ПРИ МАТЕРИАЛИЗАЦИИ:
-                        // Перенесено из фабрики! Камера мягко подхватит визуал героя, 
-                        // как только он появится на экране симуляции!
                         if (isPlayerEntity)
                         {
                             var orbitCam = Object.FindAnyObjectByType<Unity.Cinemachine.CinemachineCamera>();
                             if (orbitCam != null)
                             {
-                                orbitCam.Follow = spawnedModel.transform;
-                                orbitCam.LookAt = spawnedModel.transform;
+                                orbitCam.Follow = unitInstance.transform;
+                                orbitCam.LookAt = unitInstance.transform;
                                 Debug.Log("🎥 [VisibilitySystem]: Cinemachine успешно захватила материализованного Игрока!");
                             }
                         }
@@ -160,18 +166,19 @@ namespace ProjectTowerRpg.ECS.Systems
             // =========================================================================
             foreach (var (transform, entity) in 
                      SystemAPI.Query<RefRO<LocalTransform>>()
-                     .WithAll<UnitComponent, VisualizedTag>() // Ищем тех, кто в мире и имеет 3D-тело
+                     .WithAll<UnitComponent, VisualizedTag>() 
                      .WithEntityAccess())
             {
-                if (math.distance(playerPos, transform.ValueRO.Position) > 55f)
+                if (math.distance(playerPosition, transform.ValueRO.Position) > 55f)
                 {
-                    var views = Object.FindObjectsByType<UnitView>(FindObjectsInactive.Exclude);
-                    foreach (var view in views)
+                    // Исправлено: unitViews вместо абстрактного views
+                    var unitViews = Object.FindObjectsByType<UnitView>(FindObjectsInactive.Exclude);
+                    foreach (var unitView in unitViews)
                     {
-                        if (view.entity == entity)
+                        if (unitView.entity == entity)
                         {
-                            Debug.Log($"[Visibility-Culling]: Сношу 3D-тело монстра {view.gameObject.name} по дистанции.");
-                            Object.Destroy(view.gameObject);
+                            Debug.Log($"[Visibility-Culling]: Сношу 3D-тело монстра {unitView.gameObject.name} по дистанции.");
+                            Object.Destroy(unitView.gameObject);
                             break;
                         }
                     }

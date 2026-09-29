@@ -45,10 +45,10 @@ namespace ProjectTowerRpg.Core.UI
             var mouse = Mouse.current;
             if (mouse == null) return;
             
-            Vector2 mousePos = mouse.position.ReadValue();
-            Vector2 localPos = new Vector2(mousePos.x, Screen.height - mousePos.y);
+            Vector2 mousePosition = mouse.position.ReadValue();
+            Vector2 localPosition = new Vector2(mousePosition.x, Screen.height - mousePosition.y);
             
-            VisualElement picked = _panel.Pick(localPos);
+            VisualElement picked = _panel.Pick(localPosition);
             bool isOverUI = picked != null && picked != _root;
             
             if (isOverUI)

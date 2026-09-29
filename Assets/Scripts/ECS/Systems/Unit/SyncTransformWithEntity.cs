@@ -10,6 +10,8 @@ public class SyncTransformWithEntity : MonoBehaviour
     private Entity _boundEntity = Entity.Null; // Наша жестко привязанная ECS-душа
     private Animator _animator; 
     private bool _isInitialized = false;
+    private Collider _hitbox;
+    private Collider _clickbox;
 
     // Стерильный инициализатор. Вызывается извне универсальной системой связывания
     public void Initialize(Entity entity)
@@ -18,12 +20,18 @@ public class SyncTransformWithEntity : MonoBehaviour
         _animator = GetComponent<Animator>();
         _boundEntity = entity;
         _isInitialized = true;
+
+        var colliders = GetComponents<Collider>();
+        foreach (var c in colliders)
+        {
+            if (c.isTrigger) _clickbox = c;
+            else _hitbox = c;
+        }
     }
 
     void Update()
     {
-        // Если связь еще не установлена или сущность стёрта — стоим в покое, не дергаем сцену.
-        // Зачисткой 3D-тела со сцены теперь монопольно и безбажно рулит UnitViewDestroySystem!
+        // Если связь еще не установлена или сущность стёрта — стоим в покое, не дергаем сцену
         if (!_isInitialized || _boundEntity == Entity.Null || !_entityManager.Exists(_boundEntity)) return;
 
         // 🦾 ОПТИМИЗАЦИЯ ОЗУ: В один присест забираем трансформ из памяти чанка
@@ -43,10 +51,12 @@ public class SyncTransformWithEntity : MonoBehaviour
             _animator.SetFloat("VelocityY", 0f);
             
             // 2. 🎯 Включаем состояние смерти в твоем Аниматоре!
-            // (Зайди в Unity Animator Controller и добавь булеан параметр "IsDead")
             _animator.SetBool("IsDead", true);
+
+            if (_hitbox != null && _hitbox.enabled)
+                _hitbox.enabled = false;
             
-            return; // 🦾 Сущность мертва — пулей выходим, наглухо блокируя всю живую логику холмов и камер!
+            return; // 🦾 Сущность мертва — пулей выходим, наглухо блокируя всю живую логику
         }
 
         // Если юнит девственно жив — страхуем Аниматор от застревания в позе трупа
@@ -54,6 +64,9 @@ public class SyncTransformWithEntity : MonoBehaviour
         {
             _animator.SetBool("IsDead", false);
         }
+
+        if (_hitbox != null && !_hitbox.enabled)
+            _hitbox.enabled = true;
 
         // 🧬 СИНХРОНИЗАЦИЯ 8-СТОРОННЕГО BLEND TREE С УЧЕТОМ КАМЕРЫ И ИИ (Только для живых!):
         if (_entityManager.HasComponent<MovementComponent>(_boundEntity))
@@ -77,7 +90,7 @@ public class SyncTransformWithEntity : MonoBehaviour
                         
                         float3 worldMoveVector = (cameraForward * moveData.Direction.z) + (cameraRight * moveData.Direction.x);
                         
-                        // Переводим мировой вектор движения в локальное空间 "носа" персонажа
+                        // Переводим мировой вектор движения в локальное пространство "носа" персонажа
                         float3 localDir = math.mul(math.inverse(localTransform.Rotation), worldMoveVector);
 
                         _animator.SetFloat("VelocityX", localDir.x);

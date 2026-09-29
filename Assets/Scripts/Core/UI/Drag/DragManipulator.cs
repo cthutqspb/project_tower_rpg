@@ -102,10 +102,10 @@ namespace ProjectTowerRpg.Core.UI
                 float clampedWorldX = Mathf.Clamp(targetInWorld.x, 0f, screenWidth - elementWidth);
                 float clampedWorldY = Mathf.Clamp(targetInWorld.y, 0f, screenHeight - elementHeight);
 
-                Vector2 finalLocalPos = parent.WorldToLocal(new Vector2(clampedWorldX, clampedWorldY));
+                Vector2 finalLocalPosition = parent.WorldToLocal(new Vector2(clampedWorldX, clampedWorldY));
 
-                _targetElement.style.left = finalLocalPos.x;
-                _targetElement.style.top = finalLocalPos.y;
+                _targetElement.style.left = finalLocalPosition.x;
+                _targetElement.style.top = finalLocalPosition.y;
                 
                 evt.StopPropagation();
             }

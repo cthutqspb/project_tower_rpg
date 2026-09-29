@@ -90,8 +90,8 @@ namespace ProjectTowerRpg.Core.UI
 
             if (Mouse.current != null)
             {
-                Vector2 mousePos = Mouse.current.position.ReadValue();
-                TooltipManager.UpdateMouse(mousePos.x, mousePos.y);
+                Vector2 mousePosition = Mouse.current.position.ReadValue();
+                TooltipManager.UpdateMouse(mousePosition.x, mousePosition.y);
             }
 
             if (_tooltipVisual != null) _tooltipVisual.UpdateTick();
