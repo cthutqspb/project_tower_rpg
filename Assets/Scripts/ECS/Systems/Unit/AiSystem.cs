@@ -6,6 +6,8 @@ using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Units;
 using ProjectTowerRpg.Core.Abilities;
 
+using quaternion = Unity.Mathematics.quaternion;
+
 namespace ProjectTowerRpg.ECS.Systems
 {
     [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -165,7 +167,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (unitCfg == null) continue;
 
                 string faction = unit.ValueRO.Faction.ToString();
-                float hitbox = movement.ValueRO.HitboxRadius;
+                float hitboxRadius = movement.ValueRO.HitboxRadius;
 
                 var aiRW = ai.ValueRW;
                 var moveRW = movement.ValueRW;
@@ -181,7 +183,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 {
                     aiRW.State = AiState.Chase;
                     aiRW.HasPatrolTarget = false;
-                    aiRW.IsPatrolling = false;
                 }
 
                 // ============================================================
@@ -194,7 +195,6 @@ namespace ProjectTowerRpg.ECS.Systems
                         aiRW.State = AiState.Idle;
                         aiRW.AttackTimer = 0f;
                         aiRW.HasPatrolTarget = false;
-                        aiRW.IsPatrolling = false;
                         moveRW.Direction = float3.zero;
 
                         ai.ValueRW = aiRW;
@@ -223,6 +223,29 @@ namespace ProjectTowerRpg.ECS.Systems
                     toTarget.y = 0f;
                     float distanceToTarget = math.length(toTarget);
 
+                    // ============================================================
+                    // 🦾 ММО-ПОВОРОТ К ЦЕЛИ (Исправили сквозной адрес метода LookRotation)
+                    // ============================================================
+                    if (math.lengthsq(toTarget) > 0.001f)
+                    {
+                        float3 lookDirection = math.normalize(toTarget);
+                        
+                        // 🦾 СИ-ФИКС: Полный неубиваемый путь к методу LookRotation
+                        quaternion targetRotation = quaternion.LookRotation(lookDirection, new float3(0f, 1f, 0f));
+
+                        // Сферическая интерполяция (slerp) для шёлковой плавности
+                        quaternion blendedRotation = math.slerp(
+                            localTransform.ValueRO.Rotation, 
+                            targetRotation, 
+                            12f * deltaTime
+                        );
+
+                        var transformRW = localTransform.ValueRW;
+                        transformRW.Rotation = blendedRotation;
+                        localTransform.ValueRW = transformRW;
+                    }
+
+
                     float leashDistance = unit.ValueRO.AggroRadius * LEASH_MULTIPLIER;
                     if (distanceToTarget > leashDistance)
                     {
@@ -240,6 +263,8 @@ namespace ProjectTowerRpg.ECS.Systems
                     if (isCasting)
                     {
                         moveRW.Direction = float3.zero;
+                        
+                        ai.ValueRW = aiRW; // Обязательно сохраняем стейт ИИ
                         movement.ValueRW = moveRW;
                         continue;
                     }
@@ -279,7 +304,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         aiRW.State = AiState.Chase;
 
                         float3 direction = math.normalize(toTarget);
-                        direction = ApplySeparation(entity, localTransform.ValueRO.Position, direction, faction, hitbox, allUnits, em);
+                        direction = ApplySeparation(entity, localTransform.ValueRO.Position, direction, faction, hitboxRadius, allUnits, em);
 
                         moveRW.Direction = direction;
                         moveRW.CurrentSpeed = unitCfg.parameters.base_speed;
@@ -298,7 +323,8 @@ namespace ProjectTowerRpg.ECS.Systems
                     float2 offset = _random.NextFloat2Direction() * _random.NextFloat(2f, aiRW.PatrolRadius);
                     aiRW.PatrolPoint = aiRW.StartPoint + new float3(offset.x, 0f, offset.y);
                     aiRW.HasPatrolTarget = true;
-                    aiRW.IsPatrolling = true;
+                    
+                    // 🦾 СИ-ФИКС: Больше не взводим грязный булеан, стейт говорит сам за себя!
                     aiRW.State = AiState.Patrol;
                 }
 
@@ -312,7 +338,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         moveRW.Direction = float3.zero;
                         aiRW.HasPatrolTarget = false;
-                        aiRW.IsPatrolling = false;
                         aiRW.State = AiState.Idle;
 
                         float randomDelay = _random.NextInt(10, 31) / 10f;
@@ -323,14 +348,18 @@ namespace ProjectTowerRpg.ECS.Systems
                         continue;
                     }
 
-                    float3 direction = math.normalize(vectorToTarget);
-                    direction = ApplySeparation(entity, localTransform.ValueRO.Position, direction, faction, hitbox, allUnits, em);
+                    float3 movementDirection = math.normalize(vectorToTarget);
+                    movementDirection = ApplySeparation(entity, localTransform.ValueRO.Position, movementDirection, faction, hitboxRadius, allUnits, em);
 
-                    moveRW.Direction = direction;
+                    moveRW.Direction = movementDirection;
 
                     float workingSpeed = unitCfg.parameters.base_speed;
-                    if (aiRW.IsPatrolling)
+                    
+                    // 🦾 СИ-ФИКС: Проверяем семантически чистый энум стейта вместо булевых костылей!
+                    if (aiRW.State == AiState.Patrol)
+                    {
                         workingSpeed *= 0.5f;
+                    }
 
                     moveRW.CurrentSpeed = workingSpeed;
                 }
@@ -340,6 +369,7 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             allUnits.Dispose();
+
         }
     }
 }

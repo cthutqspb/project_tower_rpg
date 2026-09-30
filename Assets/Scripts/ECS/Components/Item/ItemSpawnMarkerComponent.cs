@@ -6,7 +6,7 @@ namespace ProjectTowerRpg.ECS.Components
 {
     public struct ItemSpawnMarkerComponent : IComponentData
     {
-        public FixedString64Bytes ItemId;
+        public FixedString32Bytes ItemId;
         public int Amount;
         public float3 SpawnPosition;
         public FixedString64Bytes LootTableId;

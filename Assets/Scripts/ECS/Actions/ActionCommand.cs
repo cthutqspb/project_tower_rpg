@@ -11,7 +11,7 @@ namespace ProjectTowerRpg.ECS.Actions
         public int SourceSlot;                 // Для трансферов/дропа
         public Entity TargetEntity;            // Над кем/чем выполняется действие
         public int TargetSlot;                 // Для трансферов (-1 = автоматический поиск)
-        public FixedString64Bytes ItemId;      // ID предмета (для трансферов/дропа/использования)
+        public FixedString32Bytes ItemId;      // ID предмета (для трансферов/дропа/использования)
         public int Amount;                     // Количество (для трансферов/дропа)
         public float3 Position;                // Для move_to и item_drop
     }

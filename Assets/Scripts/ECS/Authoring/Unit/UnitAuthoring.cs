@@ -90,7 +90,7 @@ namespace ProjectTowerRpg.ECS.Authoring
             {
                 NextActionTime = 0f,
                 HasPatrolTarget = false,
-                IsPatrolling = false,
+                //IsPatrolling = false,
 
                 State = AiState.Idle,
                 AttackTimer = 0f,

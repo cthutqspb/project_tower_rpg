@@ -80,7 +80,7 @@ namespace ProjectTowerRpg.ECS.Authoring
 
                     markerBuffer.Add(new ItemSlot
                     {
-                        DataId = lootItem.itemId, // Записали FixedString64Bytes ID предмета
+                        DataId = lootItem.itemId, // Записали FixedString32Bytes ID предмета
                         Amount = math.max(1, lootItem.amount)
                     });
                 }

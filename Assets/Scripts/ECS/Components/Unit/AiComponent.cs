@@ -23,7 +23,7 @@ namespace ProjectTowerRpg.ECS.Components
         public float3 PatrolPoint;
         public float NextActionTime;
         public bool HasPatrolTarget;
-        public bool IsPatrolling;
+        //public bool IsPatrolling;
 
         // Стейт
         public AiState State;
@@ -31,6 +31,6 @@ namespace ProjectTowerRpg.ECS.Components
         // Атака
         public float AttackTimer;          // задержка между ударами (как ctx.ai_timer)
         public float AttackRange;          // рассчитанный радиус атаки под текущую способность
-        public FixedString64Bytes PrimaryAbility;   // текущая выбранная способность
+        public FixedString32Bytes PrimaryAbility;   // текущая выбранная способность
     }
 }

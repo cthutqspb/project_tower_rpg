@@ -63,14 +63,17 @@ namespace ProjectTowerRpg.Core.UI
                         Debug.Log($"⚔️ [Visual Event]: Нажат триггер Attack для юнита {ev.Source.Index}");
                         break;
 
-                    case PresentationEventKind.CastStart:
-                        animator.SetBool("IsCasting", true);
-                        animator.SetTrigger("Cast");
-                        break;
+                        case PresentationEventKind.CastStart:
+                            animator.ResetTrigger("CastEnd"); // Гарантированно гасим старый хвост финиша!
+                            animator.SetBool("IsCasting", true);
+                            animator.SetTrigger("CastStart");
+                            break;
 
-                    case PresentationEventKind.CastEnd:
-                        animator.SetBool("IsCasting", false);
-                        break;
+                        case PresentationEventKind.CastEnd:
+                            animator.ResetTrigger("CastStart"); // Гарантированно гасим залипший старт!
+                            animator.SetBool("IsCasting", false);
+                            animator.SetTrigger("CastEnd");
+                            break;
 
                     case PresentationEventKind.Hit:
                         animator.SetTrigger("Hit");

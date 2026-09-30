@@ -9,8 +9,8 @@ namespace ProjectTowerRpg.ECS.Components
     {
         public int SlotIndex;    // 0..11 локальный индекс на панели
         
-        public FixedString64Bytes AbilityId; // "frostbolt", "melee_attack" или "crystal_sword"
-        public FixedString64Bytes SlotType;  // "spell" или "item"
+        public FixedString32Bytes AbilityId; // "frostbolt", "melee_attack" или "crystal_sword"
+        public FixedString32Bytes SlotType;  // "spell" или "item"
         
         // 🦾 ММО-КАНОН WOW: Физическая клавиша привязки хранится прямо на сервере в ОЗУ чанка!
         // По умолчанию при создании персонажа сервер запекает сюда дефолты ("1", "2", ... "-", "="),

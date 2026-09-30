@@ -21,7 +21,7 @@ namespace ProjectTowerRpg.ECS.Components
         public PresentationEventKind Kind;
         public Entity Source;
         public Entity Target;
-        public FixedString64Bytes Param; // Например, имя абилки "frostbolt"
+        public FixedString32Bytes Param; // Например, имя абилки "frostbolt"
     }
 
     // 🦾 3. ТEГ-СИНГЛТОН ДЛЯ УДЕРЖАНИЯ КАРКАСА ШИНЫ СОБЫТИЙ В ECS

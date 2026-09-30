@@ -163,8 +163,9 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (!castRW.ValueRO.IsActive) continue;
 
                 var cast = castRW.ValueRW;
+                bool shouldSendCastEnd = false; // Флаг-замок для единой отправки визуала!
 
-                // WoW-ГВАРД ДВИЖЕНИЯ: Срыв каста шагом на WASD (мана сохраняется!)
+                // WoW-ГВАРД ДВИЖЕНИЯ: Срыв каста шагом на WASD
                 if (!cast.IsChanneling && SystemAPI.HasComponent<MovementComponent>(entity))
                 {
                     var movement = SystemAPI.GetComponent<MovementComponent>(entity);
@@ -175,10 +176,26 @@ namespace ProjectTowerRpg.ECS.Systems
                         cast.IsActive = false; 
                         cast.Progress = 0f;
                         castRW.ValueRW = cast;
-
-                        Debug.Log($"❌ [CastSystem]: Каст заклинания '{cast.AbilityId}' СОРВАН движением. Мана сохранена.");
-                        continue; 
+                        
+                        // Взводим флаг отправки визуала и прыгаем в финальный шлюз кадра
+                        shouldSendCastEnd = true;
+                        Debug.Log($"❌ [CastSystem]: Каст заклинания '{cast.AbilityId}' СОРВАН движением.");
                     }
+                }
+
+                if (!cast.IsActive && shouldSendCastEnd)
+                {
+                    if (eventBufferSingleton != Entity.Null)
+                    {
+                        ecb.AppendToBuffer(eventBufferSingleton, new PresentationEvent
+                        {
+                            Kind = PresentationEventKind.CastEnd,
+                            Source = entity,
+                            Target = cast.Target,
+                            Param = cast.AbilityId
+                        });
+                    }
+                    continue;
                 }
 
                 cast.Progress += SystemAPI.Time.DeltaTime;
@@ -187,9 +204,9 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (cast.Progress >= cast.CastTime)
                 {
                     cast.IsActive = false; 
+                    shouldSendCastEnd = true; // Финиш — это всегда конец анимации каста
                     string abilityIdStr = cast.AbilityId.ToString();
 
-                    // Перед тем как выпустить стрелу, еще раз проверяем ману (на случай десинхрона) и списываем её!
                     var abilityCfg = AbilitiesDatabase.GetAbility(abilityIdStr);
                     
                     if (abilityCfg != null && abilityCfg.cost != null && !string.IsNullOrEmpty(abilityCfg.cost.resource))
@@ -198,27 +215,27 @@ namespace ProjectTowerRpg.ECS.Systems
                         if (costValue > 0f && em.HasComponent<ResourceComponent>(entity))
                         {
                             var resources = em.GetComponentData<ResourceComponent>(entity);
-                            
-                            // Атомарно вычитаем Си-байты стоимости из ОЗУ чанка
                             resources.Current = math.max(0f, resources.Current - costValue);
                             em.SetComponentData(entity, resources);
 
-                            Debug.Log($"🧪 [CastSystem]: Юнит {entity} успешно ДОКАСТОВАЛ '{abilityIdStr}' и потратил {costValue} {abilityCfg.cost.resource}. Осталось: {resources.Current}");
+                            Debug.Log($"🧪 [CastSystem]: Юнит {entity} потратил {costValue} {abilityCfg.cost.resource}.");
                         }
                     }
 
-                    // =========================================================================
                     // 🎯 ВЗВОД ОБЫЧНОГО КУЛДАУНА ПОСЛЕ УСПЕШНОГО КАСTА (WoW-канон)
-                    // =========================================================================
                     if (abilityCfg != null && abilityCfg.parameters != null && abilityCfg.parameters.cooldown > 0f)
                     {
-                        float castTime = abilityCfg.parameters.cast_time;
-                        if (castTime > 0f) 
+                        if (abilityCfg.parameters.cast_time > 0f) 
                         {
                             if (SystemAPI.HasBuffer<ActiveCooldownElement>(entity))
                             {
                                 var cooldownsBuffer = SystemAPI.GetBuffer<ActiveCooldownElement>(entity);
-                                FixedString32Bytes cooldownGroup = abilityCfg.parameters.cooldown_group ?? abilityIdStr;
+                                
+                                // Выпрямили тернарную проверку структуры FixedString32Bytes
+                                FixedString32Bytes cooldownGroup = string.IsNullOrEmpty(abilityCfg.parameters.cooldown_group) 
+                                    ? cast.AbilityId 
+                                    : (FixedString32Bytes)abilityCfg.parameters.cooldown_group;
+                                    
                                 float cooldownDuration = abilityCfg.parameters.cooldown;
 
                                 bool alreadyHasCooldown = false;
@@ -239,33 +256,41 @@ namespace ProjectTowerRpg.ECS.Systems
                                         Remaining = cooldownDuration,
                                         Duration = cooldownDuration
                                     });
-                                    Debug.Log($"🎯 [CastSystem]: На юнита {entity} наложен КД группы '{cooldownGroup}': {cooldownDuration}с.");
                                 }
                             }
                         }
                     }
-                    // =========================================================================
 
-                    // 🚀 ИСТИННЫЙ WOW-КАНОН: Достаем цель, которую мы заморозили в ОЗУ в миллисекунду НАЖАТИЯ кнопки!
                     Entity castTarget = cast.Target;
 
                     if (castTarget != Entity.Null && em.Exists(castTarget))
                     {
-                        // Рождаем событийный пакет-запрос для боевой системы
                         Entity combatEventEntity = ecb.CreateEntity();
                         ecb.AddComponent(combatEventEntity, new CombatEventRequest
                         {
                             Caster = entity,
-                            Target = castTarget, // Цель пуленепробиваема к смене фокуса в процессе каста!
+                            Target = castTarget, 
                             AbilityId = cast.AbilityId
                         });
 
-                        Debug.Log($"🔥 [CastSystem]: Каст завершен! Рожден CombatEventRequest для '{abilityIdStr}'. Урон летит в ЗАФИКСИРОВАННУЮ НА СТАРТЕ цель: {castTarget}");
+                        Debug.Log($"🔥 [CastSystem]: Каст завершен для '{abilityIdStr}'. Запрос отправлен.");
                     }
                     else
                     {
-                        Debug.LogWarning($"❌ [CastSystem]: Каст '{abilityIdStr}' дочитан, но зафиксированная на старте цель {castTarget} умерла или исчезла из чанков ОЗУ мира! Урон отменен.");
+                        Debug.LogWarning($"❌ [CastSystem]: Цель умерла! Урон отменен.");
                     }
+                }
+
+                // 🌐 ЕДИНЫЙ СЕРВЕРНЫЙ ШЛЮЗ ВИЗУАЛА: отправляем CastEnd ровно ОДИН раз при любом исходе финиша!
+                if (shouldSendCastEnd && eventBufferSingleton != Entity.Null)
+                {
+                    ecb.AppendToBuffer(eventBufferSingleton, new PresentationEvent
+                    {
+                        Kind = PresentationEventKind.CastEnd,
+                        Source = entity,
+                        Target = cast.Target,
+                        Param = cast.AbilityId
+                    });
                 }
 
                 castRW.ValueRW = cast;

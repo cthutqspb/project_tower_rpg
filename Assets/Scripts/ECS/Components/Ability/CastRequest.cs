@@ -9,7 +9,7 @@ namespace ProjectTowerRpg.ECS.Components
     {
         public Entity Caster;                // Ссылка на Entity игрока/актора, который прожал кнопку
         public int SlotIndex;                // Индекс нажатой ячейки экшенбара (0..11)
-        public FixedString64Bytes AbilityId; // Текстовый ID способности ("frostbolt", "melee_attack")
+        public FixedString32Bytes AbilityId; // Текстовый ID способности ("frostbolt", "melee_attack")
         public Entity TargetEntity;          // Зафиксированная цель в миллисекунду нажатия по WoW-канону!
     }
 }

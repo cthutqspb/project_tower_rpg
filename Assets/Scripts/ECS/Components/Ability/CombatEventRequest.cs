@@ -10,7 +10,7 @@ namespace ProjectTowerRpg.ECS.Components
     {
         public Entity Caster;              // Кто применил способность
         public Entity Target;              // Кто принимает на грудь Си-байты эффекта
-        public FixedString64Bytes AbilityId; // Жесткий unmanaged-хэш из JSON ("frostbolt")
+        public FixedString32Bytes AbilityId; // Жесткий unmanaged-хэш из JSON ("frostbolt")
     }
 }
 
