@@ -78,12 +78,13 @@
         "sprite_animation": "frostbolt_sprite",
         "particle_fx": "frostbolt_trail",
         "hit_fx": "frostbolt_impact",
-        "duration": 0.0
+        "duration": 0.0,
+        "prefab_path": "Projectiles/frostbolt_projectile"
       }
     },
     "parameters": {
       "range": 27.0,
-      "speed": 50.0,
+      "speed": 12.0,
       "cast_time": 1.5,
       "cooldown": 0.0,
       "triggers_gcd": true,

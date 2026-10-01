@@ -107,7 +107,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 8033202913698029003}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5af93c656fc34e399aec1df9c5c242d0, type: 3}
+  m_Script: {fileID: 11500000, guid: 1490bad6e056d7e308d722cd66859c60, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SyncTransformWithEntity
 --- !u!114 &8993250667562243611

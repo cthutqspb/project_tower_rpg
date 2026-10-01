@@ -50,6 +50,10 @@ namespace ProjectTowerRpg.Core.Abilities
         public string particle_fx;
         public string hit_fx;
         public float duration; // Для лучей
+
+        // 🦾 СИ-ФИКС №2: Путь к 3D-префабу в папке Resources для спавна снарядов
+        // В JSON это будет выглядеть так: "prefab_path": "Projectiles/frostbolt_debug"
+        public string prefab_path;
     }
 
     [Serializable]

@@ -10,10 +10,15 @@ namespace ProjectTowerRpg.ECS.Systems
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial class CastSystem : SystemBase
     {
+
         protected override void OnUpdate()
         {
             var em = EntityManager;
             var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
+
+            //var projectileDatabase = SystemAPI.GetSingleton<ProjectileDatabase>();
+            //if (!SystemAPI.TryGetSingleton<ProjectileDatabase>(out var projectileDatabase)) return;
+
 
             // 🦾 ШИННЫЙ ГВАРД: Находим синглтон-сущность нашего буфера презентационных событий
             Entity eventBufferSingleton = Entity.Null;
@@ -265,20 +270,121 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     if (castTarget != Entity.Null && em.Exists(castTarget))
                     {
-                        Entity combatEventEntity = ecb.CreateEntity();
-                        ecb.AddComponent(combatEventEntity, new CombatEventRequest
-                        {
-                            Caster = entity,
-                            Target = castTarget, 
-                            AbilityId = cast.AbilityId
-                        });
+                        string completedAbilityId = cast.AbilityId.ToString();
+                        abilityCfg = AbilitiesDatabase.GetAbility(completedAbilityId);
 
-                        Debug.Log($"🔥 [CastSystem]: Каст завершен для '{abilityIdStr}'. Запрос отправлен.");
+                        // Проверяем тип доставки напрямую из структуры твоего JSON-конфига
+                        bool isProjectileDelivery = abilityCfg != null 
+                                                    && abilityCfg.delivery != null 
+                                                    && abilityCfg.delivery.type == "projectile";
+
+                        if (isProjectileDelivery)
+                        {
+                            // Вытаскиваем путь к префабу из JSON
+                            string rawPath = (abilityCfg.delivery != null && abilityCfg.delivery.fx != null)
+                                ? abilityCfg.delivery.fx.prefab_path
+                                : "Projectiles/frostbolt_debug";
+
+                            Entity requestEntity = ecb.CreateEntity();
+                            ecb.AddComponent(requestEntity, new ProjectileSpawnRequest
+                            {
+                                CasterEntity = entity,
+                                TargetEntity = castTarget,
+                                AbilityId = cast.AbilityId,
+                                PrefabPath = rawPath // 🦾 Передаем строку прямо в ECS-мир!
+                            });
+
+                            Debug.Log($"✉️ [CastSystem]: Приказ ProjectileSpawnRequest выписан с префабом '{rawPath}'.");
+                        }
+
+                        else
+                        {
+                            // ⚔️ 2. МГНОВЕННЫЙ УДАР (Мили-автоатака/Инстант): Бьем сразу в боевую систему
+                            Entity combatEventEntity = ecb.CreateEntity();
+                            ecb.AddComponent(combatEventEntity, new CombatEventRequest
+                            {
+                                Caster = entity,
+                                Target = castTarget, 
+                                AbilityId = cast.AbilityId
+                            });
+
+                            Debug.Log($"⚔️ [CastSystem]: Мгновенный хит способности '{completedAbilityId}'. Урон нанесен сразу.");
+                        }
                     }
                     else
                     {
-                        Debug.LogWarning($"❌ [CastSystem]: Цель умерла! Урон отменен.");
+                        Debug.LogWarning($"❌ [CastSystem]: Цель умерла до завершения каста! Конвейер урона остановлен.");
                     }
+
+                    // if (castTarget != Entity.Null && em.Exists(castTarget))
+                    // {
+                    //     string completedAbilityId = cast.AbilityId.ToString();
+                    //     abilityCfg = AbilitiesDatabase.GetAbility(completedAbilityId);
+                    //
+                    //     // Проверяем тип доставки напрямую из структуры твоего JSON-конфига
+                    //     bool isProjectileDelivery = abilityCfg != null 
+                    //                                 && abilityCfg.delivery != null 
+                    //                                 && abilityCfg.delivery.type == "projectile";
+                    //
+                    //     if (isProjectileDelivery)
+                    //     {
+                    //         // 🚀 1. РОЖДАЕМ ECS-СУЩНОСТЬ КУБА ИЗ НАШЕГО КАТАЛОГА!
+                    //         Entity projectileEntity = ecb.Instantiate(projectileDatabase.FrostboltPrefab);
+                    //
+                    //         // 2. Рассчитываем координаты спавна на уровне рук кастера (Y + 1.2 метра)
+                    //         var casterTransform = em.GetComponentData<LocalTransform>(entity);
+                    //         float3 spawnPosition = casterTransform.Position + new float3(0f, 1.2f, 0f);
+                    //         
+                    //         var targetTransform = em.GetComponentData<LocalTransform>(castTarget);
+                    //         float3 vectorToTarget = targetTransform.Position - spawnPosition;
+                    //         vectorToTarget.y = 0f; // Удерживаем плоский полет по земле
+                    //         float3 flightDirection = math.normalize(vectorToTarget);
+                    //
+                    //         // 3. Записываем физические координаты куба в ОЗУ чанка LocalTransform
+                    //         ecb.SetComponent(projectileEntity, new LocalTransform
+                    //         {
+                    //             Position = spawnPosition,
+                    //             Rotation = quaternion.LookRotation(flightDirection, new float3(0f, 1f, 0f)),
+                    //             Scale = 1f
+                    //         });
+                    //
+                    //         // 4. Записываем геймплейные ММО-данные полета в ProjectileMovement
+                    //         float projectileSpeed = (abilityCfg.parameters != null && abilityCfg.parameters.speed > 0f) 
+                    //             ? abilityCfg.parameters.speed 
+                    //             : 18f;
+                    //
+                    //         ecb.AddComponent(projectileEntity, new ProjectileMovement
+                    //         {
+                    //             Direction = flightDirection,
+                    //             Speed = projectileSpeed,
+                    //             TargetEntity = castTarget,
+                    //             CasterEntity = entity,
+                    //             AbilityId = cast.AbilityId
+                    //         });
+                    //
+                    //         ecb.AddComponent<ProjectileTag>(projectileEntity);
+                    //
+                    //         Debug.Log($"🚀 [CastSystem]: В ОЗУ сервера запущен снаряд '{completedAbilityId}' (Entity: {projectileEntity.Index}). Скорость: {projectileSpeed}м/с.");
+                    //     }
+                    //     else
+                    //     {
+                    //         // МГНОВЕННЫЙ УДАР (Автоатака): Спавним моментальный пакет урона в боевую систему
+                    //         Entity combatEventEntity = ecb.CreateEntity();
+                    //         ecb.AddComponent(combatEventEntity, new CombatEventRequest
+                    //         {
+                    //             Caster = entity,
+                    //             Target = castTarget, 
+                    //             AbilityId = cast.AbilityId
+                    //         });
+                    //
+                    //         Debug.Log($"⚔️ [CastSystem]: Мгновенный хит способности '{completedAbilityId}'. Урон нанесен сразу.");
+                    //     }
+                    // }
+                    //
+                    // else
+                    // {
+                    //     Debug.LogWarning($"❌ [CastSystem]: Цель умерла! Урон отменен.");
+                    // }
                 }
 
                 // 🌐 ЕДИНЫЙ СЕРВЕРНЫЙ ШЛЮЗ ВИЗУАЛА: отправляем CastEnd ровно ОДИН раз при любом исходе финиша!

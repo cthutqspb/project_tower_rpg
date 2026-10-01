@@ -10,11 +10,6 @@ using Object = UnityEngine.Object;
 using FindObjectsInactive = UnityEngine.FindObjectsInactive;
 using Debug = UnityEngine.Debug;
 
-using Unity.Entities;
-using Unity.Transforms;
-using Unity.Mathematics;
-using UnityEngine;
-
 namespace ProjectTowerRpg.ECS.Systems
 {
     [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -183,6 +178,72 @@ namespace ProjectTowerRpg.ECS.Systems
                         }
                     }
                     ecb.RemoveComponent<VisualizedTag>(entity);
+                }
+            }
+
+
+            // =========================================================================
+            // 🚀 [РАЗДЕЛ СНАРЯДОВ] КЕЙС А: СТEРИЛЬНАЯ МАТЕРИАЛИЗАЦИЯ (Без использования Core.Abilities)
+            // =========================================================================
+            foreach (var (transform, projectileMovement, entity) in 
+                     SystemAPI.Query< RefRO< LocalTransform >, RefRO< ProjectileMovement > >()
+                     .WithAll< ProjectileTag >()
+                     .WithNone< VisualizedTag >() 
+                     .WithEntityAccess())
+            {
+                float3 projectilePosition = transform.ValueRO.Position;
+
+                if (math.distance(playerPosition, projectilePosition) <= 50f)
+                {
+                    // 🦾 ШЛЮЗ: Достаем путь к префабу НАПРЯМУЮ из ECS-компонента снаряда за 0 наносекунд!
+                    string prefabPath = projectileMovement.ValueRO.PrefabPath.ToString();
+
+                    var projectilePrefab = Resources.Load< GameObject >(prefabPath);
+                    
+                    if (projectilePrefab != null)
+                    {
+                        var projectileInstance = Object.Instantiate(projectilePrefab, projectilePosition, Quaternion.identity);
+                        projectileInstance.name = $"{projectileMovement.ValueRO.AbilityId}_projectile_{entity.Index}";
+
+                        // 🦾 СИ-ФИКС: Достаем компонент, жестко выставляем тип снаряда и только ПОТОМ инициализируем!
+                        var syncTransform = projectileInstance.GetComponent<SyncTransformWithEntity>();
+                        if (syncTransform == null)
+                        {
+                            syncTransform = projectileInstance.AddComponent<SyncTransformWithEntity>();
+                        }
+
+                        // Указываем тип роли!
+                        syncTransform.Type = SyncTransformWithEntity.ViewType.Projectile; 
+                        syncTransform.Initialize(entity);
+
+                        ecb.AddComponent< VisualizedTag >(entity);
+                    }
+                }
+            }
+
+            // =========================================================================
+            // 🚀 [РАЗДЕЛ СНАРЯДОВ] КЕЙС Б: КУЛЛИНГ ДИСТАНЦИИ СНАРЯДОВ (Улетели далеко)
+            // =========================================================================
+            foreach (var (transform, entity) in 
+                     SystemAPI.Query< RefRO< LocalTransform > >()
+                     .WithAll< ProjectileTag, VisualizedTag >() 
+                     .WithEntityAccess())
+            {
+                if (math.distance(playerPosition, transform.ValueRO.Position) > 55f)
+                {
+                    // Ищем на сцене 3D-модельку снаряда, привязанную к этой Entity
+                    var syncTransforms = Object.FindObjectsByType< SyncTransformWithEntity >(FindObjectsInactive.Exclude);
+                    foreach (var sync in syncTransforms)
+                    {
+                        // 🦾 СИ-ФИКС: Сверяем ID через наше новое свойство BoundEntity!
+                        if (sync.BoundEntity == entity) 
+                        {
+                            Object.Destroy(sync.gameObject);
+                            break;
+                        }
+                    }
+
+                    ecb.RemoveComponent< VisualizedTag >(entity);
                 }
             }
         }
