@@ -8,6 +8,7 @@ namespace ProjectTowerRpg.ECS.Components
     {
         public Entity Inventory; // Ссылка на сущность-сателлит с буфером рюкзака (StaticGrid)
         public Entity Paperdoll; // Ссылка на сущность-сателлит с буфером куклы одежды (Paperdoll)
+        public Entity AuraFrame;
     }
 }
 

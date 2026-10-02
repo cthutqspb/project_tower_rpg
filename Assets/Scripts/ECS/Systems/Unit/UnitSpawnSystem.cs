@@ -273,11 +273,45 @@ namespace ProjectTowerRpg.ECS.Systems
                     });
                 }
 
-                // 🦾 ЗАПЕКАЕМ СВЯЗИ С БУФЕРАМИ: Теперь юнит намертво знает адреса своих карманов!
+                // ================================================================
+                // 🏗️ ШАГ 4: СТРОИМ ВЫДЕЛЕННЫЙ ТЕХНИЧЕСКИЙ КОНТЕЙНЕР АУР (8 слотов)
+                // ================================================================
+                Entity auraContainerEntity = em.CreateEntity();
+                
+                // Настраиваем конфигурацию сетки аур (8 колонок, 1 ряд), владельцем пишем самого юнита!
+                em.AddComponentData(auraContainerEntity, new ContainerConfigComponent 
+                { 
+                    Owner = unitEntity, 
+                    Columns = 8, 
+                    Rows = 1 
+                });
+                
+                // Навешиваем твой родной маркер-паспорт
+                em.AddComponent< AuraFrameTag >(auraContainerEntity);
+                
+                // Инициализируем плоский пустой Си-массив аур строго на сущности-контейнере!
+                var auraBuffer = em.AddBuffer<AuraSlot>(auraContainerEntity);
+                for (int m = 0; m < 8; m++)
+                {
+                    auraBuffer.Add(new AuraSlot 
+                    { 
+                        AbilityId = "", 
+                        TimeRemaining = 0f, 
+                        Duration = 0f, 
+                        Stacks = 0,
+                        CasterEntity = Entity.Null
+                    });
+                }
+
+                // ================================================================
+                // 🏗️ ШАГ 5: ЗАПЕКАЕМ ВСЕ ВЗАИМОСВЯЗИ В МОНОЛИТ ЛИНКОВ ЮНИТА
+                // ================================================================
+                // Переписываем создание компонента BuffersLinkComponent, прокидывая все 3 сущности!
                 em.AddComponentData(unitEntity, new BuffersLinkComponent
                 {
                     Inventory = inventoryEntity,
-                    Paperdoll = paperdollEntity
+                    Paperdoll = paperdollEntity,
+                    AuraFrame = auraContainerEntity // Сочно зацементировали связь!
                 });
 
                 // ================================================================

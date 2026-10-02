@@ -79,7 +79,7 @@
         "particle_fx": "frostbolt_trail",
         "hit_fx": "frostbolt_impact",
         "duration": 0.0,
-        "prefab_path": "Projectiles/frostbolt_projectile"
+        "prefab_path": "Projectiles/frostbolt_orb_projectile"
       }
     },
     "parameters": {
@@ -222,7 +222,7 @@
     },
     "cost": {
       "resource": "mana",
-      "value": 7.5
+      "value": 1.5
     },
     "effects": [
       {

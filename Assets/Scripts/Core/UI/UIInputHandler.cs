@@ -251,7 +251,7 @@ private void HandleUiDoubleClick(UiClickContext context)
                     var actionEntity = em.CreateEntity();
                     em.AddComponentData(actionEntity, new ActionCommand
                     {
-                        //Action = UnitActions.DisableAura,
+                        Action = CombatActions.AuraDisable,
                         SourceEntity = context.ContextEntity,
                         SourceSlot = context.SlotIndex,
                         ItemId = context.TargetId

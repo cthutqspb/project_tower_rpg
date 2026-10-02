@@ -262,6 +262,72 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
         }
 
+        /// <summary>
+        /// 🦾 ММО-КАНОН: Перевод ячейки в режим пассивного отображения Ауры (Баффа/Дебаффа)
+        /// </summary>
+        public void SetAura(string auraId, int index, int stacks = 1, float remaining = 0f, float duration = 0f)
+        {
+            _itemId = auraId;
+            _amount = stacks;
+            _isActionBarSlot = false;
+            SlotIndex = index;
+            
+            ClearVisual();
+
+            if (string.IsNullOrEmpty(auraId))
+            {
+                return;
+            }
+
+            // 1. Вытаскиваем иконку Nerd Font напрямую из базы способностей по ID ауры
+            _icon.RemoveFromClassList("hidden");
+            string iconCharacter = "";
+            
+            var abilityConfig = AbilitiesDatabase.GetAbility(auraId);
+            if (abilityConfig != null)
+            {
+                SetAbilityClass(abilityConfig.identity?.@class ?? "");                               
+                iconCharacter = abilityConfig.visuals?.icon_char ?? "";
+            }
+            _icon.text = iconCharacter;
+
+            // 2. Стаки баффа (рисуем на месте количества предметов, только если их больше 1)
+            if (stacks > 1)
+            {
+                _amountLabel.RemoveFromClassList("hidden");
+                _amountLabel.text = stacks.ToString();
+            }
+            else
+            {
+                _amountLabel.AddToClassList("hidden");
+                _amountLabel.text = "";
+            }
+
+            // 3. Наглухо скрываем бинды и обнуляем стили валидации экшен-бара
+            _bindLabel.AddToClassList("hidden");
+            _bindLabel.text = "";
+            ResetValidationStyle();
+
+            // 4. Запускаем твои родные радиальные "часики" затемнения спада ауры!
+            // Передаем false (не ГКД), чтобы сектор шел по часовой стрелке, имитируя спад эффекта
+            SetCooldown(remaining, duration, false);
+
+            // 5. Выводим цифровой таймер в твой текстовый Label _durationLabel
+            if (remaining > 0f)
+            {
+                _durationLabel.RemoveFromClassList("hidden");
+                _durationLabel.text = remaining > 60f 
+                    ? $"{Mathf.CeilToInt(remaining / 60f)}m" 
+                    : $"{Mathf.CeilToInt(remaining)}s";
+            }
+            else
+            {
+                _durationLabel.AddToClassList("hidden");
+                _durationLabel.text = "";
+            }
+        }
+
+
         private void SetAbilityClass(string classType)
         {
             // Удаляем старый класс
@@ -502,6 +568,9 @@ namespace ProjectTowerRpg.Core.UI.Components
             _durationLabel.text = "";
             _durationLabel.AddToClassList("hidden");
             //_cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
+             _gcdProgress = 0f;
+            _flashProgress = 0f;
+            _cooldownOverlay.MarkDirtyRepaint();
             RemoveFromClassList("disabled");
             ResetValidationStyle();
         }

@@ -16,6 +16,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         [Header("Список компонентов фрейма")]
         [SerializeField] private VisualTreeAsset _frameUxml;       // Сюда UnitFrame.uxml
         [SerializeField] private VisualTreeAsset _progressBarUxml; // Сюда ProgressBar.uxml
+        [SerializeField] private VisualTreeAsset _auraFrameUxml;
         //public bool IsTargetFrame = false;
 
         private VisualElement _frameRoot;
@@ -24,10 +25,13 @@ namespace ProjectTowerRpg.Core.UI.Components
         
         private HealthBar _unitHealthBar;
         private ResourceBar _unitResourceBar;
+        private AuraFrame _unitAuraFrame;
 
         public UnitFrame() { }
         
         private Entity _boundEntity = Entity.Null;
+
+        public AuraFrame UnitAuraFrame => _unitAuraFrame;
        
         /// <summary>
         /// Сборка фрейма прямо внутри переданного слота
@@ -56,6 +60,9 @@ namespace ProjectTowerRpg.Core.UI.Components
             // Находим внутренние ноды текста и полосок
             var hpRoot = _frameRoot.Q<VisualElement>("health-bar-root");
             var resRoot = _frameRoot.Q<VisualElement>("resource-bar-root");
+            
+            var aurasRoot = _frameRoot.Q<VisualElement>("aura-frame-root");
+
             _unitNameLabel = _frameRoot.Q<Label>("unit-name");
             _unitLevelLabel = _frameRoot.Q<Label>("unit-level");
 
@@ -77,6 +84,20 @@ namespace ProjectTowerRpg.Core.UI.Components
             _unitHealthBar = new HealthBar(hpRoot ?? _frameRoot);
             _unitResourceBar = new ResourceBar(resRoot ?? _frameRoot);
             Debug.Log("[UnitFrame ДЕБАГ]: Классы полосок HealthBar and ResourceBar успешно проинициализированы.");
+
+            // =========================================================================
+            // 🦾 ЧИСТЫЙ ААА-ИНИЦИАЛИЗАТОР АУР (КОПЕЙКА В КОПЕЙКУ КАК ХП-БАР!)
+            // =========================================================================
+            if (aurasRoot != null)
+            {
+                // Намертво рождаем класс, скармливая ему найденную вёрстку!
+                _unitAuraFrame = new AuraFrame(aurasRoot, 8);
+                Debug.Log("[UnitFrame]: AuraFrame успешно рождён и привязан к ноде 'aura-frame-root'.");
+            }
+            else
+            {
+                Debug.LogError("🚨 [UnitFrame]: В UXML фрейма не найдена нода 'aura-frame-root'!");
+            }
         }
 
         // =========================================================================
@@ -164,17 +185,34 @@ namespace ProjectTowerRpg.Core.UI.Components
             
             if (_boundEntity != Entity.Null) UIRegistry.Register(_boundEntity, this);
 
-            // 👑 НАСТОЯЩИЙ REACT UNMOUNT/MOUNT (Канон сброса анимаций Unity):
+            // 🎯 СИ-ШЛЮЗ: Достаем изолированную сущность аур через BuffersLinkComponent!
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world != null)
+            {
+                var em = world.EntityManager;
+                if (em.HasComponent<BuffersLinkComponent>(entity))
+                {
+                    var links = em.GetComponentData<BuffersLinkComponent>(entity);
+                    
+                    // Сажаем сетку аур на её СОБСТВЕННУЮ сущность-контейнер, копейка в копейку как инвентарь!
+                    _unitAuraFrame?.BindToEntity(links.AuraFrame);
+                    
+                    Debug.Log($"🔮 [UnitFrame]: Найдена связь! Сетка аур юнита {entity.Index} успешно привязана к контейнеру {links.AuraFrame.Index}");
+                }
+                else
+                {
+                    Debug.LogWarning($"⚠️ [UnitFrame]: Сущность {entity.Index} не имеет BuffersLinkComponent. Аура-фрейм ослеп.");
+                }
+            }
+
+            // Твой старый WoW-канон сброса геометрии Unmount/Mount...
             if (_frameRoot != null && _frameRoot.parent != null)
             {
-                var parentSlot = _frameRoot.parent; // Запоминаем наш слот-пустышку (TargetFrameSlot)
-                
-                parentSlot.Remove(_frameRoot); // Физически вырываем фрейм из дерева UI (Unmount)
-                parentSlot.Add(_frameRoot);    // Вставляем его обратно в ту же наносекунду (Mount!)
-                
-                // Все внутренние кэши геометрии и transition полосок стерты в ноль!
+                var parentSlot = _frameRoot.parent;
+                parentSlot.Remove(_frameRoot);
+                parentSlot.Add(_frameRoot);
             }
         }
-    }
+   }
 }
 

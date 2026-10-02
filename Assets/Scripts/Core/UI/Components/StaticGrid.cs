@@ -6,12 +6,14 @@ using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Abilities;
+using ProjectTowerRpg.Core.Auras;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
     public class StaticGrid : VisualElement,
                               IEcsUiBufferReceiver<ItemSlot>,
                               IEcsUiBufferReceiver<ActionBarSlot>,
+                              IEcsUiBufferReceiver<AuraSlot>, 
                               IEntityContainer
     {
         private int _columns;
@@ -149,6 +151,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 var slots = em.GetBuffer<ItemSlot>(targetEntity);
                 UpdateFromBuffer(slots);
+            }
+            // 🔮 СИ-ФИКС: Мгновенный рантайм-перехват Аур при открытии фрейма!
+            if (em.HasBuffer<AuraSlot>(targetEntity))
+            {
+                var auraSlots = em.GetBuffer<AuraSlot>(targetEntity);
+                UpdateFromBuffer(auraSlots);
             }
             else
             {
@@ -309,5 +317,51 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _slots[i].SetCooldown(cooldownRemaining, cooldownDuration, isGcdActive);
             }
         }
+
+        // =========================================================================
+        // 🔮 РEАКТИВНЫЙ ММО-ШЛЮЗ: Отрисовка Аура-Фрейма строго по общему контракту интерфейса
+        // =========================================================================
+        public void UpdateFromBuffer(
+            DynamicBuffer<AuraSlot> buffer,
+            bool isOnlyValidation = false,
+            float gcdRemaining = 0f,
+            float gcdDuration = 0f,
+            DynamicBuffer< ActiveCooldownElement > cooldowns = default
+        )
+        {
+            // Пробегаемся по нашему физическому пулу ячеек на экране
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                var slotVisual = _slots[i];
+
+                // Если в ECS-буфере за этот кадр есть активная аура под этим индексом
+                if (i < buffer.Length)
+                {
+                    var aura = buffer[i];
+                    
+                    if (!aura.IsEmpty)
+                    {
+                        // Вызываем наш легкий выделенный метод из SlotElement!
+                        // Передаем: строка ID, индекс, стаки, оставшееся время и полную длительность
+                        var auraCfg = AurasDatabase.GetAura(aura.AbilityId.ToString());
+                        if (auraCfg != null)
+                        {
+                            slotVisual.SetAura(
+                                aura.AbilityId.ToString(),
+                                i,
+                                aura.Stacks,
+                                aura.TimeRemaining,
+                                aura.Duration
+                            );
+                            continue;
+                        }
+                    }
+                }
+                
+                // Если активных баффов меньше, чем слотов в сетке — гасим лишнюю ячейку в полный ноль
+                slotVisual.SetAura("", i);
+            }
+        }
+
     }
 }

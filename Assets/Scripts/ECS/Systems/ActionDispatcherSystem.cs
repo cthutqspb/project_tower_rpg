@@ -75,6 +75,10 @@ namespace ProjectTowerRpg.ECS.Systems
                         ExecuteActionBarAssign(cmd.ValueRO);
                         break;
 
+                    case ActionKind.AuraDisable:
+                        ExecuteAuraDisable(cmd.ValueRO);
+                        break;
+
                     default:
                         Debug.LogWarning($"[ActionDispatcher]: Неизвестный экшен '{cmd.ValueRO.Action}'");
                         break;
@@ -290,6 +294,11 @@ namespace ProjectTowerRpg.ECS.Systems
         private void ExecuteActionBarAssign(ActionCommand cmd)
         {
             PlayerReducer.ActionBarAssign(EntityManager, cmd);
+        }
+
+        private void ExecuteAuraDisable(ActionCommand cmd)
+        {
+            PlayerReducer.AuraDisable(EntityManager, cmd);
         }
 
         private ISlotContainer CreateContainer(Entity entity)

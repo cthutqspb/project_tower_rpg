@@ -1,0 +1,58 @@
+/* Глобальный контейнер аура-фрейма */
+.aura-frame-container {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    background-color: transparent;
+    justify-content: flex-start;
+}
+
+/* Контейнер-сетка, выстраивающий иконки подряд в горизонтальный ряд */
+.aura-slots-container {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+/* 🦾 СТИЛИЗАЦИЯ СЛОТА ПОД АУРУ:
+   Переопределяем размеры стандартного .slot из SlotElement, 
+   делая баффы аккуратными и компактными (32х32 вместо 42х42), как в WoW! */
+.aura-slots-container .slot {
+    width: 32px;
+    height: 32px;
+    margin-top: 1px;
+    margin-right: 3px;
+    margin-bottom: 1px;
+    margin-left: 1px;
+    border-width: 1px;
+    border-color: #222222;
+    border-radius: 4px;
+    background-color: rgba(10, 10, 10, 0.65);
+}
+
+/* Компактный размер для шрифта-иконки Nerd Font внутри ауры */
+.aura-slots-container .slot-icon {
+    font-size: 18px;
+    -unity-text-align: middle-center;
+}
+
+/* Счётчик стаков в углу баффа (например, если щитов накопилось 3 штуки) */
+.aura-slots-container .slot-amount-label {
+    font-size: 10px;
+    position: absolute;
+    bottom: 1px;
+    right: 2px;
+    color: #ffffff;
+    -unity-text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.85);
+}
+
+/* Текстовый таймер оставшегося времени ауры (выводится под или прямо на иконке) */
+.aura-slots-container .slot-duration-label {
+    font-size: 9px;
+    position: absolute;
+    top: 1px;
+    right: 2px;
+    color: #e0e0e0;
+    -unity-text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.9);
+}
+

@@ -410,7 +410,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a0a11a909fa5eecc9ad477a9207bb86, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.ECS.Authoring.ProjectileDatabaseAuthoring
-  FrostboltPrefab: {fileID: 5599561922522684819, guid: 83024e5794b478f03bf515092d6f7e2a, type: 3}
 --- !u!1001 &1846363653
 PrefabInstance:
   m_ObjectHideFlags: 0

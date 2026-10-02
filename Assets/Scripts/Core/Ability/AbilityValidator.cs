@@ -52,6 +52,9 @@ namespace ProjectTowerRpg.Core.Abilities
             var distanceResult = CheckDistance(ability, caster, target, em);
             if (!distanceResult.IsPossible) return distanceResult;
 
+            var movementResult = CheckMovement(ability, caster, em);
+            if (!movementResult.IsPossible) return movementResult;
+
             // Способность полностью легальна, конвейер чист!
             return new CastValidationResult { IsPossible = true, Reason = null };
         }
@@ -271,6 +274,36 @@ namespace ProjectTowerRpg.Core.Abilities
 
             return new CastValidationResult { IsPossible = true, Reason = null };
         }
+
+        private static CastValidationResult CheckMovement(AbilityConfig ability, Entity caster, EntityManager em)
+        {
+            if (ability == null || ability.parameters == null)
+                return new CastValidationResult { IsPossible = true };
+
+            // Если способность мгновенная (инстант) или поддерживаемая на ходу — бег разрешен!
+            if (ability.parameters.cast_time <= 0.01f || ability.parameters.is_channeling)
+            {
+                return new CastValidationResult { IsPossible = true };
+            }
+
+            // Если у юнита есть компонент движения — проверяем, бежит ли он прямо сейчас
+            if (em.HasComponent<ProjectTowerRpg.ECS.Components.MovementComponent>(caster))
+            {
+                var movement = em.GetComponentData<ProjectTowerRpg.ECS.Components.MovementComponent>(caster);
+                
+                // Проверяем вектор направления и скорость (Wow-канон WASD-гварда)
+                bool isMoving = Unity.Mathematics.math.lengthsq(movement.Direction) > 0.001f && movement.CurrentSpeed > 0.001f;
+
+                if (isMoving)
+                {
+                    // Намертво блокируем старт! Кнопка экшен-бара покрасится по этой причине
+                    return new CastValidationResult { IsPossible = false, Reason = "MOVING" };
+                }
+            }
+
+            return new CastValidationResult { IsPossible = true };
+        }
+
     }
 }
 

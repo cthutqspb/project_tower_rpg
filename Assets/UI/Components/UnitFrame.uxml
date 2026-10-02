@@ -9,6 +9,7 @@
         <!-- Стерильные посадочные места под полоски (их размеры заданы в ProgressBar.uss) -->
         <ui:VisualElement name="health-bar-root" style="margin-bottom: 6px;" />
         <ui:VisualElement name="resource-bar-root" />
-        
+
+        <ui:VisualElement name="aura-frame-root" style="margin-top: 6px;" picking-mode="Ignore" />
     </ui:VisualElement>
 </ui:UXML>

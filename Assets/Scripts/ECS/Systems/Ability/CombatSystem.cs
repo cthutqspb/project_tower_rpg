@@ -2,6 +2,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Abilities;
+using ProjectTowerRpg.Core.Auras;
 using Debug = UnityEngine.Debug; // Твой законный алиас для логов, выжигающий using UnityEngine;
 
 namespace ProjectTowerRpg.ECS.Systems
@@ -35,7 +36,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         foreach (var effect in abilityCfg.effects)
                         {
                             if (effect == null || string.IsNullOrEmpty(effect.type)) continue;
-
+                            
                             switch (effect.type)
                             {
                                 case "direct_damage":
@@ -45,6 +46,12 @@ namespace ProjectTowerRpg.ECS.Systems
 
                                 case "direct_heal":
                                     ApplyDirectHeal(target, effect, em, ref random);
+                                    break;
+
+                                case "apply_aura":
+                                    // Для аур передаем в метод: кастера, цель, сам конфиг эффекта и ecb
+                                    Debug.Log($"🔮 [CombatSystem ДЕБАГ]: Захожу в кейс 'apply_aura'! Пробую применить '{effect.aura_id}'");
+                                    ApplyAura(caster, target, effect, em, ecb);
                                     break;
                             }
                         }
@@ -112,6 +119,77 @@ namespace ProjectTowerRpg.ECS.Systems
             Debug.Log($"💚 [CombatSystem]: Цель {target} исцелена на {baseHeal:F1}! ХП: {health.Current}/{health.Max}");
         }
 
+        private static void ApplyAura(Entity caster, Entity target, AbilityEffectConfig effect, EntityManager em, EntityCommandBuffer ecb)
+        {
+            if (em.HasComponent< IsDeadTag >(target)) return;
+
+            string auraId = effect.aura_id;
+            if (string.IsNullOrEmpty(auraId)) return;
+
+            var auraCfg = AurasDatabase.GetAura(auraId);
+            if (auraCfg == null) return;
+
+            // 🎯 СИ-ФИКС: Находим целевую сущность-контейнер аур через линки юнита!
+            if (!em.HasComponent<BuffersLinkComponent>(target)) return;
+            var links = em.GetComponentData<BuffersLinkComponent>(target);
+            Entity auraContainer = links.AuraFrame;
+
+            if (auraContainer == Entity.Null || !em.Exists(auraContainer)) return;
+
+            // Теперь выгребаем буфер СТРОГО с сущности контейнера!
+            var auraBuffer = em.GetBuffer<AuraSlot>(auraContainer);
+            
+            bool isFound = false;
+            float auraDuration = effect.value > 0f ? effect.value : 30f;
+
+            // Ищем существующую ауру для обновления таймера и стаков
+            for (int i = 0; i < auraBuffer.Length; i++)
+            {
+                var slot = auraBuffer[i];
+                if (slot.AbilityId == auraId)
+                {
+                    slot.TimeRemaining = auraDuration;
+                    slot.Duration = auraDuration;
+                    
+                    // 🦾 СИ-ФИКС: Забираем лимит из JSON. Если в конфиге забыли указать, ставим фоллбек 1
+                    int maxAllowedStacks = auraCfg.max_stacks > 0 ? auraCfg.max_stacks : 1;
+                    
+                    // Накидываем стак только если не уперлись в потолок конфига!
+                    slot.Stacks = math.min(maxAllowedStacks, slot.Stacks + 1);
+
+                    auraBuffer[i] = slot;
+                    isFound = true;
+                    Debug.Log($"🔄 [CombatSystem]: Аура '{auraId}' на контейнере {auraContainer.Index} обновлена. Стаков: {slot.Stacks}/{maxAllowedStacks}, Время сброшено на {auraDuration}с");
+                    break;
+                }
+            }
+
+
+            // Если бафф новый — шёлково пишем его в первую пустую ячейку контейнера аур!
+            if (!isFound)
+            {
+                for (int i = 0; i < auraBuffer.Length; i++)
+                {
+                    var slot = auraBuffer[i];
+                    if (slot.IsEmpty)
+                    {
+                        slot.AbilityId = auraId;
+                        slot.TimeRemaining = auraDuration;
+                        slot.Duration = auraDuration;
+                        slot.Stacks = 1;
+                        slot.CasterEntity = caster;
+
+                        auraBuffer[i] = slot;
+                        isFound = true;
+                        Debug.Log($"🔮 [CombatSystem]: В ячейку #{i} контейнера {auraContainer.Index} впрыснута новая аура '{auraId}'.");
+                        break;
+                    }
+                }
+            }
+        }
+
+
+
         private static void UpdateCombatStates(Entity caster, Entity target, EntityManager em)
         {
             if (em.HasComponent<CombatStateComponent>(caster))
@@ -134,6 +212,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 em.SetComponentData(target, targetCombat);
             }
         }
+
     }
 }
 

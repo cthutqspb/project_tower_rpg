@@ -12,6 +12,7 @@ namespace ProjectTowerRpg.ECS.Systems
             // 🔍 1. БЫСТРЫЕ, ПОТОКОБЕЗОПАСНЫЕ ЛУКАПЫ КОМПОНЕНТОВ (Чтение)
             var slotLookup = SystemAPI.GetBufferLookup<ItemSlot>(true);
             var actionBarLookup = SystemAPI.GetBufferLookup<ActionBarSlot>(true);
+            var auraLookup = SystemAPI.GetBufferLookup<AuraSlot>(true);
             var healthLookup = SystemAPI.GetComponentLookup<HealthComponent>(true);
             var resourceLookup = SystemAPI.GetComponentLookup<ResourceComponent>(true);
             var unitLookup = SystemAPI.GetComponentLookup<UnitComponent>(true);
@@ -25,7 +26,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
             // 🔄 2. ЕДИНЫЙ ЦИКЛ ПО ВСЕМУ АКТИВНОМУ ИНТЕРФЕЙСУ ИГРЫ
             foreach (var entity in UIRegistry.GetActiveEntities())
-            {
+ {
                 var receivers = UIRegistry.GetReceivers(entity);
                 if (receivers == null) continue;
 
@@ -57,6 +58,24 @@ namespace ProjectTowerRpg.ECS.Systems
                         }
                     }
                 }
+
+                // =========================================================================
+                // 🔮 РEАКТИВНЫЙ АУРА-МОСТ: Слепой пулл активных баффов/дебаффов из ОЗУ чанка
+                // =========================================================================
+                if (auraLookup.HasBuffer(entity) && auraLookup.DidChange(entity, LastSystemVersion))
+                {
+                    var auraSlots = auraLookup[entity];
+                    
+                    foreach (var receiver in receivers)
+                    {
+                        // Намертво и вслепую скармливаем буфер аур любой сетке или окну на экране!
+                        if (receiver is IEcsUiBufferReceiver<AuraSlot> auraUi)
+                        {
+                            auraUi.UpdateFromBuffer(auraSlots, false);
+                        }
+                    }
+                }
+
 
                 // ================================================================
                 // 🌟 СЛАЙС Б: РЕАКТИВНОЕ ОБНОВЛЕНИЕ ЗДОРОВЬЯ ЮНИТА (UnitFrame)

@@ -1,0 +1,40 @@
+{
+  "frost_armor": {
+    "action_type": "aura",
+    "type": "buff",
+    "max_stacks": 1,
+    "identity": {
+      "name_key": "aura_frost_armor_name",
+      "desc_key": "aura_frost_armor_desc"
+    },
+    "visuals": {
+      "texture": "project_utumno",
+      "animation": "frost_armor",
+      "icon_char": "  ",
+      "color": [1.0, 1.0, 1.0, 1.0]
+    },
+    "modifiers": {
+      "armor_multiplier": 1.5,
+      "attack_speed_modifier": 0.0
+    }
+  },
+  "frost_armor_slow": {
+    "action_type": "aura",
+    "type": "debuff",
+    "identity": {
+      "name_key": "aura_frost_slow_name",
+      "desc_key": "aura_frost_slow_desc"
+    },
+    "visuals": {
+      "texture": "project_utumno",
+      "animation": "frost_armor_slow_icon",
+      "icon_char": "🥶",
+      "color": [1.0, 0.4, 0.4, 1.0]
+    },
+    "modifiers": {
+      "armor_multiplier": 1.0,
+      "attack_speed_modifier": -0.25
+    }
+  }
+}
+
