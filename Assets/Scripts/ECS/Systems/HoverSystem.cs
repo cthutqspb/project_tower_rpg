@@ -2,6 +2,8 @@ using Unity.Entities;
 using Unity.Mathematics; // ← Добавлен для math.float3
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.UI;
+using ProjectTowerRpg.Core.Units;
+using ProjectTowerRpg.Core.Items;
 // 🚀 ХИРУРГИЧЕСКИЙ РАЗВОД ИМПОРТОВ: Заголовки чисты, клинч векторов и физики ликвидирован!
 using Camera = UnityEngine.Camera;
 using Vector2 = UnityEngine.Vector2;
@@ -10,7 +12,6 @@ using Physics = UnityEngine.Physics;
 using RaycastHit = UnityEngine.RaycastHit;
 using Cursor = UnityEngine.Cursor;
 using CursorMode = UnityEngine.CursorMode;
-using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -95,10 +96,10 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto); 
                         
-                        var itemComponentData = EntityManager.GetComponentData<ItemComponent>(foundEntity);
-                        string currentItemIdStr = itemComponentData.ItemId.ToString();
+                        var itemComponent = EntityManager.GetComponentData<ItemComponent>(foundEntity);
+                        string currentItemIdStr = itemComponent.ItemId.ToString();
 
-                        var dbItemCfg = ProjectTowerRpg.Core.Items.ItemsDatabase.GetItem(currentItemIdStr);
+                        var dbItemCfg = ItemsDatabase.GetItem(currentItemIdStr);
                         if (dbItemCfg != null)
                         {
                             TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.ITEM, dbItemCfg);
@@ -109,7 +110,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto); 
 
-                        var dbUnitCfg = ProjectTowerRpg.Core.Units.UnitsDatabase.GetUnit(currentUnitId);
+                        var dbUnitCfg = UnitsDatabase.GetUnit(currentUnitId);
                         if (dbUnitCfg != null)
                         {
                             TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.UNIT, dbUnitCfg);

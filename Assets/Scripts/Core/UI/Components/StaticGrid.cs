@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
@@ -133,7 +132,10 @@ namespace ProjectTowerRpg.Core.UI.Components
         public void BindToEntity(Entity targetEntity)
         {
             Debug.Log($"[StaticGrid] BindToEntity для сущности: {targetEntity}");
-            
+            if (_boundEntity != Entity.Null)
+            {
+                UIRegistry.Unregister(_boundEntity, this);
+            }
             _boundEntity = targetEntity;
             
             foreach (var slot in _slots)
@@ -328,26 +330,29 @@ namespace ProjectTowerRpg.Core.UI.Components
             float gcdDuration = 0f,
             DynamicBuffer< ActiveCooldownElement > cooldowns = default
         )
-        {
-            // Пробегаемся по нашему физическому пулу ячеек на экране
+        {   
+            // foreach (var slot in _slots)
+            // {
+            //     slot.ClearVisual();
+            // }
+
             for (int i = 0; i < _slots.Count; i++)
             {
                 var slotVisual = _slots[i];
 
-                // Если в ECS-буфере за этот кадр есть активная аура под этим индексом
                 if (i < buffer.Length)
                 {
                     var aura = buffer[i];
                     
                     if (!aura.IsEmpty)
                     {
-                        // Вызываем наш легкий выделенный метод из SlotElement!
-                        // Передаем: строка ID, индекс, стаки, оставшееся время и полную длительность
-                        var auraCfg = AurasDatabase.GetAura(aura.AbilityId.ToString());
+                        var auraCfg = AurasDatabase.GetAura(aura.AuraId.ToString());
                         if (auraCfg != null)
-                        {
+                        {   
+                            //Debug.LogWarning($"[StaticGrid] АПДЕПЙТ БУФЕРА {aura.AuraId.ToString()} ");
+
                             slotVisual.SetAura(
-                                aura.AbilityId.ToString(),
+                                aura.AuraId.ToString(),
                                 i,
                                 aura.Stacks,
                                 aura.TimeRemaining,
@@ -358,10 +363,12 @@ namespace ProjectTowerRpg.Core.UI.Components
                     }
                 }
                 
-                // Если активных баффов меньше, чем слотов в сетке — гасим лишнюю ячейку в полный ноль
-                slotVisual.SetAura("", i);
+                // 🦾 СИ-ФИКС №1 БЕЗ ОШИБОК: Если в буфере сервера под этим индексом пусто — 
+                // мы просто вызываем твой родной ClearVisual(), который сбросит payload,
+                // но НЕ ломает бинды экшен-бара и валидацию!
+                //slotVisual.ClearVisual();
+                slotVisual.SetAura("", i, 0, 0f, 0f);
             }
         }
-
     }
 }

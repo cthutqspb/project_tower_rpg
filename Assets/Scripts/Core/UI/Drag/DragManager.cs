@@ -6,7 +6,7 @@ using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.Core.UI.Components;
-using ProjectTowerRpg.Core.UI.Colors;
+using ProjectTowerRpg.Core.Colors;
 using ProjectTowerRpg.Core.Utils;
 
 namespace ProjectTowerRpg.Core.UI

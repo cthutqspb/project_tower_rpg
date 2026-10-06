@@ -23,6 +23,8 @@ namespace ProjectTowerRpg.Core.Abilities
         public string name_key;
         public string desc_key;
         public string @class; // class — зарезервированное слово C#, экранируем через @
+        public string school;
+        public string element;
         public List<string> tags;
     }
 
@@ -88,12 +90,12 @@ namespace ProjectTowerRpg.Core.Abilities
     public class AbilityEffectConfig
     {
         public string type; // "direct_damage", "direct_heal", "apply_aura", "drain_resource"
-        public string school;
+        public string aura_id;
+        public string damage_type;
         public float min;
         public float max;
         public float weapon_multiplier;
         [System.NonSerialized] public Dictionary<string, float> scaling_stats; // Динамические коэффициенты статов
-        public string aura_id;
         public float value; // Длительность баффа/дебаффа или сила ауры
     }
 }

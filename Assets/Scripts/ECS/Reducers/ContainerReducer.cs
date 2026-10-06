@@ -23,8 +23,8 @@ namespace ProjectTowerRpg.ECS.Reducers
                 return;
             }
 
-            var links = em.GetComponentData<BuffersLinkComponent>(containerEntity);
-            Entity bagEntity = links.Inventory;
+            var linkedEntitites = em.GetComponentData<BuffersLinkComponent>(containerEntity);
+            Entity bagEntity = linkedEntitites.Inventory;
 
             if (bagEntity == Entity.Null || !em.Exists(bagEntity))
             {

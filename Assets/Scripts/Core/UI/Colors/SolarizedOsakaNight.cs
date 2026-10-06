@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace ProjectTowerRpg.Core.UI.Colors
+namespace ProjectTowerRpg.Core.Colors
 {
     public static class SolarizedOsakaNight
     {

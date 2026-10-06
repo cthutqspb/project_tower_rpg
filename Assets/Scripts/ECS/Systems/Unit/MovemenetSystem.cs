@@ -39,7 +39,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         continue; // Пулей скипаем все холмы, гравитацию и коллизии! Труп застыл на месте гибели!
                     }
                 }
-                float3 inputDir = movement.ValueRO.Direction;
+                float3 inputDirection = movement.ValueRO.Direction;
                 bool isPlayer = SystemAPI.HasComponent<PlayerTag>(entity);
 
                 // =========================================================================
@@ -91,8 +91,8 @@ namespace ProjectTowerRpg.ECS.Systems
                     movement.ValueRW.JumpRequested = false; 
                 }
 
-                float3 horizontalDir = new float3(inputDir.x, 0f, inputDir.z);
-                bool isMovingHorizontally = math.lengthsq(horizontalDir) > 0f;
+                float3 horizontalDirection = new float3(inputDirection.x, 0f, inputDirection.z);
+                bool isMovingHorizontally = math.lengthsq(horizontalDirection) > 0f;
 
                 float3 flatMoveVector = float3.zero;
 
@@ -104,29 +104,29 @@ namespace ProjectTowerRpg.ECS.Systems
                     float3 cameraForward = new float3(math.sin(movement.ValueRO.CameraAngle), 0f, math.cos(movement.ValueRO.CameraAngle));
                     float3 cameraRight = new float3(cameraForward.z, 0f, -cameraForward.x); 
 
-                    float finalSpeed = movement.ValueRO.CurrentSpeed;
+                    float currenSpeed = movement.ValueRO.CurrentSpeed;
 
                     if (movement.ValueRO.IsRmbOrMmbPressed)
                     {
                         quaternion cameraRotation = quaternion.AxisAngle(math.up(), movement.ValueRO.CameraAngle);
                         transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, cameraRotation, dt * 18f);
 
-                        flatMoveVector = (cameraForward * inputDir.z) + (cameraRight * inputDir.x);
-                        if (inputDir.z < 0f) finalSpeed *= 0.5f; 
+                        flatMoveVector = (cameraForward * inputDirection.z) + (cameraRight * inputDirection.x);
+                        if (inputDirection.z < 0f) currenSpeed *= 0.5f; 
                     }
                     else
                     {
-                        if (inputDir.z < 0f)
+                        if (inputDirection.z < 0f)
                         {
                             quaternion lookAwayRotation = quaternion.AxisAngle(math.up(), movement.ValueRO.CameraAngle);
                             transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookAwayRotation, dt * 14f);
 
-                            flatMoveVector = (-cameraForward) + (cameraRight * inputDir.x);
-                            finalSpeed *= 0.5f; 
+                            flatMoveVector = (-cameraForward) + (cameraRight * inputDirection.x);
+                            currenSpeed *= 0.5f; 
                         }
                         else
                         {
-                            flatMoveVector = (cameraForward * inputDir.z) + (cameraRight * inputDir.x);
+                            flatMoveVector = (cameraForward * inputDirection.z) + (cameraRight * inputDirection.x);
 
                             if (math.lengthsq(flatMoveVector) > 0f)
                             {
@@ -138,7 +138,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     if (math.lengthsq(flatMoveVector) > 0f)
                     {
-                        flatMoveVector = math.normalize(flatMoveVector) * finalSpeed;
+                        flatMoveVector = math.normalize(flatMoveVector) * currenSpeed;
                     }
                 }
                 else
@@ -146,9 +146,9 @@ namespace ProjectTowerRpg.ECS.Systems
                     // 💀 СКЕЛЕТЫ / МОНСТРЫ
                     if (isMovingHorizontally)
                     {
-                        flatMoveVector = math.normalize(horizontalDir) * movement.ValueRO.CurrentSpeed;
+                        flatMoveVector = math.normalize(horizontalDirection) * movement.ValueRO.CurrentSpeed;
 
-                        quaternion lookRotation = quaternion.LookRotation(math.normalize(horizontalDir), math.up());
+                        quaternion lookRotation = quaternion.LookRotation(math.normalize(horizontalDirection), math.up());
                         transform.ValueRW.Rotation = math.slerp(transform.ValueRW.Rotation, lookRotation, dt * 8f);
                     }
                 }
@@ -174,9 +174,9 @@ namespace ProjectTowerRpg.ECS.Systems
                 // =========================================================================
                 // 5. СБОРКА ВЕКТОРА И КОЛЛИЖЕН С ЛАНДШАФТОМ
                 // =========================================================================
-                float3 finalMoveVector = new float3(flatMoveVector.x, movement.ValueRO.Direction.y, flatMoveVector.z);
+                float3 moveVector = new float3(flatMoveVector.x, movement.ValueRO.Direction.y, flatMoveVector.z);
 
-                transform.ValueRW.Position += finalMoveVector * dt;
+                transform.ValueRW.Position += moveVector * dt;
 
                 // Финальная жесткая страховка (если провалились под холм на высокой скорости)
                 if (hitGround && transform.ValueRO.Position.y <= groundY && movement.ValueRO.Direction.y <= 0.1f)

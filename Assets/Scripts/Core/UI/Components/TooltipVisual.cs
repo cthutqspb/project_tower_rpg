@@ -6,7 +6,7 @@ using ProjectTowerRpg.Core.Abilities;
 using ProjectTowerRpg.Core.Units;
 using ProjectTowerRpg.Core.Localization;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.UI.Colors;
+using ProjectTowerRpg.Core.Colors;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {

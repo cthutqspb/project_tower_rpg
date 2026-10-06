@@ -20,9 +20,9 @@ namespace ProjectTowerRpg.ECS.Reducers
             {
                 if (em.HasComponent<PlayerTag>(cmd.SourceEntity) && cmd.SourceSlot >= 0 && cmd.SourceSlot < barBuffer.Length)
                 {
-                    var sourceSlotData = barBuffer[cmd.SourceSlot];
-                    sourceSlotData.AbilityId = "";
-                    barBuffer[cmd.SourceSlot] = sourceSlotData;
+                    var sourceSlot = barBuffer[cmd.SourceSlot];
+                    sourceSlot.AbilityId = "";
+                    barBuffer[cmd.SourceSlot] = sourceSlot;
                 }
                 return;
             }
@@ -73,12 +73,12 @@ namespace ProjectTowerRpg.ECS.Reducers
                 var auraSlot = auraBuffer[targetSlotIndex];
 
                 // Валидируем Си-паспорт: стираем ауру только если ID в ячейке совпадает с тем, по которому кликнули
-                if (auraSlot.AbilityId == cmd.ItemId)
+                if (auraSlot.AuraId == cmd.ItemId)
                 {
                     Debug.Log($"🧹 [PlayerReducer]: Аннигилирую бафф '{cmd.ItemId}' из ячейки #{targetSlotIndex} контейнера {cmd.SourceEntity.Index} по приказу игрока (ПКМ).");
 
                     // Полностью сбрасываем структуру в девственный ноль (IsEmpty)
-                    auraSlot.AbilityId = "";
+                    auraSlot.AuraId = "";
                     auraSlot.Stacks = 0;
                     auraSlot.TimeRemaining = 0f;
                     auraSlot.Duration = 0f;

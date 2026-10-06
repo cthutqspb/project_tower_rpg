@@ -29,8 +29,8 @@ namespace ProjectTowerRpg.ECS.Systems
             UpdateCasts(em, ecb, eventBuffer);
         }
 
-        // =========================================================================
-        // 📥 ПОТОК 1: ПРИЕМ И ВАЛИДАЦИЯ ЗАПРОСОВ (Стартер)
+                // =========================================================================
+        // 📥 ПОТОК 1: ПРИЕМ И ВАЛИДАЦИЯ ЗАПРОСОВ (Стартер) - ТВОЙ ЗАВОДСКОЙ ВАРИАНТ
         // =========================================================================
         private void ProcessRequests(EntityManager em, EntityCommandBuffer ecb, Entity eventBuffer)
         {
@@ -45,6 +45,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     continue;
                 }
 
+                // Твоя девственная заводская валидация из трех аргументов, которая красит кнопки!
                 var validation = AbilityValidator.CheckCastPossibility(abilityId, caster, em);
 
                 if (validation.IsPossible)
@@ -62,7 +63,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
                         bool isChanneling = cfg?.parameters != null && cfg.parameters.is_channeling;
 
-                        var newCastData = new CastComponent
+                        var castData = new CastComponent
                         {
                             IsActive = true,
                             AbilityId = request.ValueRO.AbilityId,
@@ -73,9 +74,9 @@ namespace ProjectTowerRpg.ECS.Systems
                         };
 
                         if (!em.HasComponent< CastComponent >(caster))
-                            ecb.AddComponent(caster, newCastData);
+                            ecb.AddComponent(caster, castData);
                         else
-                            em.SetComponentData(caster, newCastData);
+                            em.SetComponentData(caster, castData);
 
                         // Трансляция события старта в шину аниматора
                         SendCastStartEvent(ecb, eventBuffer, caster, request.ValueRO.TargetEntity, request.ValueRO.AbilityId, castTime);
@@ -90,10 +91,11 @@ namespace ProjectTowerRpg.ECS.Systems
             }
         }
 
+
         // =========================================================================
         // 🔄 ПОТОК 2: ПОКАДРОВАЯ СИМУЛЯЦИЯ И ФИНИШИ (Ядро)
         // =========================================================================
-                private void UpdateCasts(EntityManager em, EntityCommandBuffer ecb, Entity eventBuffer)
+        private void UpdateCasts(EntityManager em, EntityCommandBuffer ecb, Entity eventBuffer)
         {
             float dt = SystemAPI.Time.DeltaTime;
 

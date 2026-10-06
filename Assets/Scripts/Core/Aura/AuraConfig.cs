@@ -10,6 +10,8 @@ namespace ProjectTowerRpg.Core.Auras
         public string action_type; // "aura"
         public string type;        // "buff" или "debuff"
         public int max_stacks;
+        public float duration;
+        public AuraEffect effect;
         public AuraIdentity identity;
         public AuraVisuals visuals;
         public AuraModifiers modifiers;
@@ -20,12 +22,21 @@ namespace ProjectTowerRpg.Core.Auras
     {
         public string name_key;
         public string desc_key;
+        public string scholl;
+        public string element;
+    }
+
+    [Serializable]
+    public class AuraEffect
+    {
+        public string type; 
+        public float tick_interval;
+        public float base_damage;
     }
 
     [Serializable]
     public class AuraVisuals
     {
-        public string texture;
         public string animation;
         public string icon_char; // Символ-значок Nerd Font для SlotElement!
         public float[] color;    // RGBA массив [1.0, 0.4, 0.4, 1.0]

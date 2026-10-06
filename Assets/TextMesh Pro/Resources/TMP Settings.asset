@@ -16,6 +16,7 @@ MonoBehaviour:
   m_TextWrappingMode: 1
   m_enableKerning: 1
   m_ActiveFontFeatures: 6e72656bu
+  m_UseAdvancedText: 0
   m_enableExtraPadding: 0
   m_enableTintAllSprites: 0
   m_enableParseEscapeCharacters: 1
@@ -34,7 +35,7 @@ MonoBehaviour:
   m_autoSizeTextContainer: 0
   m_IsTextObjectScaleStatic: 0
   m_fallbackFontAssets:
-  - {fileID: 11400000, guid: 94e4efc3d603f50cfabcfeb9b1fa731c, type: 2}
+  - {fileID: 0}
   m_matchMaterialPreset: 1
   m_HideSubTextObjects: 0
   m_defaultSpriteAsset: {fileID: 0}
@@ -42,7 +43,7 @@ MonoBehaviour:
   m_enableEmojiSupport: 1
   m_MissingCharacterSpriteUnicode: 0
   m_EmojiFallbackTextAssets:
-  - {fileID: 11400000, guid: 94e4efc3d603f50cfabcfeb9b1fa731c, type: 2}
+  - {fileID: 0}
   m_defaultColorGradientPresetsPath: Color Gradient Presets/
   m_defaultStyleSheet: {fileID: 11400000, guid: f952c082cb03451daed3ee968ac6c63e, type: 2}
   m_StyleSheetsResourcePath: 

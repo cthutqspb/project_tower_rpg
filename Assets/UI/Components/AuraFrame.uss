@@ -32,7 +32,7 @@
 
 /* Компактный размер для шрифта-иконки Nerd Font внутри ауры */
 .aura-slots-container .slot-icon {
-    font-size: 18px;
+    font-size: 32px;
     -unity-text-align: middle-center;
 }
 

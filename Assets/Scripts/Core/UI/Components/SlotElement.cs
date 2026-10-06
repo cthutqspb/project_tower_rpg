@@ -4,7 +4,8 @@ using Unity.Entities;
 using System.Linq;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Abilities;
-using ProjectTowerRpg.Core.UI.Colors;
+using ProjectTowerRpg.Core.Auras;
+using ProjectTowerRpg.Core.Colors;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -46,6 +47,16 @@ namespace ProjectTowerRpg.Core.UI.Components
             "item-epic",
             "item-legendary",
             "item-artifact"
+        };
+        private static readonly string[] ElementClasses = new string[] 
+        { 
+            "element-frost", 
+            "element-fire", 
+            "element-arcane", 
+            "element-shadow", 
+            "element-nature", 
+            "element-physical", 
+            "element-default" 
         };
 
         public SlotElement()
@@ -215,7 +226,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             var abilityConfig = AbilitiesDatabase.GetAbility(itemId);
             if (abilityConfig != null)
             {
-                SetAbilityClass(abilityConfig.identity?.@class ?? "");                               
+                SetElementClass(abilityConfig.identity?.element ?? "");                               
                 iconCharacter = abilityConfig.visuals?.icon_char ?? "";
             }
             else
@@ -247,17 +258,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 _bindLabel.RemoveFromClassList("hidden");
                 _bindLabel.text = bindingText;
-                //_bindLabel.style.color = SolarizedOsakaNight.Yellow;
-                //_icon.style.opacity = 1.0f;
-
                 ApplyValidation(validation);
             }
             else
             {
                 _bindLabel.AddToClassList("hidden");
                 _bindLabel.text = "";
-                //_bindLabel.style.color = SolarizedOsakaNight.Yellow;
-                //_icon.style.opacity = 1.0f;
                 ResetValidationStyle();
             }
         }
@@ -272,26 +278,40 @@ namespace ProjectTowerRpg.Core.UI.Components
             _isActionBarSlot = false;
             SlotIndex = index;
             
-            ClearVisual();
+            // 🦾 СИ-ФИКС №1: УБРАЛИ ПОКАДРОВЫЙ СУИЦИД ClearVisual() ОТСЮДА!
+            // Больше меш интерфейса не аннигилируется внутри тика обновления!
 
-            if (string.IsNullOrEmpty(auraId))
-            {
-                return;
-            }
-
-            // 1. Вытаскиваем иконку Nerd Font напрямую из базы способностей по ID ауры
+            // 🦾 СИ-ФИКС №2: ТОЧЕЧНЫЙ ГВАРД ПУСТОЙ СТРОКИ
+            // if (string.IsNullOrEmpty(auraId))
+            // {
+            //     SetSchoolClass("default");
+            //     _icon.text = "";
+            //     _icon.AddToClassList("hidden"); // Шёлково прячем пустой слот
+            //     _icon.MarkDirtyRepaint(); 
+            //     return;
+            // }
+            //
+            // Гарантированно снимаем скрытие один раз на входе без гонки кадра
             _icon.RemoveFromClassList("hidden");
             string iconCharacter = "";
             
-            var abilityConfig = AbilitiesDatabase.GetAbility(auraId);
-            if (abilityConfig != null)
+            var auraConfig = AurasDatabase.GetAura(auraId);
+            if (auraConfig != null)
             {
-                SetAbilityClass(abilityConfig.identity?.@class ?? "");                               
-                iconCharacter = abilityConfig.visuals?.icon_char ?? "";
+                iconCharacter = auraConfig.visuals?.icon_char ?? "";
+                Debug.LogWarning($"[Slot Element] СТАВИМ ИКОНКУ АУРЫ {iconCharacter} ");
+                // Класс школы магии сам выставит нужный font-size и 2D-неон из USS!
+                string element = auraConfig.identity?.element ?? "";
+                SetElementClass(element);
             }
+            else
+            {
+                SetElementClass("default");
+            }
+            
+            // 🦾 ЖЕСТКАЯ ЗАПИСЬ ГЛИФА: Намертво вбиваем символ в текстовое поле.
             _icon.text = iconCharacter;
 
-            // 2. Стаки баффа (рисуем на месте количества предметов, только если их больше 1)
             if (stacks > 1)
             {
                 _amountLabel.RemoveFromClassList("hidden");
@@ -303,16 +323,12 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _amountLabel.text = "";
             }
 
-            // 3. Наглухо скрываем бинды и обнуляем стили валидации экшен-бара
             _bindLabel.AddToClassList("hidden");
             _bindLabel.text = "";
             ResetValidationStyle();
 
-            // 4. Запускаем твои родные радиальные "часики" затемнения спада ауры!
-            // Передаем false (не ГКД), чтобы сектор шел по часовой стрелке, имитируя спад эффекта
             SetCooldown(remaining, duration, false);
 
-            // 5. Выводим цифровой таймер в твой текстовый Label _durationLabel
             if (remaining > 0f)
             {
                 _durationLabel.RemoveFromClassList("hidden");
@@ -325,8 +341,9 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _durationLabel.AddToClassList("hidden");
                 _durationLabel.text = "";
             }
+            
+            _icon.MarkDirtyRepaint(); 
         }
-
 
         private void SetAbilityClass(string classType)
         {
@@ -367,6 +384,34 @@ namespace ProjectTowerRpg.Core.UI.Components
             
             if (!string.IsNullOrEmpty(qualityClass))
                 _icon.AddToClassList(qualityClass);
+        }
+
+        /// <summary>
+        /// 🦾 ААА-КАНОН РАСКРАСКИ: Динамическое переключение CSS-класса элемента магии для Nerd Font символов
+        /// </summary>
+        private void SetElementClass(string element)
+        {
+            foreach (var cls in ElementClasses)
+            {
+                _icon.RemoveFromClassList(cls);
+            }
+            
+            string elementClass = element?.ToLower() switch
+            {
+                "frost"    => "element-frost",
+                "fire"     => "element-fire",
+                "arcane"   => "element-arcane",
+                "shadow"   => "element-shadow",
+                "nature"   => "element-nature",
+                "physical" => "element-physical",
+                _          => "element-default"
+            };
+            
+            // 3. Вешаем новый Си-класс на иконку
+            if (!string.IsNullOrEmpty(elementClass))
+            {
+                _icon.AddToClassList(elementClass);
+            }
         }
 
         /// <summary>
@@ -556,8 +601,12 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         public void ClearVisual()
         {
+
+            // _itemId = "";
+            // _amount = 0;
             foreach (var cls in AbilityClasses) _icon.RemoveFromClassList(cls);
             foreach (var cls in QualityClasses) _icon.RemoveFromClassList(cls);
+            foreach (var cls in ElementClasses) _icon.RemoveFromClassList(cls);
             _icon.text = ""; // ✅ Очищаем символ-значок Nerd Font
             _icon.AddToClassList("hidden");
             //_icon.style.backgroundColor = Color.clear;

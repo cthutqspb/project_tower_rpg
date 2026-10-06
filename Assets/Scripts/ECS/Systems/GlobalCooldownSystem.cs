@@ -58,8 +58,8 @@ namespace ProjectTowerRpg.ECS.Systems
                                 // Пробегаем по всем 24 кнопкам панели
                                 for (int b = 0; b < barBuffer.Length; b++)
                                 {
-                                    var slotData = barBuffer[b];
-                                    var abilityId = slotData.AbilityId.ToString();
+                                    var slot = barBuffer[b];
+                                    var abilityId = slot.AbilityId.ToString();
                                     
                                     if (string.IsNullOrEmpty(abilityId)) continue;
 
@@ -72,7 +72,7 @@ namespace ProjectTowerRpg.ECS.Systems
                                         // Если группа кнопки совпадает с остывшей группой — триггерим вспышку по её точному индексу слота!
                                         if (slotCooldownGroup == cooldown.CooldownGroup)
                                         {
-                                            UIEvents.TriggerSlotAnimate(slotData.SlotIndex, SlotAnimationType.CooldownReady); // Или просто передавай индекс цикла 'b'
+                                            UIEvents.TriggerSlotAnimate(slot.SlotIndex, SlotAnimationType.CooldownReady); // Или просто передавай индекс цикла 'b'
                                         }
                                     }
                                 }

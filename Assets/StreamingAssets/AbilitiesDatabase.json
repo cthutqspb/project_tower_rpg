@@ -5,14 +5,15 @@
       "name_key": "ability_melee_attack_name",
       "desc_key": "ability_melee_attack_desc",
       "class": "all",
+      "school": "none",
+      "element": "physical",
       "tags": ["melee_attack", "physical"]
     },
     "visuals": {
       "animation": "melee_attack",
       "texture": "project_utumno",
       "tile_index": 3266,
-      "icon_char": "󰞇",
-      "color": "gray"
+      "icon_char": "󰞇"
     },
     "delivery": {
       "type": "instant_hit",
@@ -43,8 +44,7 @@
     },
     "effects": [
       {
-        "type": "direct_damage",
-        "school": "physical",
+        "type": "direct_damage", 
         "min": 2.0,
         "max": 4.0,
         "weapon_multiplier": 1.0,
@@ -62,14 +62,15 @@
       "name_key": "ability_frostbolt_name",
       "desc_key": "ability_frostbolt_desc",
       "class": "mage",
+      "school": "destruction",
+      "element": "frost",
       "tags": ["ranged_attack", "damage", "frost"]
     },
     "visuals": {
       "animation": "frostbolt",
       "texture": "project_utumno",
       "tile_index": 1650,
-      "icon_char": "",
-      "color": "blue"
+      "icon_char": ""
     },
     "delivery": {
       "type": "projectile",
@@ -102,7 +103,6 @@
     "effects": [
       {
         "type": "direct_damage",
-        "school": "frost",
         "min": 7.0,
         "max": 15.0,
         "weapon_multiplier": 0.2,
@@ -114,20 +114,86 @@
       }
     ]
   },
+  "fireball": {
+    "action_type": "ability",
+    "identity": {
+      "name_key": "ability_fireball_name",
+      "desc_key": "ability_fireball_desc",
+      "class": "mage",
+      "school": "destruction",
+      "element": "fire",
+      "tags": ["ranged_attack", "damage", "fire"]
+    },
+    "visuals": {
+      "animation": "fireball",
+      "texture": "project_utumno",
+      "tile_index": 1651,
+      "icon_char": ""
+    },
+    "delivery": {
+      "type": "projectile",
+      "factory_url": "game_scene:/world_controller#projectile_factory",
+      "fx": {
+        "sprite_animation": "fireball_sprite",
+        "particle_fx": "fireball_trail",
+        "hit_fx": "fireball_impact",
+        "duration": 0.0,
+        "prefab_path": "Projectiles/frostbolt_orb_projectile"
+      }
+    },
+    "parameters": {
+      "range": 27.0,
+      "speed": 10.0,
+      "cast_time": 2.0,
+      "cooldown": 0.0,
+      "triggers_gcd": true,
+      "is_homing": true,
+      "requires_target": true
+    },
+    "requirements": {
+      "level": 1,
+      "class": "mage"
+    },
+    "cost": {
+      "resource": "mana",
+      "value": 6.0
+    },
+    "effects": [
+      {
+        "type": "direct_damage",
+        "min": 24.0,
+        "max": 48.0,
+        "weapon_multiplier": 0.3,
+        "scaling_stats": { "intellect": 1.2 },
+        "aura_id": null,
+        "value": 0.0
+      },
+      {
+        "type": "apply_aura",
+        "aura_id": "ignite",
+        "min": 0.0,
+        "max": 0.0,
+        "weapon_multiplier": 0.0,
+        "scaling_stats": null,
+        "value": 0.0
+      }
+    ]
+  },
   "lightning_bolt": {
     "action_type": "ability",
     "identity": {
       "name_key": "ability_lightning_bolt_key",
       "desc_key": "ability_lightning_bolt_desc",
       "class": "mage",
+      "school": "destruction",
+      "element": "lightning",
       "tags": ["ranged_attack", "damage", "lightning"]
     },
     "visuals": {
       "animation": "lightning_bolt",
       "texture": "project_utumno",
       "tile_index": 1862,
-      "icon_char": "󱐌",
-      "color": "lightyellow"
+      "icon_char": "󱐌"
     },
     "delivery": {
       "type": "beam",
@@ -159,7 +225,6 @@
     "effects": [
       {
         "type": "direct_damage",
-        "school": "lightning",
         "min": 4.0,
         "max": 20.0,
         "weapon_multiplier": 0.25,
@@ -187,14 +252,15 @@
       "name_key": "ability_frost_armor_name",
       "desc_key": "ability_frost_armor_desc",
       "class": "mage",
+      "school": "abjuration",
+      "element": "frost",
       "tags": ["buff", "frost", "defense"]
     },
     "visuals": {
       "animation": "frost_armor",
       "texture": "project_utumno",
       "tile_index": 2021,
-      "icon_char": "",
-      "color": "blue"
+      "icon_char": ""
     },
     "delivery": {
       "type": "instant_hit",

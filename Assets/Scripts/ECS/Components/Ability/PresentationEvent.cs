@@ -11,6 +11,7 @@ namespace ProjectTowerRpg.ECS.Components
         CastEnd,
         Hit,
         Death,
+        AuraApplied,
         AuraTick,
         AuraEnd
     }

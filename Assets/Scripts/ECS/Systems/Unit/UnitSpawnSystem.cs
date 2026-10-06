@@ -208,7 +208,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     PatrolPoint = spawnPosition,
                     NextActionTime = 0f,
                     HasPatrolTarget = false,
-                    //IsPatrolling = false,
 
                     State = AiState.Idle,
                     AttackTimer = 0f,
@@ -295,7 +294,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 {
                     auraBuffer.Add(new AuraSlot 
                     { 
-                        AbilityId = "", 
+                        AuraId = "", 
                         TimeRemaining = 0f, 
                         Duration = 0f, 
                         Stacks = 0,
@@ -397,6 +396,10 @@ namespace ProjectTowerRpg.ECS.Systems
                         {
                             barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "frost_armor", SlotType = "spell", KeyBinding = defaultKey });
                         }
+                        else if (k == 3)
+                        {
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "fireball", SlotType = "spell", KeyBinding = defaultKey });
+                        }
                         else
                         {
                             barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "", SlotType = "", KeyBinding = defaultKey });
@@ -404,7 +407,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     }
 
                     Debug.Log("🔮 [ФАБРИКА]: Сквозной массив хоткеев (0..23) успешно вшит в буфер игрока!");
-                                }   
+                }   
                 else
                 {
                     // =========================================================================

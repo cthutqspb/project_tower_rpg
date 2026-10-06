@@ -19,6 +19,27 @@
     --item-epic-color: var(--osaka-purple);
     --item-legendary-color: var(--osaka-orange);
     --item-artifact-color: var(--osaka-yellow);
+
+     /* ================================================================
+       ЦВЕТА ШКОЛ МАГИИ ДЛЯ АУР И СПОСОБНОСТЕЙ
+       ================================================================ */
+    --school-frost-color: var(--osaka-blue);
+    --school-fire-color: var(--osaka-orange);
+    --school-arcane-color: var(--osaka-cyan);
+    --school-nature-color: var(--osaka-green);
+    --school-shadow-color: var(--osaka-purple);
+    --school-holy-color: var(--osaka-yellow);
+    --school-physical-color: var(--osaka-red);
+    --school-default-color: var(--osaka-text-dim);
+
+    /* Полупрозрачные HDR-версии для сочного 2D-свечения (Bloom) */
+    --glow-frost: rgba(122, 162, 247, 0.4);
+    --glow-fire: rgba(255, 158, 100, 0.45);
+    --glow-arcane: rgba(125, 207, 255, 0.5);
+    --glow-nature: rgba(158, 206, 106, 0.4);
+    --glow-shadow: rgba(187, 154, 247, 0.45);
+    --glow-holy: rgba(224, 175, 104, 0.4);
+    --glow-physical: rgba(247, 118, 142, 0.35);
 }
 
 .ability-mage {
@@ -76,6 +97,53 @@
 .item-artifact {
     color: var(--item-artifact-color);
     border-color: var(--item-artifact-color);
+}
+
+/* ================================================================
+   USS-КЛАССЫ ДЛЯ ШКОЛ МАГИИ (УПРАВЛЯЮТ Nerd Font СИМВОЛАМИ)
+   ================================================================ */
+
+.element-frost {
+    color: var(--school-frost-color);
+    border-color: var(--school-frost-color);
+    /* 🦾 2D-BLOOM: Делаем контур символа толще и накладываем ледяную неоновую тень */
+}
+
+.element-fire {
+    color: var(--school-fire-color);
+    border-color: var(--school-fire-color);
+  }
+
+.element-arcane {
+    color: var(--school-arcane-color);
+    border-color: var(--school-arcane-color);
+  }
+
+.element-nature {
+    color: var(--school-nature-color);
+    border-color: var(--school-nature-color);
+}
+
+.element-shadow {
+    color: var(--school-shadow-color);
+    border-color: var(--school-shadow-color);
+    -unity-text-outline: 1px var(--school-shadow-color);
+    text-shadow: 0px 0px 10px var(--glow-shadow);
+}
+
+.element-holy {
+    color: var(--school-holy-color);
+    border-color: var(--school-holy-color);
+}
+
+.element-physical {
+    color: var(--school-physical-color);
+    border-color: var(--school-physical-color);
+}
+
+.element-default {
+    color: var(--school-default-color);
+    border-color: var(--school-default-color);
 }
 
 .slot { 
