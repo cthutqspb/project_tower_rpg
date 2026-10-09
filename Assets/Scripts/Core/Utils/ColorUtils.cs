@@ -74,22 +74,24 @@ namespace ProjectTowerRpg.Core.Colors
             );
         }
 
-
         // =========================================================================
-        // 🔮 ШКОЛЫ МАГИИ (Для 2D-интерфейса слотов и 3D-эффектов в мире)
+        // 🔮 СТИХИИ И ЭЛЕМЕНТЫ (Для 2D-интерфейса слотов и 3D-эффектов в мире)
         // =========================================================================
         private const float GlowIntensity = 7.2f;
 
-        public struct AuraColors
+        // 🦾 ВСЕЯДНЫЙ СИ-КАНOН ТИПОВ ДАННЫХ:
+        // Переименовали структуру в ElementColors. Теперь она идеально описывает 
+        // палитру для аур, экшен-баров и свечения рук!
+        public struct ElementColors
         {
             public Color FaceColor;
             public Color GlowColor;
         }
 
         /// <summary>
-        /// 🦾 ММО-КАНОН: Возвращает LDR-подложку и HDR-неон (Glow) строго по школе магии
+        /// 🦾 ММО-КАНОН: Возвращает LDR-подложку и HDR-неон (Glow) строго по стихии/элементу
         /// </summary>
-        public static AuraColors GetColorByElement(string element)
+        public static ElementColors GetColorByElement(string element)
         {
             Color baseColor;
             float faceAlpha = 0.27f;
@@ -100,18 +102,22 @@ namespace ProjectTowerRpg.Core.Colors
                     baseColor = new Color(255f / 255f, 158f / 255f, 100f / 255f); // var(--osaka-orange)
                     break;
                 case "frost":
+                case "water":
                     baseColor = new Color(122f / 255f, 162f / 255f, 247f / 255f); // var(--osaka-blue)
                     break;
                 case "arcane":
                     baseColor = new Color(125f / 255f, 207f / 255f, 255f / 255f); // var(--osaka-cyan)
                     break;
                 case "nature":
+                case "poison":
                     baseColor = new Color(158f / 255f, 206f / 255f, 106f / 255f); // var(--osaka-green)
                     break;
                 case "shadow":
+                case "void":
                     baseColor = new Color(187f / 255f, 154f / 255f, 247f / 255f); // var(--osaka-purple)
                     break;
                 case "holy":
+                case "lightning":
                     baseColor = new Color(224f / 255f, 175f / 255f, 104f / 255f); // var(--osaka-yellow)
                     break;
                 case "physical":
@@ -124,7 +130,6 @@ namespace ProjectTowerRpg.Core.Colors
                     break;
             }
 
-            // Шёлково юзаем твой собственный метод расширения SetAlpha!
             Color ldrFace = baseColor.SetAlpha(faceAlpha);
             
             Color hdrGlow = new Color(
@@ -134,8 +139,8 @@ namespace ProjectTowerRpg.Core.Colors
                 1.0f
             );
 
-            return new AuraColors { FaceColor = ldrFace, GlowColor = hdrGlow };
+            return new ElementColors { FaceColor = ldrFace, GlowColor = hdrGlow };
         }
-
     }
 }
+

@@ -99,11 +99,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 });
 
                 em.AddComponentData(unitEntity, new UnitCombatStatsComponent{});
-            
-                if (markerData.IsDead)
-                {
-                    em.AddComponent<IsDeadTag>(unitEntity);
-                }
+             
                 // Записываем РЕАЛЬНОЕ расчетное ХП из конфига в ОЗУ чанка при рождении!
                 em.AddComponentData(unitEntity, new HealthComponent
                 {
@@ -158,6 +154,11 @@ namespace ProjectTowerRpg.ECS.Systems
                     GrowthHealth = dbCfg.progression.growth_health,
                     GrowthDamage = dbCfg.progression.growth_damage
                 });
+
+                if (markerData.IsDead)
+                {
+                    em.AddComponent<IsDeadTag>(unitEntity);
+                }
 
                 // ================================================================
                 // 🔮 ИНИЦИАЛИЗАЦИЯ И РАСЧЕТ РЕСУРСА (Мана, Энергия, Ярость)

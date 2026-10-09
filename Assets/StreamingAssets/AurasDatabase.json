@@ -51,6 +51,33 @@
       "attack_speed_modifier": -0.25
     }
   },
+  "chilled": {
+    "action_type": "aura",
+    "type": "debuff",
+    "max_stacks": 1, 
+    "duration": 4.0,
+    "identity": {
+      "name_key": "aura_chilled_name",
+      "desc_key": "aura_chilled_desc",
+      "school": "destruction",
+      "element": "frost"
+    },
+    "effect": {
+      "type": "passive_modifier",
+      "tick_interval": 0.0,
+      "base_damage": 0.0
+    },
+    "visuals": {
+      "animation": "chilled_debuff_icon",
+      "icon_char": "", 
+      "color": [0.15, 0.55, 0.82, 1.0]
+    },
+    "modifiers": {
+      "armor_multiplier": 1.0,
+      "attack_speed_modifier": 0.0,
+      "move_speed_modifier": -0.40 
+    }
+  },
   "ignite": {
     "action_type": "aura",
     "type": "debuff",

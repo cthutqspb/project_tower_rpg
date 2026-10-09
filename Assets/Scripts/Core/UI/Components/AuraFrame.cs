@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
-using ProjectTowerRpg.ECS.Components;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -14,12 +13,12 @@ namespace ProjectTowerRpg.Core.UI.Components
         public Entity BoundEntity => _boundEntity;
         public StaticGrid SlotsGrid => _slotsGrid;
 
-        public AuraFrame(VisualElement aurasRoot, int maxSlots = 8)
+        public AuraFrame(VisualElement aurasRoot, int maxSlots = 24)
         {
             if (aurasRoot == null) return;
 
             _slotsGrid = new StaticGrid(maxSlots, 1, 0);
-            _slotsGrid.AddToClassList("aura-slots-container");
+            _slotsGrid.AddToClassList("aura-grid");
             aurasRoot.Add(_slotsGrid);
             
             Debug.Log($"🔮 [AuraFrame]: Сетка аур успешно вшита в ноду '{aurasRoot.name}' на {maxSlots} ячеек.");

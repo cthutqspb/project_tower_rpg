@@ -108,8 +108,15 @@
         "weapon_multiplier": 0.2,
         "scaling_stats": {
           "intellect": 1.0
-        },
-        "aura_id": null,
+        }
+      },
+      {
+        "type": "apply_aura",
+        "aura_id": "chilled",
+        "min": 0.0,
+        "max": 0.0,
+        "weapon_multiplier": 0.0,
+        "scaling_stats": null,
         "value": 0.0
       }
     ]

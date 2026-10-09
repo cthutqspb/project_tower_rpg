@@ -1,7 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <!-- Изолированный контейнер фрейма на инлайн-стилях -->
-    <ui:VisualElement name="unit-frame-root" style="width: 260px; padding: 10px; background-color: rgba(35, 35, 35, 0.9); border-width: 2px; border-color: #444444; border-radius: 6px;">
-        
+    <ui:VisualElement name="unit-frame-root" class="unit-frame" picking-mode="Ignore">
+      <ui:VisualElement class="unit-frame-main" picking-mode="Position" >
         <!-- Блок текста -->
         <ui:Label name="unit-name" text="Unknown" style="color: #ffffff; -unity-font-style: bold; font-size: 14px; margin-bottom: 2px;" />
         <ui:Label name="unit-level" text="Ур. 5" style="color: #aaaaaa; font-size: 11px; margin-bottom: 8px;" />
@@ -10,6 +10,10 @@
         <ui:VisualElement name="health-bar-root" style="margin-bottom: 6px;" />
         <ui:VisualElement name="resource-bar-root" />
 
-        <ui:VisualElement name="aura-frame-root" style="margin-top: 6px;" picking-mode="Ignore" />
+
+      </ui:VisualElement>
+
+      <ui:VisualElement name="aura-frame-root" class="unit-frame-auras" />
+
     </ui:VisualElement>
 </ui:UXML>

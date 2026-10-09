@@ -30,6 +30,10 @@ namespace ProjectTowerRpg.Core.UI
 
         private CastBar _castBar;
 
+        [Header("Настройки Чат-Лога")]
+        [SerializeField] private VisualTreeAsset _chatLogUxml; 
+        private ChatLog _chatLog;
+
         private PanelRenderer _panelRenderer;
         private VisualElement _root;
         private bool _isUiReady = false;
@@ -168,6 +172,12 @@ namespace ProjectTowerRpg.Core.UI
                     UIRegistry.Unregister(_lastTargetEntity, _targetFrame);
                 }
 
+                if (_chatLog != null) 
+                {
+                    _chatLog.Dispose();
+                    _chatLog = null;
+                }
+
                 globalUiRoot.Remove(_root);
                 _isPlayerBound = false;
                 _lastTargetEntity = Entity.Null; 
@@ -273,6 +283,29 @@ namespace ProjectTowerRpg.Core.UI
                 _isUiReady = true;
                 Debug.Log("[HUDManager]: Кастбар шёлково собран на базе универсального ProgressBar и выведен на экран!");
             }
+
+            // =========================================================================
+            // 🦾 КАНOНИЧНАЯ СБОРКА ЧАТ-ЛОГА (Чистый USS-дизайн):
+            // =========================================================================
+            if (_chatLogUxml != null && _root != null)
+            {
+                // 1. Клонируем вёрстку чата напрямую из ассета инспектора
+                var chatVisual = _chatLogUxml.CloneTree();
+                chatVisual.name = "ChatLog";
+
+                // 2. 🦾 НАКАРМЛИВАЕМ USS-КЛАСС ОБЁРТКЕ:
+                // Передаем TemplateContainer наш класс .chat-log-wrapper из стилей.
+                // Yoga Layout сам считает absolute, left и bottom из файла ChatLog.uss!
+                chatVisual.AddToClassList("chat-log-wrapper");
+
+                // 3. Обертываем ноду в наш реактивный класс логики
+                _chatLog = new ChatLog(chatVisual);
+
+                // 4. Физически внедряем чат в общий корень HUD!
+                _root.Add(chatVisual);
+                Debug.Log("[HUDManager]: Компонент ChatLog успешно собран из ассета и выведен на экран!");
+            }
+
 
 
             _isUiReady = true;

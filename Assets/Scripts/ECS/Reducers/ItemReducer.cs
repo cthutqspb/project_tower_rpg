@@ -1,5 +1,6 @@
 using Unity.Entities;
 using Unity.Mathematics;
+using ProjectTowerRpg.Core;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Items;
 using Debug = UnityEngine.Debug;
@@ -35,7 +36,14 @@ namespace ProjectTowerRpg.ECS.Reducers
         // УНИВЕРСАЛЬНЫЙ ТРАНСФЕР (ПОЛИМОРФНЫЙ)
         // ================================================================
 
-        public static void Transfer(EntityCommandBuffer ecb, ISlotContainer source, int sourceSlot, ISlotContainer target, int targetSlot)
+        public static void Transfer(
+            EntityCommandBuffer ecb,
+            ISlotContainer source,
+            int sourceSlot,
+            ISlotContainer target,
+            int targetSlot,
+            Entity presentationBufferEntity
+        )
         {
             if (!source.HasContent(sourceSlot))
             {
@@ -52,11 +60,33 @@ namespace ProjectTowerRpg.ECS.Reducers
                 return;
             }
 
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+
             // 🟢 КЕЙС А: Целевой слот пустой → обычное перемещение (Твой родной рабочий код)
             if (!target.HasContent(targetSlot))
             {
                 target.SetContent(targetSlot, content);
                 source.ClearSlot(sourceSlot);
+                
+                var playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>(em);
+                if (playerEntity != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntity))
+                {
+                    var links = em.GetComponentData<ProjectTowerRpg.ECS.Components.BuffersLinkComponent>(playerEntity);
+                    
+                    // Если вещь прилетела ИЗВНЕ (не из нашего рюкзака), а упала строго К НАМ в рюкзак — это ЛУТ!
+                    if (source.Entity != links.Inventory && target.Entity == links.Inventory)
+                    {
+                        ItemSlot itemSlot = (ItemSlot)content;
+                        ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
+                        {
+                            Kind = PresentationEventKind.ItemLooted,
+                            Source = Unity.Entities.Entity.Null,
+                            Target = itemSlot.ItemEntity,
+                            Param = itemSlot.DataId
+                        });
+                    }
+                }
+
                 Debug.Log($"[ItemActions] Перенос из слота #{sourceSlot} в слот #{targetSlot}");
                 return;
             }
@@ -78,6 +108,44 @@ namespace ProjectTowerRpg.ECS.Reducers
             // Если обе стороны согласны на обмен — шёлково свопаем шмотки в ОЗУ
             target.SetContent(targetSlot, content);
             source.SetContent(sourceSlot, targetContent);
+            
+            bool isSourceBox = em.HasComponent<ContainerTag>(source.Entity);
+            bool isTargetBag = em.HasComponent<InventoryTag>(target.Entity);
+
+            var playerEntSwap = PlayerUtils.GetEntityByTag<PlayerTag>(em);
+            if (playerEntSwap != Unity.Entities.Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntSwap))
+            {
+                var links = em.GetComponentData<BuffersLinkComponent>(playerEntSwap);
+                
+                bool isSourceExternal = source.Entity != links.Inventory;
+                bool isTargetMyBag = target.Entity == links.Inventory;
+
+                if (isSourceExternal && isTargetMyBag)
+                {
+                    // Вектор 1: Мы забрали предмет мышкой из чужого сундука и свопнули со своим в рюкзаке
+                    ItemSlot itemSlot = (ItemSlot)content;
+                    ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
+                    {
+                        Kind = PresentationEventKind.ItemLooted,
+                        Source = Unity.Entities.Entity.Null,
+                        Target = itemSlot.ItemEntity,
+                        Param = itemSlot.DataId
+                    });
+                }
+                else if (!isSourceExternal && !isTargetMyBag && source.Entity == links.Inventory && target.Entity != links.Inventory)
+                {
+                    // Вектор 2: Затолкнули свою вещь в чужой сундук, и предмет сундука отлетел к нам в рюкзак!
+                    ItemSlot returnedItemSlot = (ItemSlot)targetContent;
+                    ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
+                    {
+                        Kind = PresentationEventKind.ItemLooted,
+                        Source = Unity.Entities.Entity.Null,
+                        Target = returnedItemSlot.ItemEntity,
+                        Param = returnedItemSlot.DataId
+                    });
+                }
+            }
+           
             Debug.Log($"[ItemActions] Своп слотов #{sourceSlot} ↔ #{targetSlot}");
         }
 
@@ -90,7 +158,10 @@ namespace ProjectTowerRpg.ECS.Reducers
             EntityCommandBuffer ecb,
             Entity containerEntity,
             int index,
-            float3 position)
+            float3 position,
+            Entity presentationBufferEntity
+
+        )
         {
             if (!slotDataLookup.HasBuffer(containerEntity))
             {
@@ -146,6 +217,14 @@ namespace ProjectTowerRpg.ECS.Reducers
             ecb.AddComponent(itemEntity, Unity.Transforms.LocalTransform.FromPosition(dropPosition));
             ecb.RemoveComponent<StoredTag>(itemEntity); 
 
+            ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
+            {
+                Kind = WorldEvents.ItemLooted,
+                //Source = inventoryEntity,
+                Target = itemEntity,
+                Param = item.DataId
+            });
+
             Debug.Log($"[ItemActions.Drop] Предмет {item.DataId} успешно отправлен в ECB на дроп в позицию {dropPosition}.");
         }
 
@@ -157,7 +236,9 @@ namespace ProjectTowerRpg.ECS.Reducers
             ref BufferLookup<ItemSlot> slotDataLookup,
             EntityCommandBuffer ecb,
             Entity itemEntity,
-            Entity inventoryEntity)
+            Entity inventoryEntity,
+            Entity presentationBufferEntity
+        )
         {
             if (!slotDataLookup.HasBuffer(inventoryEntity)) return;
 
@@ -205,6 +286,20 @@ namespace ProjectTowerRpg.ECS.Reducers
                 {
                     ecb.RemoveComponent<VisualizedTag>(itemEntity);
                 }
+
+                // =========================================================================
+                // 🦾 АБСОЛЮТНЫЙ, КРИСТАЛЬНЫЙ ААА-КАНОН БЕЗ КОСТЫЛЕЙ:
+                // Используем нативный метод AppendToBuffer самого движка Unity!
+                // Никаких левых классов, никаких скрытых сущностей и плодячки параметров.
+                // В ОЗУ чанка падает чистая unmanaged-структура через твои фасады WorldEvents!
+                // =========================================================================
+                ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
+                {
+                    Kind = WorldEvents.ItemLooted,
+                    Source = inventoryEntity,
+                    Target = itemEntity,
+                    Param = itemData.ItemId
+                });
 
                 Debug.Log($"[ItemActions.Loot] 'Душа' предмета {itemData.ItemId} (Entity {itemEntity.Index}) успешно упакована в рюкзак.");
             }

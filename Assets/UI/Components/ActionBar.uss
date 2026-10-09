@@ -1,0 +1,17 @@
+.action-bar-grid {
+  flex-grow: 1;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.action-bar-grid .slot {
+  margin: 1px;
+  width: 42px;
+  height: 42px;
+}
+
+.action-bar-grid .slot-icon {
+  width: 42px;
+  height: 42px;
+  font-size: 39px;
+}

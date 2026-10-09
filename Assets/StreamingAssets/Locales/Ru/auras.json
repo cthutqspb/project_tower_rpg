@@ -1,0 +1,16 @@
+{
+    "_comment_auras": "",
+
+    "aura_frost_armor_name": "Frost armor",
+    "aura_frost_armor_desc": "",
+
+    "frost_armor_slow": "Ice slow",
+    "aura_frost_slow_desc": "",
+
+    "aura_chilled_name": "Chilled",
+    "aura_chilled_desc": "",
+
+    "aura_ignite_name": "Ignite",
+    "aura_ignite_desc": ""
+    
+}

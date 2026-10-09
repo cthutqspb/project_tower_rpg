@@ -110,6 +110,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1490bad6e056d7e308d722cd66859c60, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SyncTransformWithEntity
+  Type: 0
+  _handGlowPrefab: {fileID: 5376819137678770822, guid: da891091b48474cf9abdd1f994478fe0, type: 3}
+  _instantMuzzlePrefab: {fileID: 5376819137678770822, guid: ce72b4265cb24fbffbc94aea23e1b6a2, type: 3}
 --- !u!114 &8993250667562243611
 MonoBehaviour:
   m_ObjectHideFlags: 0

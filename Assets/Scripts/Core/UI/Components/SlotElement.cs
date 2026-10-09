@@ -282,14 +282,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             // Больше меш интерфейса не аннигилируется внутри тика обновления!
 
             // 🦾 СИ-ФИКС №2: ТОЧЕЧНЫЙ ГВАРД ПУСТОЙ СТРОКИ
-            // if (string.IsNullOrEmpty(auraId))
-            // {
-            //     SetSchoolClass("default");
-            //     _icon.text = "";
-            //     _icon.AddToClassList("hidden"); // Шёлково прячем пустой слот
-            //     _icon.MarkDirtyRepaint(); 
-            //     return;
-            // }
+            if (string.IsNullOrEmpty(auraId))
+            {
+                this.AddToClassList("hidden");
+                this.pickingMode = PickingMode.Ignore;
+                return;
+            }
             //
             // Гарантированно снимаем скрытие один раз на входе без гонки кадра
             _icon.RemoveFromClassList("hidden");
@@ -298,6 +296,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             var auraConfig = AurasDatabase.GetAura(auraId);
             if (auraConfig != null)
             {
+                this.RemoveFromClassList("hidden");
+                this.pickingMode = PickingMode.Position;
                 iconCharacter = auraConfig.visuals?.icon_char ?? "";
                 Debug.LogWarning($"[Slot Element] СТАВИМ ИКОНКУ АУРЫ {iconCharacter} ");
                 // Класс школы магии сам выставит нужный font-size и 2D-неон из USS!

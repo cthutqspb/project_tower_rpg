@@ -6,6 +6,9 @@
     "ability_frostbolt_name": "Ледяная стрела",
     "ability_frostbolt_desc": "Морозит жепу",
 
+    "ability_fireball_name": "Огненный шар",
+    "ability_fireball_desc": "Жжет жепу",
+
     "ability_lightning_bolt_key": "Электрический разряд",
     "ability_lightning_bolt_desc": "Щекочет жепу",
 

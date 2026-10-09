@@ -1,0 +1,16 @@
+{
+    "_comment_auras": "",
+
+    "aura_frost_armor_name": "Ледяная броня",
+    "aura_frost_armor_desc": "",
+
+    "frost_armor_slow": "Замедление от холода",
+    "aura_frost_slow_desc": "",
+
+    "aura_chilled_name": "Охлаждение",
+    "aura_chilled_desc": "",
+
+    "aura_ignite_name": "Горение",
+    "aura_ignite_desc": ""
+    
+}

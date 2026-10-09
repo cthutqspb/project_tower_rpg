@@ -25,6 +25,14 @@ namespace ProjectTowerRpg.ECS.Systems
             var ecb = _ecbSystem.CreateCommandBuffer();
             _slotDataLookup.Update(ref CheckedStateRef);
 
+            // 🦾 ОДИН СИНГЛТОН НА ВЕСЬ КАДР:
+            // Ищем центральный кабель шины ивентов ровно один раз на входе в систему!
+            if (!SystemAPI.TryGetSingletonEntity<PresentationEventBufferTag>(out var presentationBufferEntity))
+            {
+                Debug.LogError("[ActionDispatcher]: Критическая ошибка: Не найдена глобальная шина PresentationEvent!");
+                return;
+            }
+
             // ================================================================
             // ИСПОЛНЕНИЕ КОМАНД (Сверхзвуковой unmanaged switch по байту)
             // ================================================================
@@ -36,7 +44,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 switch (cmd.ValueRO.Action)
                 {
                     case ActionKind.Loot:
-                        ExecuteLoot(cmd.ValueRO, ecb);
+                        ExecuteLoot(cmd.ValueRO, ecb, presentationBufferEntity);
                         break;
 
                     case ActionKind.OpenContainer:
@@ -44,7 +52,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         break;
 
                     case ActionKind.ContainerTakeAll:
-                        ExecuteContainerTakeAll(cmd.ValueRO, ecb);
+                        ExecuteContainerTakeAll(cmd.ValueRO, ecb, presentationBufferEntity);
                         break;
 
                     case ActionKind.Attack:
@@ -60,11 +68,11 @@ namespace ProjectTowerRpg.ECS.Systems
                         break;
 
                     case ActionKind.ItemTransfer:
-                        ExecuteItemTransfer(cmd.ValueRO, ecb);
+                        ExecuteItemTransfer(cmd.ValueRO, ecb, presentationBufferEntity);
                         break;
 
                     case ActionKind.ItemDrop:
-                        ExecuteItemDrop(cmd.ValueRO, ecb);
+                        ExecuteItemDrop(cmd.ValueRO, ecb, presentationBufferEntity);
                         break;
 
                     case ActionKind.ItemUse:
@@ -94,7 +102,7 @@ namespace ProjectTowerRpg.ECS.Systems
         // ИСПОЛНИТЕЛИ
         // ================================================================
 
-        private void ExecuteLoot(ActionCommand cmd, EntityCommandBuffer ecb)
+        private void ExecuteLoot(ActionCommand cmd, EntityCommandBuffer ecb, Entity presentationBufferEntity)
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
@@ -113,7 +121,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 return;
             }
 
-            ItemReducer.Loot(ref _slotDataLookup, ecb, cmd.TargetEntity, targetInventory);
+            ItemReducer.Loot(ref _slotDataLookup, ecb, cmd.TargetEntity, targetInventory, presentationBufferEntity);
             Debug.Log($"[ActionDispatcher] Лут {cmd.TargetEntity.Index} -> {targetInventory.Index}");
         }
 
@@ -123,7 +131,11 @@ namespace ProjectTowerRpg.ECS.Systems
             Debug.Log($"[ActionDispatcher] Открыт контейнер {cmd.TargetEntity.Index}");
         }
 
-        private void ExecuteContainerTakeAll(ActionCommand cmd, EntityCommandBuffer ecb)
+        private void ExecuteContainerTakeAll(
+            ActionCommand cmd,
+            EntityCommandBuffer ecb,
+            Entity presentationBufferEntity
+        )
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
@@ -178,7 +190,7 @@ namespace ProjectTowerRpg.ECS.Systems
             // 🦾 ПОТОМ ИСПОЛНЯЕМ — буфер source уже не читаем
             foreach (var t in transfers)
             {
-                ExecuteItemTransfer(t, ecb);
+                ExecuteItemTransfer(t, ecb, presentationBufferEntity);
             }
             transfers.Dispose();
 
@@ -203,7 +215,11 @@ namespace ProjectTowerRpg.ECS.Systems
             // MovementActions.MoveTo(cmd.SourceEntity, cmd.Position);
         }
 
-        private void ExecuteItemTransfer(ActionCommand cmd, EntityCommandBuffer ecb)
+        private void ExecuteItemTransfer(
+            ActionCommand cmd,
+            EntityCommandBuffer ecb,
+            Entity presentationBufferEntity
+        )
         {
             ISlotContainer source = CreateContainer(cmd.SourceEntity);
             ISlotContainer target = CreateContainer(cmd.TargetEntity);
@@ -260,18 +276,27 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
-            ItemReducer.Transfer(ecb, source, cmd.SourceSlot, target, finalTargetSlot);
+            ItemReducer.Transfer(
+                ecb,
+                source,
+                cmd.SourceSlot,
+                target,
+                finalTargetSlot,
+                presentationBufferEntity
+            );
+
             Debug.Log($"[ActionDispatcher] Трансфер {cmd.ItemId} [{cmd.SourceSlot}] -> [{finalTargetSlot}]");
         }
 
-        private void ExecuteItemDrop(ActionCommand cmd, EntityCommandBuffer ecb)
+        private void ExecuteItemDrop(ActionCommand cmd, EntityCommandBuffer ecb, Entity presentationBufferEntity)
         {
             ItemReducer.Drop(
                 ref _slotDataLookup,
                 ecb,
                 cmd.SourceEntity,
                 cmd.SourceSlot,
-                cmd.Position
+                cmd.Position,
+                presentationBufferEntity
             );
 
             Debug.Log($"[ActionDispatcher] Дроп {cmd.ItemId} x{cmd.Amount} на {cmd.Position}");

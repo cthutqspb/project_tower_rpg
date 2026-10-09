@@ -49,6 +49,7 @@ namespace ProjectTowerRpg.Core.UI
             _ghost.name = "drag-ghost";
             _ghost.style.width = 48;
             _ghost.style.height = 48;
+            _ghost.style.fontSize = 39;
             _ghost.style.display = DisplayStyle.None;
             _ghost.style.backgroundColor = SolarizedOsakaNight.Surface.SetAlpha(0.85f);
             _ghost.pickingMode = PickingMode.Ignore;

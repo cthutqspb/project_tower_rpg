@@ -56,12 +56,14 @@ namespace ProjectTowerRpg.Core.UI.Components
             // Клонируем каркас фрейма прямо внутрь слота
             _frameRoot = _frameUxml.CloneTree();
             slotContainer.Add(_frameRoot);
+            _frameRoot.pickingMode = PickingMode.Ignore;
 
             // Находим внутренние ноды текста и полосок
             var hpRoot = _frameRoot.Q<VisualElement>("health-bar-root");
             var resRoot = _frameRoot.Q<VisualElement>("resource-bar-root");
             
             var aurasRoot = _frameRoot.Q<VisualElement>("aura-frame-root");
+            aurasRoot.pickingMode = PickingMode.Ignore;
 
             _unitNameLabel = _frameRoot.Q<Label>("unit-name");
             _unitLevelLabel = _frameRoot.Q<Label>("unit-level");

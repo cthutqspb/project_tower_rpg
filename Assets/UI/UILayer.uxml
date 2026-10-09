@@ -11,5 +11,8 @@
     <Style src="project://database/Assets/UI/Components/Slot.uss?fileID=7433441132597879392&amp;guid=221a866ad2d9b602da09c32b9efbd9ee&amp;type=3#Slot"/>
     <Style src="project://database/Assets/UI/Components/Tooltip.uss?fileID=7433441132597879392&amp;guid=3891cbfc01ebbf5ee93164217d192d64&amp;type=3#Tooltip"/>
     <Style src="project://database/Assets/UI/Components/AuraFrame.uss?fileID=7433441132597879392&amp;guid=0390740805b2d3f7c940d0060fa220de&amp;type=3#AuraFrame"/>
+    <Style src="project://database/Assets/UI/Components/ActionBar.uss?fileID=7433441132597879392&amp;guid=e6c9c1854faaedca7b7f62a495e76a62&amp;type=3#ActionBar"/>
+    <Style src="project://database/Assets/UI/Components/UnitFrame.uss?fileID=7433441132597879392&amp;guid=5aa5e4e70f7100a9491f7e2f160ccef8&amp;type=3#UnitFrame"/>
+    <Style src="project://database/Assets/UI/Components/ChatLog.uss?fileID=7433441132597879392&amp;guid=7938a22e2cf99a5d1afebb4b48ab9707&amp;type=3#ChatLog"/>
     <ui:VisualElement picking-mode="Ignore" name="VisualElement" class="ui-layer"/>
 </ui:UXML>

@@ -285,9 +285,14 @@ namespace ProjectTowerRpg.ECS.Systems
         private void SendCastStartEvent(EntityCommandBuffer ecb, Entity eventBuffer, Entity caster, Entity target, FixedString32Bytes abilityId, float castTime)
         {
             if (eventBuffer == Entity.Null) return;
-            PresentationEventKind kind = castTime <= 0f ? PresentationEventKind.Attack : PresentationEventKind.CastStart;
-            ecb.AppendToBuffer(eventBuffer, new PresentationEvent { Kind = kind, Source = caster, Target = target, Param = abilityId });
-            Debug.Log($"📡 [CastSystem]: В шину презентации улетело событие {kind} от юнита {caster.Index}.");
+            
+            ecb.AppendToBuffer(eventBuffer, new PresentationEvent {
+                Kind = PresentationEventKind.CastStart,
+                Source = caster,
+                Target = target,
+                Param = abilityId
+            });
+            Debug.Log($"📡 [CastSystem]: В шину презентации улетело событие {PresentationEventKind.CastStart} от юнита {caster.Index}.");
         }
 
         private void SendCastEndEvent(EntityCommandBuffer ecb, Entity eventBuffer, Entity caster, Entity target, FixedString32Bytes abilityId)

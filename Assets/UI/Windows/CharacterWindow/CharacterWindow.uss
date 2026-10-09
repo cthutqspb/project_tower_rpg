@@ -42,10 +42,26 @@
 .inventory-column {
     width: 320px;
     flex-shrink: 0;
-    display: flex;
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
     padding: 4px;
     overflow: auto;
     max-height: 100%;
+}
+
+.inventory-grid {
+    display: flex;
+    justify-content: center;
+}
+
+.inventory-grid .slot {
+    margin: 2px;
+    width: 42px;
+    height: 42px;
+}
+
+.inventory-grid .slot-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 39px;
 }

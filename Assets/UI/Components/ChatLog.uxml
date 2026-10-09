@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" engine="UnityEngine.UIElements" editor="UnityEngine.UIElements">
+    
+    <ui:VisualElement class="chat-log-root" name="chat-log-root" picking-mode="Ignore">
+        
+        <!-- Верхняя панель: Вкладки + Управление -->
+        <ui:VisualElement name="chat-log-toolbar" class="chat-toolbar" picking-mode="Position">
+            
+            <!-- Слева: Контейнер кнопок переключения табов -->
+            <ui:VisualElement name="chat-tabs-container" class="chat-tabs-holder" picking-mode="Ignore">
+                <ui:Button name="tab-system-btn" class="chat-tab-button" text="Система" />
+                <ui:Button name="tab-combat-btn" class="chat-tab-button" text="Бой" />
+                <ui:Button name="tab-world-btn" class="chat-tab-button" text="Мир" />
+            </ui:VisualElement>
+            
+            <!-- Справа: Иконка блокировки перемещения лога -->
+            <ui:Button name="chat-lock-btn" class="chat-lock-icon" />
+            
+        </ui:VisualElement>
+        
+        <!-- Лента сообщений -->
+        <ui:ScrollView 
+            class="chat-log-scroll-view" 
+            name="chat-log-messages-container" 
+            mode="Vertical" 
+            picking-mode="Ignore"
+            show-vertical-scroller="true"
+            show-horizontal-scroller="false" />
+            
+    </ui:VisualElement>
+    
+</ui:UXML>
+
+
+

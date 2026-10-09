@@ -32,11 +32,11 @@ namespace ProjectTowerRpg.Core.UI.Components
             this.AddToClassList("static-grid-container");
             this.pickingMode = PickingMode.Ignore;
             
-            this.style.width = columns * 48;
-            this.style.flexDirection = FlexDirection.Row;
-            this.style.flexWrap = Wrap.Wrap;
-            this.style.flexShrink = 0;
-            this.style.flexGrow = 0;
+            //this.style.width = Length.Percent(100);
+            //this.style.flexDirection = FlexDirection.Row;
+            //this.style.flexWrap = Wrap.Wrap;
+            //this.style.flexShrink = 0;
+            //this.style.flexGrow = 0;
 
             // 🦾 ЧИСТЫЙ КОНСТРУКТОР: Вызываем выделенный Си-метод создания
             for (int i = 0; i < columns * rows; i++)
@@ -59,16 +59,16 @@ namespace ProjectTowerRpg.Core.UI.Components
                 SlotIndex = bufferSlotIndex,
                 ContainerEntity = _boundEntity, // Подхватит сущность, если она уже есть
                 name = $"slot-{visualIndex}",
-                style =
-                {
-                    width = 42,
-                    height = 42,
-                    marginTop = 2,
-                    marginRight = 2,
-                    marginBottom = 2,
-                    marginLeft = 2,
-                    backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f)
-                }
+                // style =
+                // {
+                //     width = 42,
+                //     height = 42,
+                //     marginTop = 2,
+                //     marginRight = 2,
+                //     marginBottom = 2,
+                //     marginLeft = 2,
+                //     backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f)
+                // }
             };
 
             // Навешиваем обязательный манипулятор для работы Drag-and-Drop
@@ -331,11 +331,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             DynamicBuffer< ActiveCooldownElement > cooldowns = default
         )
         {   
-            // foreach (var slot in _slots)
-            // {
-            //     slot.ClearVisual();
-            // }
-
             for (int i = 0; i < _slots.Count; i++)
             {
                 var slotVisual = _slots[i];
@@ -368,6 +363,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 // но НЕ ломает бинды экшен-бара и валидацию!
                 //slotVisual.ClearVisual();
                 slotVisual.SetAura("", i, 0, 0f, 0f);
+                //slotVisual.ClearVisual();
             }
         }
     }

@@ -12,7 +12,16 @@ namespace ProjectTowerRpg.ECS.Systems
 
         [HideInInspector] 
         public bool IsLinked = false; // Флаг-замок
+        private bool _unregistered;
         [System.NonSerialized] public Entity entity;
+
+        // 🦾 Кэш тяжёлых GetComponent — ищем один раз при инициализации
+        public SyncTransformWithEntity Sync { get; private set; }
+
+        private void Awake()
+        {
+            Sync = GetComponent<SyncTransformWithEntity>();
+        }
 
         /// <summary>
         /// 🦾 СЕКА-ИНИЦИАЛИЗАТОР: Вызывается системой видимости при спавне 3D-тела.
@@ -27,23 +36,17 @@ namespace ProjectTowerRpg.ECS.Systems
             UnitViewRegistry.Register(entity, this);
         }
 
-        private void OnDisable()
+        private void Unregister()
         {
-            // Страхуем ОЗУ: если вьюху выключили — выписываем её из реестра событий каста
-            if (IsLinked && entity != Entity.Null)
-            {
-                UnitViewRegistry.Unregister(entity);
-            }
+            if (_unregistered) return;
+            if (!IsLinked || entity == Entity.Null) return;
+
+            UnitViewRegistry.Unregister(entity);
+            _unregistered = true;
         }
 
-        private void OnDestroy()
-        {
-            // Железная зачистка при уничтожении (куллинге или смерти трупа)
-            if (IsLinked && entity != Entity.Null)
-            {
-                UnitViewRegistry.Unregister(entity);
-            }
-        }
+        private void OnDisable() => Unregister();
+        private void OnDestroy() => Unregister();
     }
 }
 

@@ -71,9 +71,9 @@ namespace ProjectTowerRpg.ECS.Systems
                                 Entity targetUnit = aura.TargetEntity;
 
                                 // ПРЯМОЕ СЕРВЕРНОЕ СПИСАНИЕ: Модифицируем HealthComponent на месте!
-                                if (targetUnit != Entity.Null && em.HasComponent< HealthComponent >(targetUnit))
+                                if (targetUnit != Entity.Null && em.HasComponent<HealthComponent>(targetUnit))
                                 {
-                                    var health = em.GetComponentData< HealthComponent >(targetUnit);
+                                    var health = em.GetComponentData<HealthComponent>(targetUnit);
                                     
                                     // Списываем урон поджога из здоровья (твое float-поле)
                                     health.Current = math.max(0f, health.Current - finalDotDamage);
@@ -95,7 +95,7 @@ namespace ProjectTowerRpg.ECS.Systems
                                     if (!bufferQuery.IsEmpty)
                                     {
                                         Entity eventBufferSingleton = bufferQuery.GetSingletonEntity();
-                                        var eventBuffer = em.GetBuffer< PresentationEvent >(eventBufferSingleton);
+                                        var eventBuffer = em.GetBuffer<PresentationEvent>(eventBufferSingleton);
                                         
                                         eventBuffer.Add(new PresentationEvent
                                         {

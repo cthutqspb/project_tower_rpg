@@ -1,0 +1,126 @@
+.chat-log-wrapper {
+    position: absolute;
+    bottom: 172px;
+    left: 24px;
+    width: 420px;
+    height: 180px;
+}
+
+.chat-log-root {
+    width: 100%;
+    height: 100%;
+    background-color: rgba(26, 27, 38, 0.85); 
+    border-width: 1px;
+    border-color: rgba(36, 40, 59, 0.7); 
+    border-radius: 4px;
+    padding: 4px;
+    overflow: hidden;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+/* 🦾 СТEЙТ ЗАБЛОКИРОВАННОГО ЧАТА: Скрываем рамки и фон в рантайме */
+.chat-log-root.chat-locked {
+    background-color: rgba(26, 27, 38, 0.0);
+    border-color: transparent;
+}
+
+/* Верхняя панель (Тулбар) */
+.chat-toolbar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 24px;
+    margin-bottom: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+    border-bottom-width: 1px;
+    border-color: rgba(36, 40, 59, 0.4);
+    background-color: rgba(36, 40, 59, 0.3);
+    cursor: move; /* Курсор руки для перетаскивания */
+}
+
+/* Скрываем панель управления, если чат заблокирован и мышь не наведена */
+.chat-log-root.chat-locked .chat-toolbar {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+/* Показываем тулбар заблокированного чата при Ховере мыши */
+.chat-log-root.chat-locked:hover .chat-toolbar {
+    opacity: 1;
+}
+
+.chat-tabs-holder {
+    flex-direction: row;
+    height: 100%;
+}
+
+/* Кнопки вкладок в стиле Osaka */
+.chat-tab-button {
+    background-color: transparent;
+    border-width: 0;
+    color: rgba(86, 95, 137, 1); /* var(--osaka-text-dim) */
+    font-size: 11px;
+    padding-left: 8px;
+    padding-right: 8px;
+    height: 100%;
+    margin: 0;
+}
+
+.chat-tab-button:hover {
+    color: rgba(192, 202, 245, 1);
+}
+
+.chat-tab-button.chat-tab-active {
+    color: rgba(125, 207, 255, 1); /* var(--osaka-cyan) акцент активного таба */
+    border-bottom-width: 2px;
+    border-color: rgba(125, 207, 255, 1);
+}
+
+/* Иконка замка Lock */
+.chat-lock-icon {
+    background-color: transparent;
+    border-width: 0;
+    color: rgba(86, 95, 137, 0.7);
+    font-size: 14px;
+    padding: 0;
+    margin: 0;
+    width: 20px;
+    height: 20px;
+    -unity-font-definition: initial; /* Для Nerd Font иконок */
+}
+
+.chat-lock-icon:hover {
+    color: rgba(255, 158, 100, 1); /* var(--osaka-orange) */
+}
+
+.chat-log-scroll-view {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+}
+
+.chat-line-item {
+    font-size: 13px;
+    white-space: normal; 
+    margin-bottom: 2px;
+    padding: 0;
+    -unity-font-definition: initial; 
+}
+
+.chat-log-scroll-view .unity-scroller {
+    width: 4px;
+    background-color: transparent;
+}
+
+.chat-log-scroll-view .unity-slider__dragger {
+    background-color: rgba(86, 95, 137, 0.3); 
+    border-radius: 2px;
+    border-width: 0;
+}
+
+.chat-log-scroll-view .unity-scroller__low-button,
+.chat-log-scroll-view .unity-scroller__high-button {
+    display: none; 
+}
+

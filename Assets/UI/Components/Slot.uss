@@ -147,23 +147,20 @@
 }
 
 .slot { 
-  width: 42px;
-  height: 42px;
-  margin: 0;
-  padding: 0;
   border-width: 1px;
   border-color: var(--osaka-surface);
 }
 
+.slot.hidden {
+  display: none;
+}
+
 .slot-icon {
   display: flex;
-  width: 42px;
-  height: 42px;
   border-width: 2px;
   position: absolute;
   left: 50%;
   top: 50%;
-  font-size: 39px;
   text-align: center;
   -unity-text-align: middle-center;
   translate: -50% -50%;
