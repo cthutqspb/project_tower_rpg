@@ -46,8 +46,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
 
             // 🦾 АВТОНОМИЯ НА 100%: Ищем элементы строго внутри своего собственного склонированного дерева (this)!
-            _attributesContainer = this.Q<VisualElement>("unit-attributes");
-            _combatStatsContainer = this.Q<VisualElement>("unit-combat-stats");
+            _attributesContainer = this.Q<VisualElement>("attributes");
+            _combatStatsContainer = this.Q<VisualElement>("combat-stats");
 
             // Кэшируем лейблы вторичных боевых параметров по их зрячим CSS-именам из шаблона
             _critLabel = this.Q<Label>("crit-chance");
@@ -83,7 +83,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             foreach (var attr in attributesMap)
             {
                 var label = new Label();
-                label.AddToClassList("unit-combat-stat-label"); // Наш USS-класс шрифтов
+                label.AddToClassList("unit-stats__label"); // Наш USS-класс шрифтов
                 
                 // Берем чистый перевод "Сила", "Ловкость" из твоего словаря и подставляем цифру
                 string localizedName = LocalizationManager.Get(attr.key);
@@ -100,7 +100,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         {
             // Берем переводы заголовков стат из локализации и сочно выводим живые unmanaged флоаты
             if (_critLabel != null) 
-                _critLabel.text = $"{LocalizationManager.Get("stat_crit_chance")}: {component.CritChance:F1}%";
+                _critLabel.text = $"{LocalizationManager.Get("stat_critical_chance")}: {component.CritChance:F1}%";
                 
             if (_hitLabel != null) 
                 _hitLabel.text = $"{LocalizationManager.Get("stat_hit_chance")}: {component.HitChance:F1}%";

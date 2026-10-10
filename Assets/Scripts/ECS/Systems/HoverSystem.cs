@@ -56,9 +56,9 @@ namespace ProjectTowerRpg.ECS.Systems
                 var itemView = hit.collider.GetComponentInParent<ItemView>();
                 if (itemView != null)
                 {
-                    if (itemView.Entity != Entity.Null)
+                    if (itemView.entity != Entity.Null)
                     {
-                        foundEntity = itemView.Entity;
+                        foundEntity = itemView.entity;
                         isItem = true;
                     }
                 }

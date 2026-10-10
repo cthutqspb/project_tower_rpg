@@ -1,6 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <!-- Идеальная чистая разметки сетки: только корень для ячеек -->
-    <ui:VisualElement class="static-grid-container" name="grid-slots-root" />
+    <ui:VisualElement class="static-grid" name="root" />
 </ui:UXML>
 
 

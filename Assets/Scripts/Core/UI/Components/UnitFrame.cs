@@ -59,22 +59,22 @@ namespace ProjectTowerRpg.Core.UI.Components
             _frameRoot.pickingMode = PickingMode.Ignore;
 
             // Находим внутренние ноды текста и полосок
-            var hpRoot = _frameRoot.Q<VisualElement>("health-bar-root");
-            var resRoot = _frameRoot.Q<VisualElement>("resource-bar-root");
+            var healthSlot = _frameRoot.Q<VisualElement>("health");
+            var resourceSlot = _frameRoot.Q<VisualElement>("resource");
             
-            var aurasRoot = _frameRoot.Q<VisualElement>("aura-frame-root");
-            aurasRoot.pickingMode = PickingMode.Ignore;
+            var aurasSlot = _frameRoot.Q<VisualElement>("auras");
+            aurasSlot.pickingMode = PickingMode.Ignore;
 
             _unitNameLabel = _frameRoot.Q<Label>("unit-name");
             _unitLevelLabel = _frameRoot.Q<Label>("unit-level");
 
-            Debug.Log($"[UnitFrame ДЕБАГ]: Поиск внутренних нод: hpRoot={(hpRoot != null)}, resRoot={(resRoot != null)}, name={(_unitNameLabel != null)}, level={(_unitLevelLabel != null)}");
+            Debug.Log($"[UnitFrame ДЕБАГ]: Поиск внутренних нод: hpRoot={(healthSlot != null)}, resRoot={(resourceSlot != null)}, name={(_unitNameLabel != null)}, level={(_unitLevelLabel != null)}");
 
             // Вживляем внутренние полоски из списка компонентов фрейма
             if (_progressBarUxml != null)
             {
-                hpRoot?.Add(_progressBarUxml.CloneTree());
-                resRoot?.Add(_progressBarUxml.CloneTree());
+                healthSlot?.Add(_progressBarUxml.CloneTree());
+                resourceSlot?.Add(_progressBarUxml.CloneTree());
                 Debug.Log("[UnitFrame ДЕБАГ]: Вёрстка ProgressBar.uxml успешно вшита в слоты ХП и Ресурса.");
             }
             else
@@ -83,17 +83,17 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
 
             // Инициализируем C# логику полосок
-            _unitHealthBar = new HealthBar(hpRoot ?? _frameRoot);
-            _unitResourceBar = new ResourceBar(resRoot ?? _frameRoot);
+            _unitHealthBar = new HealthBar(healthSlot ?? _frameRoot);
+            _unitResourceBar = new ResourceBar(resourceSlot ?? _frameRoot);
             Debug.Log("[UnitFrame ДЕБАГ]: Классы полосок HealthBar and ResourceBar успешно проинициализированы.");
 
             // =========================================================================
             // 🦾 ЧИСТЫЙ ААА-ИНИЦИАЛИЗАТОР АУР (КОПЕЙКА В КОПЕЙКУ КАК ХП-БАР!)
             // =========================================================================
-            if (aurasRoot != null)
+            if (aurasSlot != null)
             {
                 // Намертво рождаем класс, скармливая ему найденную вёрстку!
-                _unitAuraFrame = new AuraFrame(aurasRoot, 8);
+                _unitAuraFrame = new AuraFrame(aurasSlot, 8);
                 Debug.Log("[UnitFrame]: AuraFrame успешно рождён и привязан к ноде 'aura-frame-root'.");
             }
             else

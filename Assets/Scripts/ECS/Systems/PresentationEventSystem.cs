@@ -5,7 +5,7 @@ using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core;
 using ProjectTowerRpg.Core.Colors;
 using ProjectTowerRpg.Core.Items;
-using ProjectTowerRpg.Core.Units;
+using ProjectTowerRpg.Core.Presentation;
 using ProjectTowerRpg.Core.Abilities;
 using ProjectTowerRpg.Core.Auras;
 using ProjectTowerRpg.Core.Shared;
@@ -56,7 +56,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
                 
                 // Ищем 3D-модель (вьюху) моба в нашей телефонной книге по его Entity за O(1)
-                var unitView = UnitViewRegistry.Get(ev.Source);
+                var unitView = EntityViewRegistry.Get<UnitView>(ev.Source);
                 if (unitView == null) continue;
 
                 // Вытаскиваем Аниматор из найденной модели
@@ -100,7 +100,7 @@ namespace ProjectTowerRpg.ECS.Systems
             Entity unitEntity = ev.Target; 
             string auraIdStr = ev.Param.ToString();
 
-            var unitView = UnitViewRegistry.Get(unitEntity);
+            var unitView = EntityViewRegistry.Get(unitEntity);
             if (unitView == null) return;
 
             GameObject targetGo = unitView.gameObject;

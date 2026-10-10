@@ -5,7 +5,7 @@
     align-items: center;
 }
 
-.unit-frame-main {
+.unit-frame__main {
     width: 260px;
     padding: 10px;
     background-color: rgba(35, 35, 35, 0.9);
@@ -14,7 +14,24 @@
     border-radius: 6px;
 }
 
-.unit-frame-auras {
+.unit-frame__name {
+  color: #ffffff;
+  -unity-font-style: bold;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.unit-frame__level {
+  color: #aaaaaa;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.unit-frame__health {
+  margin-bottom: 6px;
+}
+
+.unit-frame__auras {
     margin-top: 5px;
     width: 100%;
 }

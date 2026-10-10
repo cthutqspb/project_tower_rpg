@@ -84,12 +84,12 @@ namespace ProjectTowerRpg.Core.UI.Windows
         protected override void OnWindowBuilt(VisualElement root)
         {
             // Хедер собираем сразу — он статичен
-            var headerContainer = root.Q<VisualElement>("header-container");
-            if (headerContainer != null)
+            var headerSlot = root.Q<VisualElement>("header");
+            if (headerSlot != null)
             {
                 _header = new HeaderComponent { Title = LocalizationManager.Get("character_window") };
                 _header.OnClose += Close;
-                headerContainer.Add(_header);
+                headerSlot.Add(_header);
                 root.RegisterCallback<PointerDownEvent>(evt => root.BringToFront());
                 var dragManipulator = new DragManipulator(_header, root, DragMode.UIElement);
                 _header.AddManipulator(dragManipulator);
@@ -103,12 +103,12 @@ namespace ProjectTowerRpg.Core.UI.Windows
             // ================================================================
             // 📊 ХАРАКТЕРИСТИКИ (Создаем ОДИН раз)
             // ================================================================
-            var statsContainer = root.Q<VisualElement>("stats-container");
-            if (statsContainer != null && _statsUxml != null)
+            var statsSlot = root.Q<VisualElement>("stats");
+            if (statsSlot != null && _statsUxml != null)
             {
                 _unitStats = new UnitStats(_statsUxml);
                 _unitStats.BindToEntity(_playerEntity);
-                statsContainer.Add(_unitStats);
+                statsSlot.Add(_unitStats);
                 UIRegistry.Register(_playerEntity, _unitStats);
             }
 
@@ -121,22 +121,22 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 Entity inventoryEntity = links.Inventory;
                 Entity paperdollEntity = links.Paperdoll;
 
-                var inventoryContainer = root.Q<VisualElement>("inventory-container");
-                if (inventoryContainer != null && inventoryEntity != Entity.Null)
+                var inventorySlot = root.Q<VisualElement>("inventory");
+                if (inventorySlot != null && inventoryEntity != Entity.Null)
                 {
                     var inventoryComp = em.GetComponentData<ContainerConfigComponent>(inventoryEntity);
                     _inventoryGrid = new StaticGrid(inventoryComp.Columns, inventoryComp.Rows);
                     _inventoryGrid.BindToEntity(inventoryEntity);
-                    _inventoryGrid.AddToClassList("inventory-grid");
-                    inventoryContainer.Add(_inventoryGrid);
+                    _inventoryGrid.AddToClassList("character-window__inventory-grid");
+                    inventorySlot.Add(_inventoryGrid);
                 }
 
-                var paperdollContainer = root.Q<VisualElement>("paperdoll-container");
-                if (paperdollContainer != null && paperdollEntity != Entity.Null)
+                var paperdollSlot = root.Q<VisualElement>("paperdoll");
+                if (paperdollSlot != null && paperdollEntity != Entity.Null)
                 {
                     _paperdoll = new Paperdoll(_paperdollUxml);
                     _paperdoll.BindToEntity(paperdollEntity); 
-                    paperdollContainer.Add(_paperdoll);
+                    paperdollSlot.Add(_paperdoll);
                 }
             }
 

@@ -1,19 +1,18 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <!-- Изолированный контейнер фрейма на инлайн-стилях -->
-    <ui:VisualElement name="unit-frame-root" class="unit-frame" picking-mode="Ignore">
-      <ui:VisualElement class="unit-frame-main" picking-mode="Position" >
+    <ui:VisualElement name="root" class="unit-frame" picking-mode="Ignore">
+      <ui:VisualElement class="unit-frame__main" picking-mode="Position" >
         <!-- Блок текста -->
-        <ui:Label name="unit-name" text="Unknown" style="color: #ffffff; -unity-font-style: bold; font-size: 14px; margin-bottom: 2px;" />
-        <ui:Label name="unit-level" text="Ур. 5" style="color: #aaaaaa; font-size: 11px; margin-bottom: 8px;" />
+        <ui:Label name="name" class="unit-frame__name" text="Unknown"/>
+        <ui:Label name="level" class="unit-frame__level" text="Ур. 5"/>
         
         <!-- Стерильные посадочные места под полоски (их размеры заданы в ProgressBar.uss) -->
-        <ui:VisualElement name="health-bar-root" style="margin-bottom: 6px;" />
-        <ui:VisualElement name="resource-bar-root" />
-
+        <ui:VisualElement name="health" class="unit-frame__health"/>
+        <ui:VisualElement name="resource" />
 
       </ui:VisualElement>
 
-      <ui:VisualElement name="aura-frame-root" class="unit-frame-auras" />
+      <ui:VisualElement name="auras" class="unit-frame__auras" />
 
     </ui:VisualElement>
 </ui:UXML>

@@ -1,22 +1,21 @@
 using UnityEngine;
 using Unity.Entities;
-using ProjectTowerRpg.Core.Units; // Подключаем реестр только на стороне вьюхи
+using ProjectTowerRpg.Core.Presentation;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
     public class UnitView : MonoBehaviour
     {
         [Header("Unit View Passport")]
-        public string uid;      // Забивается для игрока ("player") или генерируется чанком
-        public string unitId;   // Забивается в IDE Unity ("skeleton_warrior", "skeleton_mage")
+        public string uid;
+        public string unitId;
 
-        [HideInInspector] 
-        public bool IsLinked = false; // Флаг-замок
-        private bool _unregistered;
+        [HideInInspector] public bool IsLinked;
         [System.NonSerialized] public Entity entity;
 
-        // 🦾 Кэш тяжёлых GetComponent — ищем один раз при инициализации
         public SyncTransformWithEntity Sync { get; private set; }
+
+        private bool _unregistered;
 
         private void Awake()
         {
@@ -24,16 +23,26 @@ namespace ProjectTowerRpg.ECS.Systems
         }
 
         /// <summary>
-        /// 🦾 СЕКА-ИНИЦИАЛИЗАТОР: Вызывается системой видимости при спавне 3D-тела.
-        /// Вьюха сама бережно заносит себя в телефонную книгу реестра!
+        /// Вызывается системой видимости при спавне 3D-тела.
+        /// Регистрирует вьюху в реестре Entity → View.
         /// </summary>
         public void LinkToEntity(Entity boundEntity)
         {
-            entity = boundEntity;
-            IsLinked = true;
+            if (boundEntity == Entity.Null) return;
 
-            // Встаем на учет за O(1)
-            UnitViewRegistry.Register(entity, this);
+            // Переиспользование под другую сущность — сначала отвязываемся от старой.
+            if (IsLinked && entity != Entity.Null && entity != boundEntity)
+                Unregister();
+
+            entity = boundEntity;
+
+            // К моменту привязки компонент Sync уже точно навешан — обновим кэш, если не нашли в Awake.
+            if (Sync == null)
+                Sync = GetComponent<SyncTransformWithEntity>();
+
+            EntityViewRegistry.Register(entity, this);
+            IsLinked = true;
+            _unregistered = false;
         }
 
         private void Unregister()
@@ -41,8 +50,9 @@ namespace ProjectTowerRpg.ECS.Systems
             if (_unregistered) return;
             if (!IsLinked || entity == Entity.Null) return;
 
-            UnitViewRegistry.Unregister(entity);
+            EntityViewRegistry.Unregister(entity);
             _unregistered = true;
+            IsLinked = false;
         }
 
         private void OnDisable() => Unregister();

@@ -1,30 +1,50 @@
 using UnityEngine;
 using Unity.Entities;
+using ProjectTowerRpg.Core.Presentation;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
     public class ItemView : MonoBehaviour
     {
         [Header("Item View Passport")]
-        public string uid;      // Уникальный строковый ID ("i_123_456")
-        public string itemId;   // Идентификатор из JSON-базы ("iron_sword")
+        public string uid;      // "i_123_456"
+        public string itemId;   // "iron_sword"
 
-        [HideInInspector] 
-        public bool IsLinked = false;
-        
-        [HideInInspector]
-        [System.NonSerialized] public Entity Entity = Entity.Null;
+        [HideInInspector] public bool IsLinked;
+        [HideInInspector] [System.NonSerialized] public Entity entity = Entity.Null;
 
-        // Автоматически вычисляем хэш при изменении uid в редакторе
-        #if UNITY_EDITOR
-        private void OnValidate()
+        private bool _unregistered;
+
+        /// <summary>
+        /// Вызывается при спавне или линковке куба на сцене.
+        /// Регистрирует вьюху в реестре Entity → View.
+        /// </summary>
+        public void LinkToEntity(Entity boundEntity)
         {
-            if (!string.IsNullOrEmpty(uid))
-            {
-                // Просто для отладки, чтобы видеть хэш в инспекторе
-                // Сам хэш вычисляется на лету в LinkSystem
-            }
+            if (boundEntity == Entity.Null) return;
+
+            // Переиспользование под другую сущность — сначала отвязываемся от старой.
+            if (IsLinked && entity != Entity.Null && entity != boundEntity)
+                Unregister();
+
+            entity = boundEntity;
+
+            EntityViewRegistry.Register(entity, this);
+            IsLinked = true;
+            _unregistered = false;
         }
-        #endif
+
+        private void Unregister()
+        {
+            if (_unregistered) return;
+            if (!IsLinked || entity == Entity.Null) return;
+
+            EntityViewRegistry.Unregister(entity);
+            _unregistered = true;
+            IsLinked = false;
+        }
+
+        private void OnDisable() => Unregister();
+        private void OnDestroy() => Unregister();
     }
 }

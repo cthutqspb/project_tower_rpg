@@ -4,13 +4,9 @@
       По умолчанию picking-mode="Ignore", чтобы клики сквозь пустые места панели пролетали в 3D мир.
       Класс "action-bar-horizontal" делает её плоской строкой. Если в будущем заменишь на "action-bar-vertical" — она встанет столбиком!
     -->
-    <ui:VisualElement name="action-bar-root" class="action-bar-container action-bar-horizontal" style="padding: 6px; background-color: rgba(20, 20, 20, 0.75); border-width: 1px; border-color: #333333; border-radius: 6px;">
+    <ui:VisualElement name="root" class="action-bar action-bar-horizontal" >
         
-        <!-- 
-          Стерильное посадочное место, куда твой C# класс StaticGrid 
-          в цикле нагенерирует 12 ячеек слотов (SlotElement).
-        -->
-        <ui:VisualElement name="slots-container" class="action-bar-grid"/>
+        <ui:VisualElement name="grid" class="action-bar__grid"/>
         
     </ui:VisualElement>
 </ui:UXML>

@@ -197,8 +197,8 @@ namespace ProjectTowerRpg.Core.UI
             globalUiRoot.Add(_root);
 
             // 2. Находим слоты-пустышки в XML и собираем в них фреймы
-            var playerSlot = _root.Q<VisualElement>("PlayerFrameSlot");
-            var targetSlot = _root.Q<VisualElement>("TargetFrameSlot");
+            var playerSlot = _root.Q<VisualElement>("player-frame-slot");
+            var targetSlot = _root.Q<VisualElement>("target-frame-slot");
 
             if (playerSlot != null) _playerFrame.BuildFrame(playerSlot);
             if (targetSlot != null) _targetFrame.BuildFrame(targetSlot);
@@ -281,7 +281,6 @@ namespace ProjectTowerRpg.Core.UI
                 _root.Add(castBarVisual);
                 
                 _isUiReady = true;
-                Debug.Log("[HUDManager]: Кастбар шёлково собран на базе универсального ProgressBar и выведен на экран!");
             }
 
             // =========================================================================
@@ -290,23 +289,20 @@ namespace ProjectTowerRpg.Core.UI
             if (_chatLogUxml != null && _root != null)
             {
                 // 1. Клонируем вёрстку чата напрямую из ассета инспектора
-                var chatVisual = _chatLogUxml.CloneTree();
-                chatVisual.name = "ChatLog";
+                var chatRoot = _chatLogUxml.CloneTree();
+                chatRoot.name = "chat-log";
 
                 // 2. 🦾 НАКАРМЛИВАЕМ USS-КЛАСС ОБЁРТКЕ:
                 // Передаем TemplateContainer наш класс .chat-log-wrapper из стилей.
                 // Yoga Layout сам считает absolute, left и bottom из файла ChatLog.uss!
-                chatVisual.AddToClassList("chat-log-wrapper");
+                chatRoot.AddToClassList("hud__chat-log");
 
                 // 3. Обертываем ноду в наш реактивный класс логики
-                _chatLog = new ChatLog(chatVisual);
+                _chatLog = new ChatLog(chatRoot);
 
                 // 4. Физически внедряем чат в общий корень HUD!
-                _root.Add(chatVisual);
-                Debug.Log("[HUDManager]: Компонент ChatLog успешно собран из ассета и выведен на экран!");
+                _root.Add(chatRoot);
             }
-
-
 
             _isUiReady = true;
             Debug.Log("[HUDManager]: Все фреймы шёлково собраны внутри своих слотов после релоада!");

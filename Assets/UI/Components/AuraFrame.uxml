@@ -1,10 +1,10 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <ui:VisualElement name="aura-frame-root" class="aura-frame-container" picking-mode="Ignore">
+    <ui:VisualElement name="root" class="aura-frame" picking-mode="Ignore">
         <!-- 
           Стерильное посадочное место для StaticGrid.
           В C# мы нагенерируем сюда 8 ячеек аур.
         -->
-        <ui:VisualElement name="slots-container" class="aura-slots-container" picking-mode="Ignore" />
+        <ui:VisualElement name="grid" class="aura-frame__grid" picking-mode="Ignore" />
     </ui:VisualElement>
 </ui:UXML>
 

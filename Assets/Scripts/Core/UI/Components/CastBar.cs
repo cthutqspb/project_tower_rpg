@@ -22,33 +22,21 @@ namespace ProjectTowerRpg.Core.UI.Components
             _fill = barRoot.Q<VisualElement>("fill") ?? barRoot;
 
             var textOverlay = new VisualElement();
-            textOverlay.name = "cast-text-overlay";
-            textOverlay.style.position = Position.Absolute;
-            textOverlay.style.width = Length.Percent(100f);
-            textOverlay.style.height = Length.Percent(100f);
-            textOverlay.style.flexDirection = FlexDirection.Row;
-            textOverlay.style.justifyContent = Justify.SpaceBetween;
-            textOverlay.style.alignItems = Align.Center;
-            textOverlay.style.paddingLeft = 8;
-            textOverlay.style.paddingRight = 8;
+            textOverlay.AddToClassList("cast-bar__text-overlay");
             textOverlay.pickingMode = PickingMode.Ignore;
 
             _abilityNameLabel = new Label("");
-            _abilityNameLabel.style.color = Color.white;
-            _abilityNameLabel.style.fontSize = 11;
-            _abilityNameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _abilityNameLabel.AddToClassList("cast-bar__ability-name");
             _abilityNameLabel.pickingMode = PickingMode.Ignore;
 
             _timerLabel = new Label("");
-            _timerLabel.style.color = new Color(0.8f, 0.8f, 0.8f, 1f);
-            _timerLabel.style.fontSize = 11;
+            _timerLabel.AddToClassList("cast-bar__timer");
             _timerLabel.pickingMode = PickingMode.Ignore;
 
             textOverlay.Add(_abilityNameLabel);
             textOverlay.Add(_timerLabel);
             _root.Add(textOverlay);
 
-            // Убираем все transition
             _fill.style.transitionProperty = StyleKeyword.Null;
             _fill.style.transitionDuration = StyleKeyword.Null;
             _fill.style.transitionTimingFunction = StyleKeyword.Null;

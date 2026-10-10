@@ -29,14 +29,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             _rows = rows;
             _startIndex = startIndex;
             
-            this.AddToClassList("static-grid-container");
+            this.AddToClassList("static-grid");
             this.pickingMode = PickingMode.Ignore;
-            
-            //this.style.width = Length.Percent(100);
-            //this.style.flexDirection = FlexDirection.Row;
-            //this.style.flexWrap = Wrap.Wrap;
-            //this.style.flexShrink = 0;
-            //this.style.flexGrow = 0;
 
             // 🦾 ЧИСТЫЙ КОНСТРУКТОР: Вызываем выделенный Си-метод создания
             for (int i = 0; i < columns * rows; i++)
@@ -59,16 +53,6 @@ namespace ProjectTowerRpg.Core.UI.Components
                 SlotIndex = bufferSlotIndex,
                 ContainerEntity = _boundEntity, // Подхватит сущность, если она уже есть
                 name = $"slot-{visualIndex}",
-                // style =
-                // {
-                //     width = 42,
-                //     height = 42,
-                //     marginTop = 2,
-                //     marginRight = 2,
-                //     marginBottom = 2,
-                //     marginLeft = 2,
-                //     backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f)
-                // }
             };
 
             // Навешиваем обязательный манипулятор для работы Drag-and-Drop

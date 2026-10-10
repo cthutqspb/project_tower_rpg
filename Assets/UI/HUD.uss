@@ -1,6 +1,6 @@
 /* Полностью растягиваем корень HUD поверх ui-layer, копейка в копейку как твоё окно персонажа! */
-.hud-root {
-    position: absolute;
+.hud {
+    /* position: absolute;
     left: 0px;
     top: 0px;
     right: 0px;
@@ -9,7 +9,34 @@
     height: 100%;
     justify-content: space-between;
     padding: 25px;
-    background-color: rgba(128, 0, 128, 0.5); /* Наш фиолетовый тест */
-    pointer-events: none;
+    pointer-events: none; */
+}
+
+.hud__frame-slot {
+    position: absolute;
+    /* общее для всех слотов фреймов */
+}
+
+.hud__frame-slot--player {
+    left: 20px;
+    top: 20px;
+}
+
+.hud__frame-slot--target {
+    right: 20px;
+    top: 20px;
+}
+
+/* На будущее — для блокировки драга */
+.hud__frame-slot--locked {
+    /* визуальная индикация, если нужно */
+}
+
+.hud__chat-log {
+    position: absolute;
+    bottom: 172px;
+    left: 24px;
+    width: 420px;
+    height: 180px;
 }
 

@@ -1,12 +1,4 @@
-.chat-log-wrapper {
-    position: absolute;
-    bottom: 172px;
-    left: 24px;
-    width: 420px;
-    height: 180px;
-}
-
-.chat-log-root {
+.chat-log {
     width: 100%;
     height: 100%;
     background-color: rgba(26, 27, 38, 0.85); 
@@ -19,13 +11,13 @@
 }
 
 /* 🦾 СТEЙТ ЗАБЛОКИРОВАННОГО ЧАТА: Скрываем рамки и фон в рантайме */
-.chat-log-root.chat-locked {
+.chat-log__locked {
     background-color: rgba(26, 27, 38, 0.0);
     border-color: transparent;
 }
 
 /* Верхняя панель (Тулбар) */
-.chat-toolbar {
+.chat-log__toolbar {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
@@ -40,23 +32,23 @@
 }
 
 /* Скрываем панель управления, если чат заблокирован и мышь не наведена */
-.chat-log-root.chat-locked .chat-toolbar {
+.chat-log__locked .chat-log__toolbar {
     opacity: 0;
     transition: opacity 0.2s;
 }
 
 /* Показываем тулбар заблокированного чата при Ховере мыши */
-.chat-log-root.chat-locked:hover .chat-toolbar {
+.chat-log__locked:hover .chat-log__toolbar {
     opacity: 1;
 }
 
-.chat-tabs-holder {
+.chat-log__tabs {
     flex-direction: row;
     height: 100%;
 }
 
 /* Кнопки вкладок в стиле Osaka */
-.chat-tab-button {
+.chat-log__tab-button {
     background-color: transparent;
     border-width: 0;
     color: rgba(86, 95, 137, 1); /* var(--osaka-text-dim) */
@@ -67,18 +59,18 @@
     margin: 0;
 }
 
-.chat-tab-button:hover {
+.chat-log__tab-button:hover {
     color: rgba(192, 202, 245, 1);
 }
 
-.chat-tab-button.chat-tab-active {
+.chat-log__tab-active {
     color: rgba(125, 207, 255, 1); /* var(--osaka-cyan) акцент активного таба */
     border-bottom-width: 2px;
     border-color: rgba(125, 207, 255, 1);
 }
 
 /* Иконка замка Lock */
-.chat-lock-icon {
+.chat-log__lock-icon {
     background-color: transparent;
     border-width: 0;
     color: rgba(86, 95, 137, 0.7);
@@ -90,17 +82,17 @@
     -unity-font-definition: initial; /* Для Nerd Font иконок */
 }
 
-.chat-lock-icon:hover {
+.chat-log__lock-icon:hover {
     color: rgba(255, 158, 100, 1); /* var(--osaka-orange) */
 }
 
-.chat-log-scroll-view {
+.chat-log__scroll-view {
     flex-grow: 1;
     width: 100%;
     height: 100%;
 }
 
-.chat-line-item {
+.chat-log__line-item {
     font-size: 13px;
     white-space: normal; 
     margin-bottom: 2px;
@@ -108,19 +100,19 @@
     -unity-font-definition: initial; 
 }
 
-.chat-log-scroll-view .unity-scroller {
+.chat-log__scroll-view .unity-scroller {
     width: 4px;
     background-color: transparent;
 }
 
-.chat-log-scroll-view .unity-slider__dragger {
+.chat-log__scroll-view .unity-slider__dragger {
     background-color: rgba(86, 95, 137, 0.3); 
     border-radius: 2px;
     border-width: 0;
 }
 
-.chat-log-scroll-view .unity-scroller__low-button,
-.chat-log-scroll-view .unity-scroller__high-button {
+.chat-log__scroll-view .unity-scroller__low-button,
+.chat-log__scroll-view .unity-scroller__high-button {
     display: none; 
 }
 

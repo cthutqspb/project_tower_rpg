@@ -41,13 +41,14 @@ namespace ProjectTowerRpg.Core.UI.Components
             dynamicSlot.Add(_panelRoot);
 
             // 3. Создаем твой StaticGrid и вшиваем в каркас
-            var container = _panelRoot.Q<VisualElement>("slots-container");
-            if (container != null)
+            var gridSlot = _panelRoot.Q<VisualElement>("grid");
+            if (gridSlot != null)
             {
                 int startIndex = barIndex * 12; // 0, 12, 24...
                 
                 _slotsGrid = new StaticGrid(12, 1, startIndex);
-                container.Add(_slotsGrid);
+                _slotsGrid.AddToClassList("action-bar__grid");
+                gridSlot.Add(_slotsGrid);
             }
             else
             {

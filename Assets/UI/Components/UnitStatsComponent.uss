@@ -11,14 +11,14 @@
 }
 
 /* Группы: блок атрибутов и блок боевых параметров */
-.unit-stats-group {
+.unit-stats__group {
     display: flex;
     flex-direction: column;
     margin-bottom: 5px;
 }
 
 /* Элементы списков */
-.unit-combat-stat-label {
+.unit-stats__label {
     font-size: 13px;
     color: #E0E0E0;
     margin-bottom: 4px;
@@ -26,7 +26,7 @@
 }
 
 /* Красивая ММО-линия разделителя */
-.stats-divider {
+.unit-stats__divider {
     height: 1px;
     background-color: #3C3C3C;
     margin-top: 8px;

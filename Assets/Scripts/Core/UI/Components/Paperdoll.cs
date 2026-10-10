@@ -15,9 +15,8 @@ namespace ProjectTowerRpg.Core.UI.Components
         public Entity BoundEntity => _paperdollEntity;
 
         public Paperdoll(VisualTreeAsset uxml)
-        {
-            this.AddToClassList("paperdoll-grid");
-            
+        {            
+            this.AddToClassList("paperdoll__grid");
             if (uxml != null)
             {
                 uxml.CloneTree(this);
@@ -29,20 +28,20 @@ namespace ProjectTowerRpg.Core.UI.Components
                 return;
             }
             
-            var leftColumn = this.Q<VisualElement>("left-column");
-            var bottomLeft = this.Q<VisualElement>("bottom-left");
+            var topLeftSlots = this.Q<VisualElement>("top-left");
+            var bottomLeftSlots = this.Q<VisualElement>("bottom-left");
 
-            if (leftColumn != null)
+            if (topLeftSlots != null)
             {
-                CreatePaperdollSlot(leftColumn, 0, "HEAD", "paperdoll-slot-HEAD");
-                CreatePaperdollSlot(leftColumn, 1, "CHEST", "paperdoll-slot-CHEST");
-                CreatePaperdollSlot(leftColumn, 2, "LEGS", "paperdoll-slot-LEGS");
+                CreatePaperdollSlot(topLeftSlots, 0, "HEAD", "paperdoll-slot-HEAD");
+                CreatePaperdollSlot(topLeftSlots, 1, "CHEST", "paperdoll-slot-CHEST");
+                CreatePaperdollSlot(topLeftSlots, 2, "LEGS", "paperdoll-slot-LEGS");
             }
 
-            if (bottomLeft != null)
+            if (bottomLeftSlots != null)
             {
-                CreatePaperdollSlot(bottomLeft, 3, "MAIN_HAND", "paperdoll-slot-MAIN_HAND");
-                CreatePaperdollSlot(bottomLeft, 4, "OFF_HAND", "paperdoll-slot-OFF_HAND");
+                CreatePaperdollSlot(bottomLeftSlots, 3, "MAIN_HAND", "paperdoll-slot-MAIN_HAND");
+                CreatePaperdollSlot(bottomLeftSlots, 4, "OFF_HAND", "paperdoll-slot-OFF_HAND");
             }
         }
 

@@ -61,7 +61,7 @@ public class SyncTransformWithEntity : MonoBehaviour
 
     void Update()
     {
-        if (!_isInitialized || _boundEntity == Entity.Null || !_entityManager.Exists(_boundEntity)) return;
+        if (!_isInitialized || _boundEntity == Entity.Null) return;
 
         // 🦾 ОБЩАЯ МАТЕМАТИКА: Абсолютно все типы сущностей покадрово двигаются за ECS
         var localTransform = _entityManager.GetComponentData<LocalTransform>(_boundEntity);

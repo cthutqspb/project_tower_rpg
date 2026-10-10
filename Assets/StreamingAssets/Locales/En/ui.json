@@ -21,10 +21,19 @@
   "attribute_stamina": "Stamina",
   "attribute_wisdom": "Wisdom",
 
+  "stat_critical_chance": "Critical chance",
+  "stat_hit_chance": "Hit chance",
+  "stat_attack_speed": "Attack speed",
+  "stat_dodge_chance": "Dodge chance",
+  "stat_parry_chance": "Parry chance",
+  "stat_armor": "Armor",
+  "stat_magic_resist": "Magic resist",
+
   "_comment_Container_window": "",
   "btn_take_all": "Take all",
 
   "_comment_Menu": "",
+  "main_menu_title": "Main menu",
   "btn_main_menu": "Main menu",
   "btn_new_game": "New game",
   "btn_continue_game": "Continie game",

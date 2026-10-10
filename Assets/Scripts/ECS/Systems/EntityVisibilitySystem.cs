@@ -1,13 +1,13 @@
 using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
-
+using ProjectTowerRpg.Core.Presentation;
 using ProjectTowerRpg.ECS.Components;
+
 using GameObject = UnityEngine.GameObject;
 using Resources = UnityEngine.Resources;
 using Quaternion = UnityEngine.Quaternion;
 using Object = UnityEngine.Object;
-using FindObjectsInactive = UnityEngine.FindObjectsInactive;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
@@ -64,8 +64,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         {
                             itemView.uid = generatedUid;
                             itemView.itemId = itemId;
-                            itemView.IsLinked = true;
-                            itemView.Entity = entity;
+                            itemView.LinkToEntity(entity);
                         }
 
                         ecb.AddComponent<VisualizedTag>(entity);
@@ -74,25 +73,25 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             // =========================================================================
-            // 🎒 [РАЗДЕЛ ПРЕДМЕТОВ] КЕЙС Б: КУЛЛИНГ ДИСТАНЦИИ ПРЕДМЕТОВ
+            // 🎒 [РАЗДЕЛ ПРЕДМЕТОВ] КЕЙС Б: СВЕРХЗВУКOВОЙ КУЛЛИНГ ДИСТАНЦИИ
             // =========================================================================
             foreach (var (transform, entity) in 
                      SystemAPI.Query<RefRO<LocalTransform>>()
                      .WithNone<StoredTag>() 
-                     .WithAll<VisualizedTag>() 
+                     .WithAll<VisualizedTag, ItemComponent>() 
                      .WithEntityAccess())
             {
                 if (math.distance(playerPosition, transform.ValueRO.Position) > 55f)
                 {
-                    var itemViews = Object.FindObjectsByType<ItemView>(FindObjectsInactive.Exclude);
-                    foreach (var itemView in itemViews)
+                    // 🦾 ИСТИННЫЙ ECS-КАНOН: За 0 наносекунд точечно достаем куб из телефонной книги по Entity!
+                    // Никаких покадровых сканирований иерархии сцены и переборов сотен объектов!
+                    var itemView = EntityViewRegistry.Get<ItemView>(entity);
+                    if (itemView != null)
                     {
-                        if (itemView.Entity == entity)
-                        {
-                            Object.Destroy(itemView.gameObject);
-                            break;
-                        }
-                    }
+                        Object.Destroy(itemView.gameObject);
+                        EntityViewRegistry.Unregister(entity);
+                    }                                     
+                    
                     ecb.RemoveComponent<VisualizedTag>(entity);
                 }
             }
@@ -124,15 +123,18 @@ namespace ProjectTowerRpg.ECS.Systems
                         bool isPlayerEntity = EntityManager.HasComponent<PlayerTag>(entity);
                         unitInstance.name = $"{unitId}_{(isPlayerEntity ? "player" : currentUid)}";
 
-                        // Исправлено: unitView вместо абстрактного view
                         var unitView = unitInstance.GetComponent<UnitView>();
-                        if (unitView != null)
+                        if (unitView == null)
                         {
-                            unitView.uid = currentUid;
-                            unitView.unitId = unitId;
-                            
-                            unitView.LinkToEntity(entity);
+                            Debug.LogError($"[Materialize] Префаб '{unitPrefab.name}' не имеет UnitView! " +
+                                           $"Юнит {unitId} (entity {entity.Index}) не будет зарегистрирован.");
+                            Object.Destroy(unitInstance);   // откат — снести сломанный инстанс
+                            continue;                        // не вешаем VisualizedTag
                         }
+
+                        unitView.uid = currentUid;
+                        unitView.unitId = unitId;
+                        unitView.LinkToEntity(entity);
 
                         var syncTransform = unitInstance.GetComponent<SyncTransformWithEntity>();
                         if (syncTransform != null)
@@ -147,7 +149,6 @@ namespace ProjectTowerRpg.ECS.Systems
                             {
                                 orbitCam.Follow = unitInstance.transform;
                                 orbitCam.LookAt = unitInstance.transform;
-                                Debug.Log("🎥 [VisibilitySystem]: Cinemachine успешно захватила материализованного Игрока!");
                             }
                         }
 
@@ -167,16 +168,17 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (math.distance(playerPosition, transform.ValueRO.Position) > 55f)
                 {
                     // Исправлено: unitViews вместо абстрактного views
-                    var unitViews = Object.FindObjectsByType<UnitView>(FindObjectsInactive.Exclude);
-                    foreach (var unitView in unitViews)
+                    var unitView = EntityViewRegistry.Get<UnitView>(entity);
+                    //if (unitView.entity != entity)
+                    Debug.Log($"[Visibility-Culling]: entity {entity.Index} unitView {unitView}");
+
+                    if (unitView != null)
                     {
-                        if (unitView.entity == entity)
-                        {
-                            Debug.Log($"[Visibility-Culling]: Сношу 3D-тело монстра {unitView.gameObject.name} по дистанции.");
-                            Object.Destroy(unitView.gameObject);
-                            break;
-                        }
+                        Debug.Log($"[Visibility-Culling]: Сношу 3D-тело монстра {unitView.gameObject.name} по дистанции.");
+                        Object.Destroy(unitView.gameObject);
+                        EntityViewRegistry.Unregister(entity);
                     }
+
                     ecb.RemoveComponent<VisualizedTag>(entity);
                 }
             }
@@ -215,6 +217,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         // Указываем тип роли!
                         syncTransform.Type = SyncTransformWithEntity.ViewType.Projectile; 
                         syncTransform.Initialize(entity);
+                        ProjectileViewRegistry.Register(entity, syncTransform);
 
                         ecb.AddComponent< VisualizedTag >(entity);
                     }
@@ -230,20 +233,13 @@ namespace ProjectTowerRpg.ECS.Systems
                      .WithEntityAccess())
             {
                 if (math.distance(playerPosition, transform.ValueRO.Position) > 55f)
-                {
-                    // Ищем на сцене 3D-модельку снаряда, привязанную к этой Entity
-                    var syncTransforms = Object.FindObjectsByType< SyncTransformWithEntity >(FindObjectsInactive.Exclude);
-                    foreach (var sync in syncTransforms)
-                    {
-                        // 🦾 СИ-ФИКС: Сверяем ID через наше новое свойство BoundEntity!
-                        if (sync.BoundEntity == entity) 
-                        {
-                            Object.Destroy(sync.gameObject);
-                            break;
-                        }
-                    }
+                {                    
+                    var projectileView = ProjectileViewRegistry.Get(entity);
+                    if (projectileView != null)
+                        Object.Destroy(projectileView.gameObject);
 
-                    ecb.RemoveComponent< VisualizedTag >(entity);
+                    ProjectileViewRegistry.Unregister(entity);
+                    ecb.RemoveComponent<VisualizedTag>(entity);
                 }
             }
         }

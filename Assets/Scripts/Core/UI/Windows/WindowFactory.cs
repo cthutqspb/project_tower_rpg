@@ -141,7 +141,9 @@ namespace ProjectTowerRpg.Core.UI
 
             if (_pool.TryGetValue(type, out var queue) && queue.Count > 0)
             {
-                return queue.Dequeue();
+                var window = queue.Dequeue();
+                window.IsInPool = false;
+                return window;
             }
 
             UIWindow prefab = null;
@@ -154,7 +156,7 @@ namespace ProjectTowerRpg.Core.UI
 
             // Спавним префаб
             UIWindow windowInstance = Instantiate(prefab);
-            
+                        
             // 🦾 ШЛЮЗ БЕЗОПАСНОСТИ: Фабрика передает окну легальный корень рендера прямо в руки!
             windowInstance.InitializeWindow(_cachedGlobalUiRoot);
 
@@ -164,12 +166,17 @@ namespace ProjectTowerRpg.Core.UI
         public void ReturnToPool(WindowType type, UIWindow window)
         {
             if (window == null) return;
-                window.Close();
+            if (window.IsInPool) return;   // ← защита
 
-            if (!_pool.ContainsKey(type)) 
-                _pool[type] = new Queue<UIWindow>();
+            window.Close();
+            window.IsInPool = true;
 
-            _pool[type].Enqueue(window);
+            if (!_pool.TryGetValue(type, out var queue))
+            {
+                queue = new Queue<UIWindow>();
+                _pool[type] = queue;
+            }
+            queue.Enqueue(window);
         }
     }
 }

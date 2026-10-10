@@ -285,22 +285,6 @@ namespace ProjectTowerRpg.Core.UI
             _activeDrag = null;
         }
 
-        private Entity GetEntityFromComponent(object component)
-        {
-            if (component == null) return Entity.Null;
-
-            if (component is SlotElement slotElement)
-                return slotElement.ContainerEntity;
-
-            if (component is StaticGrid grid)
-                return grid.BoundEntity;
-
-            if (component is Paperdoll paperdoll)
-                return paperdoll.BoundEntity;
-
-            return Entity.Null;
-        }
-
         public void CancelDrag()
         {
             if (_activeDrag == null) return;

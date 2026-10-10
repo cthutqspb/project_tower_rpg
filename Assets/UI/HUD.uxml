@@ -1,13 +1,19 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <!-- Главный контейнер HUD -->
-    <ui:VisualElement picking-mode="Ignore" name="hud-root" class="hud">
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="project://database/Assets/UI/HUD/HUD.uss" />
+
+    <ui:VisualElement class="hud" name="root" picking-mode="Ignore">
         
-        <!-- Чистые слоты-пустышки под фреймы -->
-        <!-- Фрейм игрока — в левом верхнем углу -->
-        <ui:VisualElement picking-mode="Ignore" name="PlayerFrameSlot" style="position: absolute; left: 20px; top: 20px;" />
+        <!-- Фрейм игрока — левый верхний угол -->
+        <ui:VisualElement
+            class="hud__frame-slot hud__frame-slot--player"
+            name="player-frame-slot"
+            picking-mode="Ignore" />
         
-        <!-- Фрейм цели — в правом верхнем углу -->
-        <ui:VisualElement picking-mode="Ignore" name="TargetFrameSlot" style="position: absolute; right: 20px; top: 20px;" />        
+        <!-- Фрейм цели — правый верхний угол -->
+        <ui:VisualElement
+            class="hud__frame-slot hud__frame-slot--target"
+            name="target-frame-slot"
+            picking-mode="Ignore" />
+        
     </ui:VisualElement>
 </ui:UXML>
-

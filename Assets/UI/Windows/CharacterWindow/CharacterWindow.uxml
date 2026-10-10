@@ -2,28 +2,27 @@
     <ui:Style src="project://database/Assets/UI/Windows/CharacterWindow/CharacterWindow.uss" />
 
     <!-- Общий фон окна -->
-    <ui:VisualElement class="character-window" name="window-root" picking-mode="Position" style="position: absolute">
+    <ui:VisualElement class="character-window" name="root" picking-mode="Position">
         
         <!-- Хедер (общий для всего окна) -->
-        <ui:VisualElement name="header-container" />
+        <ui:VisualElement name="header" />
         
         <!-- Тело: три колонки -->
-        <ui:VisualElement class="window-body" name="content-container">
+        <ui:VisualElement class="character-window__content" name="content">
             
             <!-- Статы (левая колонка) -->
-            <ui:VisualElement class="stats-column" name="stats-container">
+            <ui:VisualElement class="character-window__stats" name="stats">
             </ui:VisualElement>
             
             <!-- Кукла (центр) -->
-            <ui:VisualElement class="paperdoll-column" name="paperdoll-container">
+            <ui:VisualElement class="character-window__paperdoll" name="paperdoll">
                 <!-- Слоты куклы создаются в коде -->
             </ui:VisualElement>
             
             <!-- Инвентарь (правая колонка) -->
             <ui:ScrollView
-              class="inventory-column"
-              name="inventory-container"
-              style="padding: 0;"
+              class="character-window__inventory"
+              name="inventory"
               movement-type="Elastic"
               elasticity="0.1">
                 <!-- Статик грид создаётся в коде -->

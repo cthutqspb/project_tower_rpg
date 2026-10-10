@@ -1,19 +1,19 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <!-- Глобальный оверлей меню на весь экран -->
-    <ui:VisualElement name="main-menu-root" class="main-menu-root">
+    <ui:VisualElement name="root" class="main-menu">
         
         <!-- Контейнер с кнопками по центру -->
-        <ui:VisualElement name="menu-container" class="main-menu-container">
+        <ui:VisualElement name="content" class="main-menu__content">
             
             <!-- Заголовок игры -->
-            <ui:Label name="menu-title" text="Главное меню" class="main-menu-title" />
+            <ui:Label name="title" class="main-menu__title" />
             
             <!-- Стерильный пак кнопок для C# логики -->
-            <ui:Button name="btn-continue" class="menu-button" />
-            <ui:Button name="btn-new-game" class="menu-button" />
-            <ui:Button name="btn-save" class="menu-button" />
-            <ui:Button name="btn-load" class="menu-button" />
-            <ui:Button name="btn-exit" class="menu-button" />
+            <ui:Button name="btn-continue" class="main-menu__menu-button" />
+            <ui:Button name="btn-new-game" class="main-menu__menu-button" />
+            <ui:Button name="btn-save" class="main-menu__menu-button" />
+            <ui:Button name="btn-load" class="main-menu__menu-button" />
+            <ui:Button name="btn-exit" class="main-menu__menu-button" />
             
         </ui:VisualElement>
     </ui:VisualElement>

@@ -2,66 +2,87 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core.Presentation;
 
 using Object = UnityEngine.Object;
-using FindObjectsInactive = UnityEngine.FindObjectsInactive;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
-    [UpdateInGroup(typeof(InitializationSystemGroup))]
+    [UpdateInGroup(typeof(PresentationSystemGroup))]
     [WorldSystemFilter(WorldSystemFilterFlags.LocalSimulation)]
     public partial class ProjectileViewDestroySystem : SystemBase
     {
         private EntityQuery _playerQuery;
+        private readonly System.Collections.Generic.List<Entity> _deadEntities = new();
 
         protected override void OnCreate()
         {
-            _playerQuery = EntityManager.CreateEntityQuery(
-                ComponentType.ReadOnly< PlayerTag >(), 
-                ComponentType.ReadOnly< LocalTransform >()
-            );
+            _playerQuery = GetEntityQuery(
+                ComponentType.ReadOnly<PlayerTag>(),
+                ComponentType.ReadOnly<LocalTransform>());
         }
 
         protected override void OnUpdate()
         {
-            var em = EntityManager;
-            var ecb = SystemAPI.GetSingleton< EndSimulationEntityCommandBufferSystem.Singleton >().CreateCommandBuffer(World.Unmanaged);
-
             if (_playerQuery.IsEmpty) return;
-            var playerEntity = _playerQuery.GetSingletonEntity();
-            float3 playerPosition = em.GetComponentData< LocalTransform >(playerEntity).Position;
 
-            // 🚀 Выгребаем со сцены Unity только скрипты слежения снарядов!
-            var projectileViews = Object.FindObjectsByType<SyncTransformWithEntity>(FindObjectsInactive.Exclude);
-            if (projectileViews.Length == 0) return;
+            var em = EntityManager;
+            var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+                               .CreateCommandBuffer(World.Unmanaged);
 
-            foreach (var sync in projectileViews)
+            float3 playerPosition = em.GetComponentData<LocalTransform>(
+                _playerQuery.GetSingletonEntity()).Position;
+
+            _deadEntities.Clear();
+
+            CollectDeadProjectiles(em, playerPosition);
+            DestroyDeadProjectiles(em, ecb);
+        }
+
+        // Проход 1: только читаем реестр, ничего не удаляем.
+        private void CollectDeadProjectiles(EntityManager em, float3 playerPosition)
+        {
+            foreach (var entity in ProjectileViewRegistry.GetEntities())
             {
-                if (sync == null) continue;
-                Entity boundEntity = sync.BoundEntity;
-
-                // 🪦 КЕЙС 1: ECS-сущность снаряда стёрта сервером (Произошел ИМПАКТ!)
-                bool isEntityDestroyed = !em.Exists(boundEntity);
-
-                // 🌐 КЕЙС 2: Снаряд еще жив, но улетел в туман войны дальше 55 метров от игрока
-                bool isTooFar = !isEntityDestroyed && math.distance(playerPosition, em.GetComponentData< LocalTransform >(boundEntity).Position) > 55f;
-
-                if (isEntityDestroyed || isTooFar)
+                // Сущность стёрта сервером — снаряд сделал импакт.
+                if (!em.Exists(entity))
                 {
-                    Debug.Log($"🧹 [ProjectileViewDestroy]: Сношу 3D-тело снаряда '{sync.gameObject.name}' (Импакт: {isEntityDestroyed} | Куллинг: {isTooFar})");
-                    
-                    // Насильно стираем куб с экрана, очищая Mono-кучу
-                    Object.Destroy(sync.gameObject);
-
-                    // Если куб стерт по дистанции, но на сервере еще летит — снимаем флаг, чтобы перематериализовать позже
-                    if (isTooFar)
-                    {
-                        ecb.RemoveComponent< VisualizedTag >(boundEntity);
-                    }
+                    _deadEntities.Add(entity);
+                    continue;
                 }
+
+                // Снаряд жив, но улетел в туман войны.
+                float3 pos = em.GetComponentData<LocalTransform>(entity).Position;
+                if (math.distance(playerPosition, pos) > 55f)
+                {
+                    _deadEntities.Add(entity);
+                }
+            }
+        }
+
+        // Проход 2: уничтожаем. Реестр уже не итерируется.
+        private void DestroyDeadProjectiles(EntityManager em, EntityCommandBuffer ecb)
+        {
+            for (int i = 0; i < _deadEntities.Count; i++)
+            {
+                Entity entity = _deadEntities[i];
+
+                if (!ProjectileViewRegistry.TryGet(entity, out var sync)) continue;
+
+                bool isDestroyed = !em.Exists(entity);
+
+                Debug.Log(
+                    $"🧹 [ProjectileViewDestroy]: Сношу 3D-тело снаряда " +
+                    $"'{sync.gameObject.name}' (Импакт: {isDestroyed})");
+
+                Object.Destroy(sync.gameObject);
+                ProjectileViewRegistry.Unregister(entity);
+
+                // Если снаряд ещё жив — снимаем VisualizedTag, чтобы мог заматериализоваться снова.
+                if (!isDestroyed)
+                    ecb.RemoveComponent<VisualizedTag>(entity);
             }
         }
     }
 }
-

@@ -14,5 +14,7 @@
     <Style src="project://database/Assets/UI/Components/ActionBar.uss?fileID=7433441132597879392&amp;guid=e6c9c1854faaedca7b7f62a495e76a62&amp;type=3#ActionBar"/>
     <Style src="project://database/Assets/UI/Components/UnitFrame.uss?fileID=7433441132597879392&amp;guid=5aa5e4e70f7100a9491f7e2f160ccef8&amp;type=3#UnitFrame"/>
     <Style src="project://database/Assets/UI/Components/ChatLog.uss?fileID=7433441132597879392&amp;guid=7938a22e2cf99a5d1afebb4b48ab9707&amp;type=3#ChatLog"/>
+    <Style src="project://database/Assets/UI/ContextMenu/ContextMenu.uss?fileID=7433441132597879392&amp;guid=b85a1b352b1c42bdb90b3d989e1ff3d7&amp;type=3#ContextMenu"/>
+    <Style src="project://database/Assets/UI/Components/CastBar.uss?fileID=7433441132597879392&amp;guid=532175696cb294c6fb65205426ba4ed5&amp;type=3#CastBar"/>
     <ui:VisualElement picking-mode="Ignore" name="VisualElement" class="ui-layer"/>
 </ui:UXML>

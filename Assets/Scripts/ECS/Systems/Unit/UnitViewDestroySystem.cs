@@ -1,40 +1,54 @@
 using Unity.Entities;
+using ProjectTowerRpg.Core.Presentation;
 
-// 🚀 ХИРУРГИЧЕСКИЙ РАЗВOД ИМПОРТОВ: Забираем строго 3 нужных нам managed-класса!
 using Object = UnityEngine.Object;
-using FindObjectsInactive = UnityEngine.FindObjectsInactive;
-using Debug = UnityEngine.Debug;
+using Debug  = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
-    [UpdateInGroup(typeof(InitializationSystemGroup))]
+    [UpdateInGroup(typeof(PresentationSystemGroup))]
     [WorldSystemFilter(WorldSystemFilterFlags.LocalSimulation)]
     public partial class UnitViewDestroySystem : SystemBase
     {
+        private readonly System.Collections.Generic.List<Entity> _deadEntities = new();
+
         protected override void OnUpdate()
+        {
+            _deadEntities.Clear();
+
+            CollectDeadUnits();
+            DestroyDeadUnits();
+        }
+
+        private void CollectDeadUnits()
         {
             var em = EntityManager;
 
-            // Находим марионеток монстров на сцене через их UnitView
-            // ⚠️ Напоминание: этот покадровый поиск по сцене — временный контур для текущих тестов!
-            var unitsOnScene = Object.FindObjectsByType<UnitView>(FindObjectsInactive.Exclude);
-            if (unitsOnScene.Length == 0) return;
-
-            foreach (var view in unitsOnScene)
+            foreach (var entity in EntityViewRegistry.GetEntities())
             {
-                if (view == null || view.entity == Entity.Null) continue;
+                if (!EntityViewRegistry.TryGet<UnitView>(entity, out _)) continue;
 
-                // Если сущность монстра была полностью стёрта из памяти симуляции (!em.Exists) — 
-                // мы обязаны мгновенно убрать его 3D-тело со сцены!
-                if (!em.Exists(view.entity))
-                {
-                    Debug.Log($"🧹 [UnitViewDestroySystem]: Сущность юнита {view.entity.Index} удалена из ECS. Аннигилирую 3D-тело {view.gameObject.name}!");
-                    
-                    // Насильно стираем куб/модельку с экрана, очищая Mono-кучу
-                    Object.Destroy(view.gameObject);
-                }
+                // Юнит умер — сущность стёрта из ECS.
+                if (!em.Exists(entity))
+                    _deadEntities.Add(entity);
+            }
+        }
+
+        private void DestroyDeadUnits()
+        {
+            for (int i = 0; i < _deadEntities.Count; i++)
+            {
+                Entity entity = _deadEntities[i];
+
+                if (!EntityViewRegistry.TryGet<UnitView>(entity, out var view)) continue;
+
+                Debug.Log(
+                    $"🧹 [UnitViewDestroySystem]: Сущность юнита {entity.Index} удалена из ECS. " +
+                    $"Аннигилирую 3D-тело {view.gameObject.name}!");
+
+                Object.Destroy(view.gameObject);
+                EntityViewRegistry.Unregister(entity);
             }
         }
     }
 }
-

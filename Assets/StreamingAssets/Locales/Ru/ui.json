@@ -21,10 +21,19 @@
   "attribute_stamina": "Выносливость",
   "attribute_wisdom": "Мудрость",
 
+  "stat_critical_chance": "Шанс критического удара",
+  "stat_hit_chance": "Шанс попадания",
+  "stat_attack_speed": "Скорость атаки",
+  "stat_dodge_chance": "Уклонение",
+  "stat_parry_chance": "Парирование",
+  "stat_armor": "Броня",
+  "stat_magic_resist": "Сопротивление магии",
+
   "_comment_Container_window": "",
   "btn_take_all": "Взять всё",
 
   "_comment_Menu": "",
+  "main_menu_title": "Главное меню",
   "btn_main_menu": "Главное меню",
   "btn_new_game": "Новая игра",
   "btn_continue_game": "Продолжить игру",

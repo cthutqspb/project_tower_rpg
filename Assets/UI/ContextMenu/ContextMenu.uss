@@ -1,70 +1,64 @@
-.context-menu-root {
+.context-menu {
     position: absolute;
-    display: none;
-    flex-grow: 1;
-    pointer-events: none; /* чтобы клик проходил сквозь корень */
-}
-
-.context-menu-background {
-    position: absolute;
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: rgba(15, 15, 15, 0.95);
     border-width: 1px;
-    border-color: rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
+    border-color: rgba(64, 64, 64, 0.4);
     padding: 4px;
-    min-width: 180px;
-    max-width: 260px;
+    min-width: 160px;
+    max-width: 240px;
     pointer-events: auto;
-    flex-direction: column;
+    flex-direction: column;    
+    picking-mode: ignore; /* чтобы клик проходил сквозь корень */
 }
 
-.context-menu-scroll {
+.context-menu__scroll {
     flex-grow: 1;
     max-height: 400px;
 }
 
-.context-menu-scroll .unity-scroll-view__content-container {
+.context-menu__scroll .unity-scroll-view__content-container {
     flex-grow: 1;
 }
 
-.context-menu-list {
+.context-menu__list {
     flex-direction: column;
     flex-grow: 1;
-    padding: 2px;
 }
 
 /* ================================================================
    КНОПКА КОНТЕКСТНОГО МЕНЮ
    ================================================================ */
-.context-menu-button {
+.context-menu__button {
     height: 32px;
-    margin: 1px 0;
     padding: 4px 12px;
-    background-color: rgba(255, 255, 255, 0.0);
-    border-width: 0;
-    border-radius: 4px;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 13px;
+    border-top-width: 0;
+    border-left-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(64, 64, 64, 0.4);    
+    background-color: rgba(15, 15, 15, 0.95);
+    color: var(--osaka-text);
+    font-size: 15px;
     -unity-text-align: middle-left;
     flex-shrink: 0;
     transition-duration: 0.08s;
     align-items: center;
 }
 
-.context-menu-button:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+.context-menu__button:last-child {
+    border-bottom-width: 0;
 }
 
-.context-menu-button:active {
-    background-color: rgba(255, 255, 255, 0.15);
-}
+.context-menu__button:hover {
+    background-color: rgba(72, 72, 72, 0.95);
+  }
 
-.context-menu-button .unity-label {
-    color: rgba(255, 255, 255, 0.85);
-}
+.context-menu__button:active {
+    background-color: rgba(72, 72, 72, 0.95);
+  }
 
 /* КНОПКА С ИКОНКОЙ (задел) */
-.context-menu-button .icon {
+.context-menu__button .icon {
     width: 16px;
     height: 16px;
     margin-right: 8px;
@@ -72,24 +66,24 @@
 }
 
 /* РАЗДЕЛИТЕЛЬ */
-.context-menu-divider {
+.context-menu__divider {
     height: 1px;
     background-color: rgba(255, 255, 255, 0.08);
     margin: 4px 8px;
 }
 
 /* СТИЛЬ ДЛЯ ДИЗАБЛЕД КНОПОК (будущее) */
-.context-menu-button.disabled {
-    color: rgba(255, 255, 255, 0.25);
+.context-menu__button.disabled {
+    color: var(--solarized-base00);
     pointer-events: none;
 }
 
-.context-menu-button.disabled:hover {
+.context-menu__button.disabled:hover {
     background-color: transparent;
 }
 
 /* ПОДСКАЗКА (Shortcut) — задел для будущего */
-.context-menu-button .shortcut {
+.context-menu__button .shortcut {
     color: rgba(255, 255, 255, 0.3);
     font-size: 11px;
     -unity-text-align: middle-right;

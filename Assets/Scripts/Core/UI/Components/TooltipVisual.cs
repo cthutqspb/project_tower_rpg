@@ -187,35 +187,35 @@ namespace ProjectTowerRpg.Core.UI.Components
                     {
                         bool isOk = cfg.requirements.strength <= attrs.strength;
                         string reqClass = isOk ? "text-normal" : "text-danger";
-                        AddLine($"  {LocalizationManager.Get("stat_strength")}: {cfg.requirements.strength}", styleClass: reqClass);
+                        AddLine($"  {LocalizationManager.Get("attribute_strength")}: {cfg.requirements.strength}", styleClass: reqClass);
                     }
 
                     if (cfg.requirements.agility > 0)
                     {
                         bool isOk = cfg.requirements.agility <= attrs.agility;
                         string reqClass = isOk ? "text-normal" : "text-danger";
-                        AddLine($"  {LocalizationManager.Get("stat_agility")}: {cfg.requirements.agility}", styleClass: reqClass);
+                        AddLine($"  {LocalizationManager.Get("attribute_agility")}: {cfg.requirements.agility}", styleClass: reqClass);
                     }
 
                     if (cfg.requirements.intellect > 0)
                     {
                         bool isOk = cfg.requirements.intellect <= attrs.intellect;
                         string reqClass = isOk ? "text-normal" : "text-danger";
-                        AddLine($"  {LocalizationManager.Get("stat_intellect")}: {cfg.requirements.intellect}", styleClass: reqClass);
+                        AddLine($"  {LocalizationManager.Get("attribute_intellect")}: {cfg.requirements.intellect}", styleClass: reqClass);
                     }
 
                     if (cfg.requirements.stamina > 0)
                     {
                         bool isOk = cfg.requirements.stamina <= attrs.stamina;
                         string reqClass = isOk ? "text-normal" : "text-danger";
-                        AddLine($"  {LocalizationManager.Get("stat_stamina")}: {cfg.requirements.stamina}", styleClass: reqClass);
+                        AddLine($"  {LocalizationManager.Get("attribute_stamina")}: {cfg.requirements.stamina}", styleClass: reqClass);
                     }
 
                     if (cfg.requirements.wisdom > 0)
                     {
                         bool isOk = cfg.requirements.wisdom <= attrs.wisdom;
                         string reqClass = isOk ? "text-normal" : "text-danger";
-                        AddLine($"  {LocalizationManager.Get("stat_wisdom")}: {cfg.requirements.wisdom}", styleClass: reqClass);
+                        AddLine($"  {LocalizationManager.Get("attribute_wisdom")}: {cfg.requirements.wisdom}", styleClass: reqClass);
                     }
 
                     if (!string.IsNullOrEmpty(cfg.requirements.resource))
@@ -250,11 +250,11 @@ namespace ProjectTowerRpg.Core.UI.Components
                 if (cfg.combat_stats.attributes != null)
                 {
                     var attrs = cfg.combat_stats.attributes;
-                    if (attrs.strength != 0) AddLine($"{(attrs.strength > 0 ? "+" : "")}{attrs.strength} {LocalizationManager.Get("stat_strength")}", styleClass: "text-armor");
-                    if (attrs.agility != 0) AddLine($"{(attrs.agility > 0 ? "+" : "")}{attrs.agility} {LocalizationManager.Get("stat_agility")}", styleClass: "text-armor");
-                    if (attrs.intellect != 0) AddLine($"{(attrs.intellect > 0 ? "+" : "")}{attrs.intellect} {LocalizationManager.Get("stat_intellect")}", styleClass: "text-armor");
-                    if (attrs.stamina != 0) AddLine($"{(attrs.stamina > 0 ? "+" : "")}{attrs.stamina} {LocalizationManager.Get("stat_stamina")}", styleClass: "text-armor");
-                    if (attrs.wisdom != 0) AddLine($"{(attrs.wisdom > 0 ? "+" : "")}{attrs.wisdom} {LocalizationManager.Get("stat_wisdom")}", styleClass: "text-armor");
+                    if (attrs.strength != 0) AddLine($"{(attrs.strength > 0 ? "+" : "")}{attrs.strength} {LocalizationManager.Get("attribute_strength")}", styleClass: "text-armor");
+                    if (attrs.agility != 0) AddLine($"{(attrs.agility > 0 ? "+" : "")}{attrs.agility} {LocalizationManager.Get("attribute_agility")}", styleClass: "text-armor");
+                    if (attrs.intellect != 0) AddLine($"{(attrs.intellect > 0 ? "+" : "")}{attrs.intellect} {LocalizationManager.Get("attribute_intellect")}", styleClass: "text-armor");
+                    if (attrs.stamina != 0) AddLine($"{(attrs.stamina > 0 ? "+" : "")}{attrs.stamina} {LocalizationManager.Get("attribute_stamina")}", styleClass: "text-armor");
+                    if (attrs.wisdom != 0) AddLine($"{(attrs.wisdom > 0 ? "+" : "")}{attrs.wisdom} {LocalizationManager.Get("attribute_wisdom")}", styleClass: "text-armor");
                 }
             }
 

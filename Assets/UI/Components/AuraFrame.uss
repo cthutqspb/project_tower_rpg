@@ -1,5 +1,5 @@
 /* Глобальный контейнер аура-фрейма */
-.aura-frame-container {
+.aura-frame {
     margin-top: 4px;
     margin-bottom: 4px;
     background-color: transparent;
@@ -7,7 +7,7 @@
 }
 
 /* Контейнер-сетка, выстраивающий иконки подряд в горизонтальный ряд */
-.aura-grid {
+.aura-frame__grid {
     width: 100%;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -18,14 +18,14 @@
 /* 🦾 СТИЛИЗАЦИЯ СЛОТА ПОД АУРУ:
    Переопределяем размеры стандартного .slot из SlotElement, 
    делая баффы аккуратными и компактными (32х32 вместо 42х42), как в WoW! */
-.aura-grid .slot {
+.aura-frame__grid .slot {
     margin: 0px;
     width: 32px;
     height: 32px;
 }
 
 /* Компактный размер для шрифта-иконки Nerd Font внутри ауры */
-.aura-grid .slot-icon {
+.aura-frame__grid .slot-icon {
     width: 32px;
     height: 32px;
     font-size: 27px;
@@ -33,7 +33,7 @@
 }
 
 /* Счётчик стаков в углу баффа (например, если щитов накопилось 3 штуки) */
-.aura-gird .slot-amount-label {
+.aura-frame__grid .slot-amount-label {
     font-size: 10px;
     position: absolute;
     bottom: 1px;
@@ -43,7 +43,7 @@
 }
 
 /* Текстовый таймер оставшегося времени ауры (выводится под или прямо на иконке) */
-.aura-grid .slot-duration-label {
+.aura-frame__grid .slot-duration-label {
     font-size: 9px;
     position: absolute;
     top: 1px;

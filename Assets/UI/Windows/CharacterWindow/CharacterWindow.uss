@@ -1,5 +1,6 @@
 /* 🎒 ГЛАВНОЕ ОКНО */
 .character-window {
+    position: absolute;
     background-color: rgba(26, 30, 30, 0.95);
     padding: 12px;
     border-width: 1px;
@@ -11,14 +12,14 @@
 }
 
 /* Тело окна — три колонки */
-.window-body {
+.character-window__content {
     flex-direction: row;
     flex-grow: 1;
     gap: 8px;
 }
 
 /* Колонка со статами */
-.stats-column {
+.character-window__stats {
     width: 320px;
     flex-shrink: 0;
     padding: 8px;
@@ -27,7 +28,7 @@
 }
 
 /* Колонка с куклой */
-.paperdoll-column {
+.character-window__paperdoll {
     width: 320px;
     flex-shrink: 0;
     display: flex;
@@ -39,7 +40,7 @@
 }
 
 /* Колонка с инвентарём */
-.inventory-column {
+.character-window__inventory {
     width: 320px;
     flex-shrink: 0;
     background-color: rgba(0, 0, 0, 0.2);
@@ -49,18 +50,18 @@
     max-height: 100%;
 }
 
-.inventory-grid {
+.character-window__inventory-grid {
     display: flex;
     justify-content: center;
 }
 
-.inventory-grid .slot {
+.character-window__inventory-grid .slot {
     margin: 2px;
     width: 42px;
     height: 42px;
 }
 
-.inventory-grid .slot-icon {
+.character-window__inventory-grid .slot-icon {
     width: 42px;
     height: 42px;
     font-size: 39px;

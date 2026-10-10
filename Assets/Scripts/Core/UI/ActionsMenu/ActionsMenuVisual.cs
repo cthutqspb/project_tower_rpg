@@ -7,9 +7,8 @@ namespace ProjectTowerRpg.Core.UI
 {
     public class ActionsMenuVisual : VisualElement
     {
-        private VisualElement _root;
-        private VisualElement _listContainer;
-        private List<Button> _buttons = new List<Button>();
+        private VisualElement _list;
+        private readonly List<Button> _buttons = new();
         private bool _isVisible = false;
 
         public ActionsMenuVisual()
@@ -17,71 +16,54 @@ namespace ProjectTowerRpg.Core.UI
             this.style.position = Position.Absolute;
             this.style.display = DisplayStyle.None;
             this.pickingMode = PickingMode.Ignore;
-            Debug.Log("[ActionsMenuVisual] Конструктор");
         }
 
         public void Show(Vector2 screenPosition, List<MenuAction> actions, object menuActionData = null)
         {
-            Debug.Log($"[ActionsMenuVisual] Show() actions={actions?.Count ?? 0}, pos={screenPosition}");
-
             if (actions == null || actions.Count == 0)
             {
                 Hide();
                 return;
             }
 
-            // ✅ ДИНАМИЧЕСКИ СОЗДАЁМ МЕНЮ ПРЯМО СЕЙЧАС
-            _root = new VisualElement();
-            _root.style.position = Position.Absolute;
-            _root.style.backgroundColor = new Color(0.08f, 0.08f, 0.08f, 0.95f);
-            _root.style.borderTopLeftRadius = 6;
-            _root.style.borderTopRightRadius = 6;
-            _root.style.borderBottomLeftRadius = 6;
-            _root.style.borderBottomRightRadius = 6;
-            _root.style.paddingTop = 4;
-            _root.style.paddingBottom = 4;
-            _root.style.paddingLeft = 4;
-            _root.style.paddingRight = 4;
-            _root.style.minWidth = 180;
-            _root.style.left = screenPosition.x;
-            _root.style.top = screenPosition.y;
-            _root.pickingMode = PickingMode.Position;
-            Add(_root);
+            // Очищаем прошлое
+            this.Clear();
+            _buttons.Clear();
 
-            _listContainer = new VisualElement();
-            _listContainer.style.flexDirection = FlexDirection.Column;
-            _listContainer.pickingMode = PickingMode.Position;
-            _root.Add(_listContainer);
+            // this — корень меню
+            this.AddToClassList("context-menu");
+            this.style.left = screenPosition.x;
+            this.style.top = screenPosition.y;
+            this.pickingMode = PickingMode.Position;
 
-            // Закрытие по клику мимо
-            _listContainer.RegisterCallback<PointerDownEvent>(OnBackgroundClick);
+            // список кнопок
+            _list = new VisualElement();
+            _list.AddToClassList("context-menu__list");
+            _list.pickingMode = PickingMode.Position;
+            this.Add(_list);
 
-            // Создаём кнопки
+            _list.RegisterCallback<PointerDownEvent>(OnBackgroundClick);
+
             foreach (var action in actions)
             {
                 var button = CreateButton(action, menuActionData);
-                _listContainer.Add(button);
+                _list.Add(button);
                 _buttons.Add(button);
             }
 
             this.style.display = DisplayStyle.Flex;
-            this.pickingMode = PickingMode.Position;
             _isVisible = true;
             this.BringToFront();
         }
 
         public void Hide()
         {
-            if (_root != null)
-            {
-                Remove(_root);
-                _root = null;
-                _listContainer = null;
-            }
-            
-            ClearButtons();
+            this.Clear();
+            this.RemoveFromClassList("context-menu");
             this.style.display = DisplayStyle.None;
             this.pickingMode = PickingMode.Ignore;
+            _list = null;
+            _buttons.Clear();
             _isVisible = false;
         }
 
@@ -91,20 +73,7 @@ namespace ProjectTowerRpg.Core.UI
         {
             var button = new Button();
             button.text = LocalizationManager.Get(action.NameKey);
-            button.style.marginBottom = 2;
-            button.style.unityTextAlign = TextAnchor.MiddleLeft;
-            button.style.paddingLeft = 10;
-            button.style.paddingRight = 10;
-            button.style.backgroundColor = Color.clear;
-            button.style.color = Color.white;
-            button.style.fontSize = 13;
-            button.style.borderTopLeftRadius = 4;
-            button.style.borderTopRightRadius = 4;
-            button.style.borderBottomLeftRadius = 4;
-            button.style.borderBottomRightRadius = 4;
-
-            button.RegisterCallback<PointerOverEvent>(_ => button.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f, 0.8f));
-            button.RegisterCallback<PointerOutEvent>(_ => button.style.backgroundColor = Color.clear);
+            button.AddToClassList("context-menu__button");
 
             button.clicked += () =>
             {
@@ -115,28 +84,17 @@ namespace ProjectTowerRpg.Core.UI
             return button;
         }
 
-        private void ClearButtons()
-        {
-            foreach (var button in _buttons) button.RemoveFromHierarchy();
-            _buttons.Clear();
-        }
-
         private void OnBackgroundClick(PointerDownEvent evt)
         {
-            Debug.Log("[ActionMenuVisual] OnBackgroundClick");
             Hide();
         }
 
         private void CreateActionCommand(MenuAction action, object menuActionData)
-        {   
+        {
             var data = menuActionData as ActionsMenu.MenuActionData;
             if (data == null) return;
 
-            // ✅ ИДЕАЛЬНАЯ ИЗОЛЯЦИЯ (Реакт-канон): 
-            // Вместо создания сущностей на месте, мы просто стреляем ивентом в глобальную шину!
             UIEvents.TriggerMenuActionSelected(action, data);
-
-            Debug.Log($"[ActionsMenuVisual] Действие '{action.Action}' отправлено наверх в контроллер.");
         }
     }
 }

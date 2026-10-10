@@ -10,7 +10,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         {
             public LogChannel Channel;
             public Button Button;
-            public string ActiveClass = "chat-tab-active";
+            public string ActiveClass = "chat-log__tab-active";
             public System.Func<LogChannel, bool> Filter;
         }
 
@@ -37,10 +37,10 @@ namespace ProjectTowerRpg.Core.UI.Components
             _root = rootVisual;
             
             // Выуживаем тело окна из TemplateContainer для навешивания модификатора .chat-locked
-            _windowBody = _root.Q<VisualElement>("chat-log-root");
-            _messagesContainer = _root.Q<ScrollView>("chat-log-messages-container");
+            _windowBody = _root.Q<VisualElement>("root");
+            _messagesContainer = _root.Q<ScrollView>("messages-container");
             
-            _lockBtn = _root.Q<Button>("chat-lock-btn");
+            _lockBtn = _root.Q<Button>("lock-btn");
             _lockBtn.text = "";
 
             if (_messagesContainer == null || _windowBody == null)
@@ -57,7 +57,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             // 🦾 ВНEДРЕНИЕ ДРAГ-МАНИПУЛЯТОРА ПО КАНОНУ ПРОЕКТА:
             // Хедером/ручкой для перетаскивания выступает вся верхняя панель chat-toolbar.
             // Перетаскиваем мы ВНЕШНЮЮ обертку _root (TemplateContainer с классом .chat-log-wrapper)!
-            var toolbar = _root.Q<VisualElement>("chat-log-toolbar");
+            var toolbar = _root.Q<VisualElement>("toolbar");
             if (toolbar != null)
             {
                 _root.RegisterCallback<PointerDownEvent>(evt => _root.BringToFront());
@@ -80,21 +80,21 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 Channel = LogChannel.System,
                 Button = _root.Q<Button>("tab-system-btn"),
-                ActiveClass = "chat-tab-active",
+                ActiveClass = "chat-log__tab-active",
                 Filter = ch => ch != LogChannel.Combat && ch != LogChannel.World // всё, кроме боя и мира
             });
             _tabs.Add(new TabDef
             {
                 Channel = LogChannel.Combat,
                 Button = _root.Q<Button>("tab-combat-btn"),
-                ActiveClass = "chat-tab-active",
+                ActiveClass = "chat-log__tab-active",
                 Filter = ch => ch == LogChannel.Combat
             });
             _tabs.Add(new TabDef
             {
                 Channel = LogChannel.World,
                 Button = _root.Q<Button>("tab-world-btn"),
-                ActiveClass = "chat-tab-active",
+                ActiveClass = "chat-log__tab-active",
                 Filter = ch => ch == LogChannel.World
             });
 
@@ -143,7 +143,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 text = formattedText,
                 pickingMode = PickingMode.Ignore
             };
-            label.AddToClassList("chat-line-item");
+            label.AddToClassList("chat-log__line-item");
             
             _messagesContainer.Add(label);
 
@@ -185,11 +185,11 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (_isLocked)
             {
                 // Замок закрыт: вешаем USS-модификатор скрытия рамок, меняем иконку на Закрыто
-                _windowBody.AddToClassList("chat-locked");
+                _windowBody.AddToClassList("chat-log__locked");
                 if (_lockBtn != null) _lockBtn.text = ""; // Иконка закрытого замка Nerd Font
                 
                 // На Силе отключаем DragManipulator, убирая его из тулбара!
-                var toolbar = _root.Q<VisualElement>("chat-log-toolbar");
+                var toolbar = _root.Q<VisualElement>("toolbar");
                 if (toolbar != null && _dragManipulator != null)
                 {
                     toolbar.RemoveManipulator(_dragManipulator);
@@ -198,10 +198,10 @@ namespace ProjectTowerRpg.Core.UI.Components
             else
             {
                 // Замок открыт: возвращаем рамку интерфейса, иконку Открыто и Драг обратно
-                _windowBody.RemoveFromClassList("chat-locked");
+                _windowBody.RemoveFromClassList("chat-log__locked");
                 if (_lockBtn != null) _lockBtn.text = "󰿇"; // Иконка открытого замка Nerd Font
                 
-                var toolbar = _root.Q<VisualElement>("chat-log-toolbar");
+                var toolbar = _root.Q<VisualElement>("toolbar");
                 if (toolbar != null && _dragManipulator != null)
                 {
                     toolbar.AddManipulator(_dragManipulator);

@@ -7,7 +7,7 @@ using ProjectTowerRpg.ECS.Actions;
 
 namespace ProjectTowerRpg.Core.UI.Windows
 {
-    public class ContainerWindow : UIWindow, IEntityContainer
+    public class ContainerWindow : UIWindow
     {
         // 🦾 Фиксируем максимальный MMO-размер сетки добычи (например, 4 столбца на 4 строки)
         private const int MAX_LOOT_COLUMNS = 4;
@@ -18,7 +18,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
         private Button _takeAllButton;
         private Entity _containerEntity = Entity.Null;
         private bool _isWaitingForBag = false;
-        private VisualElement _inventoryContainer;
+        private VisualElement _gridSlot;
 
         public override WindowType Type => WindowType.Container;
         public override Entity BoundEntity => _containerEntity;
@@ -39,12 +39,12 @@ namespace ProjectTowerRpg.Core.UI.Windows
         protected override void OnWindowBuilt(VisualElement root)
         {
             // Хедер собираем сразу
-            var headerContainer = root.Q<VisualElement>("header-container");
-            if (headerContainer != null)
+            var headerSlot = root.Q<VisualElement>("header");
+            if (headerSlot != null)
             {
                 _header = new HeaderComponent { Title = "ДОБЫЧА" };
                 _header.OnClose += Close;
-                headerContainer.Add(_header);
+                headerSlot.Add(_header);
                 root.RegisterCallback<PointerDownEvent>(evt => root.BringToFront());
                 var dragManipulator = new DragManipulator(_header, root, DragMode.UIElement);
                 _header.AddManipulator(dragManipulator);
@@ -53,18 +53,18 @@ namespace ProjectTowerRpg.Core.UI.Windows
             _takeAllButton = root.Q<Button>("take-all-btn");
             if (_takeAllButton != null) _takeAllButton.clicked += OnTakeAllClicked;
 
-            _inventoryContainer = root.Q<VisualElement>("inventory-container");
+            _gridSlot = root.Q<VisualElement>("grid");
             
             // 🎯 СТРОИМ ГРИД СРАЗУ ПРИ РОЖДЕНИИ ПРЕФАБА!
             // Ему пока не нужна сущность, мы просто генерируем меш слотов в ОЗУ.
-            if (_inventoryContainer != null && _lootGrid == null)
+            if (_gridSlot != null && _lootGrid == null)
             {
                 _lootGrid = new StaticGrid(MAX_LOOT_COLUMNS, MAX_LOOT_ROWS);
-                _inventoryContainer.Add(_lootGrid);
-                
+                _lootGrid.AddToClassList("container-window__grid");
+                _gridSlot.Add(_lootGrid);
+                              
                 // Кэшируем ресиверы в базовом классе UIWindow
-                ScanAndCacheReceivers();
-                Debug.Log("📦 [ContainerWindow.OnWindowBuilt]: Максимальная сетка лута 4х4 аппаратно сгенерирована в ОЗУ.");
+                ScanAndCacheReceivers();                
             }
         }
 
@@ -100,7 +100,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
 
         private void Update()
         {
-            if (_isWaitingForBag && _inventoryContainer != null && _containerEntity != Entity.Null) 
+            if (_isWaitingForBag && _gridSlot != null && _containerEntity != Entity.Null) 
                 TryBuildGrid();
         }
 

@@ -1,46 +1,70 @@
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.Core.Presentation;
 
-// 🚀 ХИРУРГИЧЕСКИЙ РАЗВOД ИМПОРТОВ (Wow-Канон систем-мостов):
-// Мы полностью выжгли using UnityEngine;, забрав только 3 точечных класса!
 using Object = UnityEngine.Object;
-using FindObjectsInactive = UnityEngine.FindObjectsInactive;
-using Debug = UnityEngine.Debug;
+using Debug  = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
-    [UpdateInGroup(typeof(InitializationSystemGroup))]
+    [UpdateInGroup(typeof(PresentationSystemGroup))]
     [WorldSystemFilter(WorldSystemFilterFlags.LocalSimulation)]
     public partial class ItemViewDestroySystem : SystemBase
     {
+        private readonly System.Collections.Generic.List<Entity> _deadEntities = new();
+
         protected override void OnUpdate()
+        {
+            _deadEntities.Clear();
+
+            CollectDeadItems();
+            DestroyDeadItems();
+        }
+
+        // ── Проход 1: только чтение реестра ──────────────────────────────
+        private void CollectDeadItems()
         {
             var em = EntityManager;
 
-            // ⚠️ ВНИМАНИЕ: Оставляем FindObjectsByType строго для текущих тестов!
-            // В будущем этот поиск намертво выжигается через кверение unmanaged-компонента ссылки на ассет!
-            var itemsOnScene = Object.FindObjectsByType<ItemView>(FindObjectsInactive.Exclude);
-            if (itemsOnScene.Length == 0) return;
-
-            foreach (var view in itemsOnScene)
+            foreach (var entity in EntityViewRegistry.GetEntities())
             {
-                // Нагло убираем костыльную проверку == null, используя C# null-conditional оператор
-                if (view == null || view.Entity == Entity.Null) continue;
+                if (!EntityViewRegistry.TryGet<ItemView>(entity, out var view)) continue;
+                if (view.entity == Entity.Null) continue;
 
-                // 🦾 ИСТИННЫЙ ECS-ГВАРД УДАЛЕНИЯ ГРАФИКИ:
-                bool isLooted = em.Exists(view.Entity) && em.HasComponent<StoredTag>(view.Entity);
-                bool isDestroyed = !em.Exists(view.Entity);
+                bool exists = em.Exists(view.entity);
 
-                if (isLooted || isDestroyed)
+                // Сущности нет — предмет уже удалён где-то ещё.
+                if (!exists)
                 {
-                    // Лог пишется чисто, лаконично и без инлайн-префиксов
-                    Debug.Log($"🧹 [ItemViewDestroySystem]: Предмет {view.itemId} (Entity {view.Entity.Index}) собран или стёрт. Аннигилирую 3D-куб {view.gameObject.name}!");
-                    
-                    // Насильно стираем куб с экрана, очищая Mono-кучу
-                    Object.Destroy(view.gameObject);
+                    _deadEntities.Add(entity);
+                    continue;
                 }
+
+                // Сущность есть, но висит StoredTag — предмет подобрали.
+                if (em.HasComponent<StoredTag>(view.entity))
+                {
+                    _deadEntities.Add(entity);
+                }
+            }
+        }
+
+        // ── Проход 2: уничтожение ────────────────────────────────────────
+        private void DestroyDeadItems()
+        {
+            for (int i = 0; i < _deadEntities.Count; i++)
+            {
+                Entity entity = _deadEntities[i];
+
+                if (!EntityViewRegistry.TryGet<ItemView>(entity, out var view)) continue;
+
+                Debug.Log(
+                    $"🧹 [ItemViewDestroySystem]: Предмет {view.itemId} " +
+                    $"(Entity {view.entity.Index}) собран или стёрт. " +
+                    $"Аннигилирую 3D-куб {view.gameObject.name}!");
+
+                Object.Destroy(view.gameObject);
+                EntityViewRegistry.Unregister(entity);
             }
         }
     }
 }
-

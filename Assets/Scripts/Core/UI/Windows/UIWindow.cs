@@ -20,6 +20,8 @@ namespace ProjectTowerRpg.Core.UI
 
         public abstract WindowType Type { get; }
         public virtual Entity BoundEntity => Entity.Null;
+        
+        [HideInInspector] public bool IsInPool;
 
         // 🦾 НАВЕДЕНА СТЕРИЛЬНОСТЬ: Окно больше ничего не ищет само!
         // Его инициализирует фабрика, передавая живой корень интерфейса сцены.

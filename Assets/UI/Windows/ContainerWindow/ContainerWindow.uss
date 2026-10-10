@@ -1,5 +1,5 @@
 /* 💰 ОКНО ДОБЫЧИ 320x240 */
-.loot-window {
+.container-window {
     background-color: rgba(26, 30, 30, 0.95);
     padding: 12px;
     border-width: 1px;
@@ -12,7 +12,7 @@
 }
 
 /* Тело окна лута */
-.loot-body {
+.container-window__content {
     flex-direction: column;
     flex-grow: 1;
     gap: 8px;
@@ -20,7 +20,7 @@
 }
 
 /* Скролл для сетки выпавших предметов */
-.loot-inventory-column {
+.container-window__grid-scroll {
     flex-grow: 1;
     display: flex;
     background-color: rgba(0, 0, 0, 0.2);
@@ -29,8 +29,25 @@
     overflow: auto;
 }
 
+.container-window__grid {
+    display: flex;
+    justify-content: center;
+}
+
+.container-window__grid .slot {
+    margin: 2px;
+    width: 42px;
+    height: 42px;
+}
+
+.container-window__grid .slot-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 39px;
+}
+
 /* Контейнер подвала для кнопки */
-.loot-footer {
+.container-footer {
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
@@ -38,7 +55,7 @@
 }
 
 /* Большая ММО-кнопка "ВЗЯТЬ ВСЁ" */
-.take-all-button {
+.container-window__take-all-button {
     width: 100%;
     height: 32px;
     background-color: #2aa198; /* Твой фирменный Solarized Osaka неон */
@@ -48,11 +65,11 @@
     border-radius: 4px;
 }
 
-.take-all-button:hover {
+.container-window__take-all-button:hover {
     background-color: #3bc4b8;
 }
 
-.take-all-button:active {
+.container-window__take-all-button:active {
     background-color: #1f7d75;
 }
 

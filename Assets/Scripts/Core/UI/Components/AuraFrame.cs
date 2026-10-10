@@ -18,7 +18,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (aurasRoot == null) return;
 
             _slotsGrid = new StaticGrid(maxSlots, 1, 0);
-            _slotsGrid.AddToClassList("aura-grid");
+            _slotsGrid.AddToClassList("aura-frame__grid");
             aurasRoot.Add(_slotsGrid);
             
             Debug.Log($"🔮 [AuraFrame]: Сетка аур успешно вшита в ноду '{aurasRoot.name}' на {maxSlots} ячеек.");

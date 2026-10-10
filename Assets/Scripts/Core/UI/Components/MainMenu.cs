@@ -15,6 +15,8 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         private VisualElement _menuRoot;
         private PanelRenderer _panelRenderer;
+        
+        private Label _title;
 
         private Button _continueButton;
         private Button _newGameButton;
@@ -76,6 +78,8 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             // Изначально меню наглухо скрыто в ОЗУ экрана при старте игры
             _menuRoot.style.display = DisplayStyle.None;
+            
+            _title = _menuRoot.Q<Label>("title");
 
             // Находим кнопки внутри нашей изолированной разметки
             _continueButton = _menuRoot.Q<Button>("btn-continue");
@@ -85,6 +89,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             _exitButton = _menuRoot.Q<Button>("btn-exit");
 
             // 🦾 СЛEПОЙ НАКАТ ЛOКАЛИЗАЦИИ: Переводим текст твоим нативным методом!
+            if (_title != null) _title.text = LocalizationManager.Get("main_menu_title");
+
             if (_continueButton != null) _continueButton.text = LocalizationManager.Get("btn_continue_game");
             if (_newGameButton != null) _newGameButton.text = LocalizationManager.Get("btn_new_game");
             if (_saveButton != null) _saveButton.text = LocalizationManager.Get("btn_save_game");

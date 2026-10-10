@@ -416,7 +416,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         {
                             view.uid = itemData.Uid;
                             view.itemId = itemData.ItemId;
-                            view.Entity = itemEntity;
+                            view.entity = itemEntity;
                             view.IsLinked = true;
                         }
                     }

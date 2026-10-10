@@ -1,5 +1,5 @@
 /* Кукла: контейнер */
-.paperdoll-grid {
+.paperdoll__grid {
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -11,7 +11,7 @@
 }
 
 /* Верхняя часть: две колонки */
-.paperdoll-top {
+.paperdoll__top {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -20,7 +20,7 @@
 }
 
 /* Левая колонка */
-.paperdoll-column-left {
+.paperdoll__top-left {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -28,7 +28,7 @@
 }
 
 /* Правая колонка */
-.paperdoll-column-right {
+.paperdoll__top-right {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -36,7 +36,7 @@
 }
 
 /* Нижняя часть: две колонки */
-.paperdoll-bottom {
+.paperdoll__bottom {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -44,20 +44,20 @@
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.paperdoll-bottom-left {
+.paperdoll__bottom-left {
     display: flex;
     flex-direction: row;
     gap: 6px;
 }
 
-.paperdoll-bottom-right {
+.paperdoll__bottom-right {
     display: flex;
     flex-direction: row;
     gap: 6px;
 }
 
 /* Все слоты */
-.paperdoll-grid .slot {
+.paperdoll__grid .slot {
     width: 40px;
     height: 40px;
     background-color: rgba(0, 0, 0, 0.2);
@@ -66,7 +66,7 @@
     border-radius: 2px;
 }
 
-.paperdoll-grid .slot-icon {
+.paperdoll__grid .slot-icon {
     width: 40px;
     height: 40px;
     font-size: 38px;

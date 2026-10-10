@@ -1,17 +1,25 @@
-.action-bar-grid {
+.action-bar__grid {
   flex-grow: 1;
   flex-direction: row;
   justify-content: center;
 }
 
-.action-bar-grid .slot {
+.action-bar__grid .slot {
   margin: 1px;
   width: 42px;
   height: 42px;
 }
 
-.action-bar-grid .slot-icon {
+.action-bar__grid .slot-icon {
   width: 42px;
   height: 42px;
   font-size: 39px;
+}
+
+.action-bar {
+  padding: 6px;
+  background-color: rgba(20, 20, 20, 0.75);
+  border-width: 1px;
+  border-color: #333333;
+  border-radius: 6px;
 }
