@@ -42,7 +42,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             else
                             {
                                 // В БУДУЩЕМ: Если живой — закрываем окно диалога / торговли
-                                // UIEvents.TriggerCloseNpcDialog(interaction.TargetEntity);
+                                //UIEvents.TriggerCloseNpcDialogue(interaction.TargetEntity);
                             }
                         }
 

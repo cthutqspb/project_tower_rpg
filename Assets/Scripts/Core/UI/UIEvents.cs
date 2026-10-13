@@ -37,8 +37,7 @@ namespace ProjectTowerRpg.Core.UI
 
         public static System.Action OnToggleMainMenu;
 
-        public static System.Action<int, SlotAnimationType> OnSlotAnimation;
-        
+        public static System.Action<int, SlotAnimationType> OnSlotAnimation;        
 
         public static void TriggerOpenWindow(WindowType type, Unity.Entities.Entity entity = default)
         {

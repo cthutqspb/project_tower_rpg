@@ -37,7 +37,6 @@ namespace ProjectTowerRpg.ECS.Systems
             Camera mainCamera = Camera.main;
             if (mainCamera == null) return;
 
-            // Вычистили уродливый инлайн-префикс UnityEngine.InputSystem.Mouse
             var currentMouse = UnityEngine.InputSystem.Mouse.current;
             Vector2 mousePosition = currentMouse != null 
                 ? currentMouse.position.ReadValue() 
@@ -51,8 +50,11 @@ namespace ProjectTowerRpg.ECS.Systems
                 bool isItem = false;
                 bool isUnit = false;
                 string currentUnitId = string.Empty;
+                
+                // 🦾 СИ-ФИКС ОБЛАСТИ ВИДИМОСТИ: Вынесли ссылку в общий скоуп SphereCast!
+                UnitView targetUnitView = null;
 
-                // 📦 1. ПРОВЕРЯЕМ ПРЕДМЕТ: Ищем паспорт в родителях на случай сложных коллайдеров
+                // 📦 1. ПРОВЕРЯЕМ ПРЕДМЕТ
                 var itemView = hit.collider.GetComponentInParent<ItemView>();
                 if (itemView != null)
                 {
@@ -62,7 +64,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         isItem = true;
                     }
                 }
-                // 👥 2. ПРОВЕРЯЕМ ЮНИТА: Бронебойно ищем UnitView, если луч врезался в кость скелета
+                // 👥 2. ПРОВЕРЯЕМ ЮНИТА
                 else
                 {
                     var unitView = hit.collider.GetComponentInParent<UnitView>();
@@ -72,6 +74,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         {
                             foundEntity = unitView.entity;
                             currentUnitId = unitView.unitId;
+                            targetUnitView = unitView; // Шёлково сохраняем ссылку для нижнего скоупа
                             isUnit = true;
                         }
                     }
@@ -82,8 +85,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 {
                     if (hoverState.ValueRO.CurrentEntity == foundEntity)
                     {
-                        // Старая физика PhysX нагло и шёлково скармливает Vector3 (hit.point)
-                        // в твой unmanaged float3 (HitPosition) без лишней лапши конвертаций!
                         hoverState.ValueRW.HitPosition = hit.point;
                         return;
                     }
@@ -113,7 +114,12 @@ namespace ProjectTowerRpg.ECS.Systems
                         var dbUnitCfg = UnitsDatabase.GetUnit(currentUnitId);
                         if (dbUnitCfg != null)
                         {
-                            TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.UNIT, dbUnitCfg);
+                            // 🦾 СВЕРХЗВУКОВОЙ ПАСПОРТ: Достаем сырой unmanaged NameKey из ECS-чанка
+                            var unitComp = EntityManager.GetComponentData<UnitComponent>(foundEntity);
+                            string rawNameKey = unitComp.NameKey.ToString();
+
+                            // Шёлково швыряем сырой ключ в context! Никаких локализаций на бэкенде!
+                            TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.UNIT, dbUnitCfg, context: rawNameKey);
                         }
                     }
                     

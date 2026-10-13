@@ -4,6 +4,13 @@ using Unity.Mathematics;
 
 namespace ProjectTowerRpg.ECS.Components
 {
+    public enum AiProfileKind : byte
+    {
+        AggressivePatrol,
+        NeutralPassive,
+        Passive
+    }
+
     public enum AiState : byte
     {
         Idle,
@@ -23,8 +30,10 @@ namespace ProjectTowerRpg.ECS.Components
         public float3 PatrolPoint;
         public float NextActionTime;
         public bool HasPatrolTarget;
-        //public bool IsPatrolling;
-
+        
+        public AiProfileKind Profile;
+        public float AggroRadius;
+        public bool IsRanged;
         // Стейт
         public AiState State;
 

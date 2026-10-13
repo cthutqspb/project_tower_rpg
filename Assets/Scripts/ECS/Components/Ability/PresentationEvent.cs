@@ -27,7 +27,10 @@ namespace ProjectTowerRpg.ECS.Components
         ItemLooted = 30,
         ItemDropped = 31,
         ItemCrafted = 32,
-        ItemUsed = 33
+        ItemUsed = 33,
+
+        // 🦾 СИ-ФИКС ДЛЯ ДИАЛОГОВ NPC:
+        NpcDialogueOpened = 40
     }
 
     // 🦾 СЕМАHТИЧЕСКИЕ СИ-ФАСАДЫ ДЛЯ ЧИСТОТЫ КOДА В РЕДЬЮСЕРАХ
@@ -53,6 +56,7 @@ namespace ProjectTowerRpg.ECS.Components
         public const PresentationEventKind ItemDropped = PresentationEventKind.ItemDropped;
         public const PresentationEventKind ItemCrafted = PresentationEventKind.ItemCrafted;
         public const PresentationEventKind ItemUsed = PresentationEventKind.ItemUsed;
+        public const PresentationEventKind NpcDialogueOpened = PresentationEventKind.NpcDialogueOpened;
     }
 
     public struct PresentationEvent : IBufferElementData

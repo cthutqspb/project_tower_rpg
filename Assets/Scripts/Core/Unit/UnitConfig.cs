@@ -19,6 +19,12 @@ namespace ProjectTowerRpg.Core.Units
     }
 
     [Serializable]
+    public class UnitInteractable
+    {
+        public string dialog_table_id;
+    }
+
+    [Serializable]
     public class UnitAttributes
     {
         public int strength;
@@ -76,6 +82,7 @@ namespace ProjectTowerRpg.Core.Units
     {
         public string id; // Вшивается автоматически в цикле при парсинге JSON
         public UnitIdentity identity;
+        public UnitInteractable interactable;
         public UnitAttributes attributes;
         public UnitParameters parameters;
         public UnitProgression progression;

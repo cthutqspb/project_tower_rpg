@@ -1,5 +1,4 @@
 using Unity.Entities;
-using ProjectTowerRpg.ECS.Components;
 
 public interface IEcsUiBufferReceiver<T> where T : unmanaged, IBufferElementData
 {

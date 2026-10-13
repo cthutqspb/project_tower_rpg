@@ -11,6 +11,7 @@ namespace ProjectTowerRpg.ECS.Components
         public bool IsPlayer;           // Флаг: управлять им как игроком или отдать ИИ
         public bool IsDead;
         public int Level;
+        public Unity.Collections.FixedString32Bytes UniqueNameKey;
         public Unity.Collections.FixedString32Bytes Rank;
         public Unity.Collections.FixedString64Bytes LootTableId;
         public Unity.Collections.FixedString32Bytes Faction; 

@@ -65,8 +65,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             var aurasSlot = _frameRoot.Q<VisualElement>("auras");
             aurasSlot.pickingMode = PickingMode.Ignore;
 
-            _unitNameLabel = _frameRoot.Q<Label>("unit-name");
-            _unitLevelLabel = _frameRoot.Q<Label>("unit-level");
+            _unitNameLabel = _frameRoot.Q<Label>("name");
+            _unitLevelLabel = _frameRoot.Q<Label>("level");
 
             Debug.Log($"[UnitFrame ДЕБАГ]: Поиск внутренних нод: hpRoot={(healthSlot != null)}, resRoot={(resourceSlot != null)}, name={(_unitNameLabel != null)}, level={(_unitLevelLabel != null)}");
 

@@ -1,0 +1,19 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://w3.org" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElementsSchema.xsd" editor-extension-mode="False">
+    <Style src="DialogueOverlay.uss" />
+    
+    <ui:VisualElement class="dialogue-overlay" name="root">
+        <!-- Тулбар с именем NPC в стиле Osaka -->
+        <ui:VisualElement class="dialogue-overlay__toolbar" name="toolbar">
+            <ui:Label class="dialogue-overlay__title" name="title" text="ИМЯ СОБЕСЕДНИКА" />
+        </ui:VisualElement>
+
+        <!-- Скролл-контейнер для текста реплик -->
+        <ui:ScrollView class="dialogue-overlay__scroll-view" name="content-scroll">
+            <ui:Label class="dialogue-overlay__npc-text" name="npc-text" text="Реплика NPC..." />
+        </ui:ScrollView>
+        
+        <!-- Динамический конвейер кнопок-ответов игрока -->
+        <ui:VisualElement class="dialogue-overlay__options-list" name="options" />
+    </ui:VisualElement>
+</ui:UXML>
+

@@ -35,25 +35,36 @@ namespace ProjectTowerRpg.ECS.Actions
                 }
 
                 // ================================================================
-                // ДЕВСТВЕННО ЖИВЫЕ ЮНИТЫ (Твой оригинальный контур)
+                // ДЕВСТВЕННО ЖИВЫЕ ЮНИТЫ (Объединённый зрячий ECS-контур ИИ)
                 // ================================================================
-
-                // 🧟 МОНСТР (можно атаковать)
-                if (em.HasComponent<MonsterTag>(target))
+                if (em.HasComponent<AiComponent>(target))
                 {
-                    if (distance <= 1.5f) // TODO: брать дистанцию атаки из оружия
-                        return new ActionCommand { Action = CombatActions.Attack, TargetEntity = target };
-                    else
-                        return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
+                    var aiComponent = em.GetComponentData<AiComponent>(target);
+
+                    // 🦾 1. КЕЙС МИРНОГО ЮНИТА (Баньши Залина, Торговцы, Квестодатели):
+                    // Если профиль пассивный или нейтральный — включаем логику разговора/торговли!
+                    if (aiComponent.Profile == AiProfileKind.NeutralPassive || aiComponent.Profile == AiProfileKind.Passive)
+                    {
+                        if (distance <= 2.5f) // WoW-дистанция честного разговора в 3D
+                            // В упор — шёлково отдаём приказ на взаимодействие!
+                            return new ActionCommand { Action = PlayerActions.Interact, TargetEntity = target };
+                        else
+                            // Далеко — заставляем ноги персонажа подбежать к NPC
+                            return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
+                    }
+
+                    // 🦾 2. КЕЙС АГРЕССИВНОГО МОНСТРА (Обычные скелеты башни):
+                    // Если это враг с AggressivePatrol профилем — шёлково включаем боевой контур
+                    if (aiComponent.Profile == AiProfileKind.AggressivePatrol)
+                    {
+                        if (distance <= 1.5f) // TODO: брать дистанцию атаки из оружия
+                            return new ActionCommand { Action = CombatActions.Attack, TargetEntity = target };
+                        else
+                            return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
+                    }
                 }
 
-                // 🧑‍💼 NPC (интеракт)
-                if (em.HasComponent<NpcTag>(target))
-                {
-                    return new ActionCommand { Action = PlayerActions.Interact, TargetEntity = target };
-                }
-
-                // 👤 ИГРОК (PvP)
+                // 👤 ИГРОК (PvP-фоллбэк для сущностей без AiComponent)
                 if (em.HasComponent<PlayerTag>(target))
                 {
                     // TODO: проверка на PvP флаг

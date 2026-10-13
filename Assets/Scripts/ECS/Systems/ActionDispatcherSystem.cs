@@ -60,7 +60,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         break;
 
                     case ActionKind.Interact:
-                        ExecuteInteract(cmd.ValueRO);
+                        ExecuteInteract(cmd.ValueRO, ecb);
                         break;
 
                     case ActionKind.MoveTo:
@@ -85,6 +85,10 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     case ActionKind.AuraDisable:
                         ExecuteAuraDisable(cmd.ValueRO);
+                        break;     
+
+                    case ActionKind.QuestAccept:
+                        ExecuteQuestAccept(cmd.ValueRO, ecb);
                         break;
 
                     default:
@@ -203,10 +207,12 @@ namespace ProjectTowerRpg.ECS.Systems
             // UnitActions.Attack(cmd.SourceEntity, cmd.TargetEntity);
         }
 
-        private void ExecuteInteract(ActionCommand cmd)
+        private void ExecuteInteract(ActionCommand cmd, EntityCommandBuffer ecb)
         {
-            Debug.Log($"[ActionDispatcher] Интеракт {cmd.SourceEntity.Index} -> {cmd.TargetEntity.Index}");
-            // UnitActions.Interact(cmd.SourceEntity, cmd.TargetEntity);
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+            
+            // 🦾 СВЕРХЗВУКОВАЯ СИММЕТРИЯ: Вызываем редюсер без лишнего мусора!
+            PlayerReducer.Interact(em, ecb, cmd.SourceEntity, cmd.TargetEntity);
         }
 
         private void ExecuteMoveTo(ActionCommand cmd)
@@ -326,11 +332,25 @@ namespace ProjectTowerRpg.ECS.Systems
             PlayerReducer.AuraDisable(EntityManager, cmd);
         }
 
+        private void ExecuteQuestAccept(ActionCommand cmd, EntityCommandBuffer ecb)
+        {
+            var em = EntityManager;
+            
+            // Забираем строковый ID квеста ("quest_zalina_casino") из поля ItemId команды
+            string questIdStr = cmd.ItemId.ToString();
+
+            // Шёлково перенаправляем в наш стерильный Reducer, передавая ECB кадра!
+            PlayerReducer.QuestAccept(em, ecb, cmd.SourceEntity, questIdStr);
+            
+            Debug.Log($"[ActionDispatcher]: Перехватил интент квеста. Передаю '{questIdStr}' для актора {cmd.SourceEntity.Index} в PlayerReducer.");
+        }
+
         private ISlotContainer CreateContainer(Entity entity)
         {
             return _slotDataLookup.HasBuffer(entity)
                 ? new BufferSlotContainer(entity, _slotDataLookup)
                 : null;
         }
+
     }
 }

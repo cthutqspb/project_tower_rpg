@@ -18,6 +18,7 @@ namespace ProjectTowerRpg.ECS.Authoring
     {
         [Header("Параметры Спавна из IDE")]
         public string unitId = "skeleton_warrior";
+        public string uniqueNameKey = "";
         public int level = 1;
         public string rank = "common"; // common, rare, elite, boss
         public string faction = ""; 
@@ -58,6 +59,7 @@ namespace ProjectTowerRpg.ECS.Authoring
             {
                 PrefabEntity = Entity.Null, 
                 UnitId = authoring.unitId,
+                UniqueNameKey = authoring.uniqueNameKey,
                 Level = authoring.level,
                 Rank = authoring.rank,
                 SpawnPosition = authoring.transform.position,

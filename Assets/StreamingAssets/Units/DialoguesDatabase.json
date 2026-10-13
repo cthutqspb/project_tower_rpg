@@ -1,0 +1,180 @@
+{
+  "unit_banshee_zalina": {
+    "start_node": "start_routing",
+    "nodes": {
+
+      "start_routing": {
+        "type": "condition",
+        "branches": [
+          { "type": "quest", "quest_id": "quest_zalina_casino", "required_state": "Completed",     "next_node": "zalina_greet_completed" },
+          { "type": "quest", "quest_id": "quest_zalina_casino", "required_state": "ReadyToTurnIn", "next_node": "zalina_greet_ready" },
+          { "type": "quest", "quest_id": "quest_zalina_casino", "required_state": "Active",        "next_node": "zalina_greet_active" }
+        ],
+        "default_next": "zalina_greet"
+      },
+
+      "zalina_greet": {
+        "type": "dialogue",
+        "text_key": "dialogue_zalina_greet_text",
+        "options": [
+          {
+            "text_key": "dialogue_zalina_opt_who_are_you",
+            "next_node": "zalina_lore"
+          },
+          {
+            "text_key": "dialogue_zalina_opt_need_help",
+            "next_node": "zalina_quest_hook",
+            "conditions": [
+              { "type": "quest", "quest_id": "quest_zalina_casino", "required_state": "Locked" }
+            ]
+          },
+          {
+            "text_key": "dialogue_zalina_opt_goodbye",
+            "next_node": "end",
+            "actions": [
+              { "type": "close_dialogue" }
+            ]
+          }
+        ]
+      },
+
+      "zalina_lore": {
+        "type": "dialogue",
+        "text_key": "dialogue_zalina_lore_text",
+        "options": [
+          {
+            "text_key": "dialogue_opt_back",
+            "next_node": "zalina_greet"
+          }
+        ]
+      },
+
+      "zalina_quest_hook": {
+        "type": "dialogue",
+        "text_key": "dialogue_zalina_quest_text",
+        "options": [
+          {
+            "text_key": "dialogue_zalina_opt_accept_help",
+            "next_node": "zalina_quest_accepted",
+            "actions": [
+              { "type": "accept_quest", "quest_id": "quest_zalina_casino" }
+            ]
+          },
+          {
+            "text_key": "dialogue_zalina_opt_decline_quest",
+            "next_node": "end",
+            "actions": [
+              { "type": "close_dialogue" }
+            ]
+          },
+          {
+            "text_key": "dialogue_opt_back",
+            "next_node": "zalina_greet",
+            "actions": [
+              { "type": "back" }
+            ]
+          }
+        ]
+      },
+
+      "zalina_quest_accepted": {
+        "type": "dialogue",
+        "text_key": "dialogue_zalina_quest_accepted_text",
+        "options": [
+          {
+            "text_key": "dialogue_opt_back",
+            "next_node": "zalina_greet_active_recent"
+          }
+        ]
+      },
+
+      "zalina_greet_active_recent": {
+        "type": "dialogue",
+        "text_key": "dialogue_zalina_greet_active_recent_text",
+        "options": [
+          {
+            "text_key": "dialogue_zalina_opt_who_are_you",
+            "next_node": "zalina_lore"
+          },
+          {
+            "text_key": "dialogue_zalina_opt_remind_quest",
+            "next_node": "zalina_quest_reminder"
+          },
+          {
+            "text_key": "dialogue_zalina_opt_leave_recent",
+            "next_node": "end",
+            "actions": [
+              { "type": "close_dialogue" }
+            ]
+          }
+        ]
+      },
+
+      "zalina_quest_reminder": {
+        "type": "dialogue",
+        "text_key": "dialogue_zalina_quest_reminder_text",
+        "options": [
+          {
+            "text_key": "dialogue_zalina_quest_reminder_opt_back",
+            "next_node": "zalina_greet_active_recent"
+          }
+        ]
+      },
+
+      "zalina_greet_active": {
+        "type": "dialogue",
+        "text_key": "dialogue_zalina_greet_active_text",
+        "options": [
+          {
+            "text_key": "dialogue_zalina_opt_who_are_you",
+            "next_node": "zalina_lore"
+          },
+          {
+            "text_key": "dialogue_zalina_opt_remind_quest",
+            "next_node": "zalina_quest_reminder"
+          },
+          {
+            "text_key": "dialogue_zalina_opt_leave_active",
+            "next_node": "end",
+            "actions": [
+              { "type": "close_dialogue" }
+            ]
+          }
+        ]
+      },
+
+      "zalina_greet_ready": {
+        "type": "dialogue",
+        "text_key": "dialogue_zalina_greet_ready_text",
+        "options": [
+          {
+            "text_key": "dialogue_zalina_opt_turn_in",
+            "next_node": "zalina_greet_completed",
+            "actions": [
+              { "type": "complete_quest", "quest_id": "quest_zalina_casino" }
+            ]
+          }
+        ]
+      },
+
+      "zalina_greet_completed": {
+        "type": "dialogue",
+        "text_key": "dialogue_zalina_greet_completed_text",
+        "options": [
+          {
+            "text_key": "dialogue_zalina_opt_need_help_2",
+            "next_node": "end"
+          },
+          {
+            "text_key": "dialogue_zalina_opt_leave_recent",
+            "next_node": "end",
+            "actions": [
+              { "type": "close_dialogue" }
+            ]
+          }
+        ]
+      }
+
+    }
+  }
+}

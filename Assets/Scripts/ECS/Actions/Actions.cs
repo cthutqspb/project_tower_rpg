@@ -26,6 +26,7 @@ namespace ProjectTowerRpg.ECS.Actions
         Interact = 9,
         MoveTo = 10,
         ActionBarAssign = 11,
+        QuestAccept = 12
 
     }
 
@@ -59,6 +60,7 @@ namespace ProjectTowerRpg.ECS.Actions
         public const ActionKind Interact = ActionKind.Interact;
         public const ActionKind MoveTo = ActionKind.MoveTo;
         public const ActionKind ActionBarAssign = ActionKind.ActionBarAssign;
+        public const ActionKind QuestAccept = ActionKind.QuestAccept;        
     }
 }
 

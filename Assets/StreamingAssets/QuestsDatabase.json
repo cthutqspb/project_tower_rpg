@@ -1,0 +1,16 @@
+{
+  "quest_zalina_casino": {
+    "title_key": "quest_zalina_casino_title",
+    "desc_key": "quest_zalina_casino_desc",
+    "objectives": [
+      {
+        "id": "resolve_casino",
+        "text_key": "quest_zalina_casino_obj_1",
+        "current_amount": 0,
+        "required_amount": 1,
+        "is_completed": false
+      }
+    ]
+  }
+}
+

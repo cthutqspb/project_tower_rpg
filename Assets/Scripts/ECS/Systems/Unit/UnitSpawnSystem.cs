@@ -54,9 +54,26 @@ namespace ProjectTowerRpg.ECS.Systems
                 bool isPlayer = markerData.IsPlayer;
 
                 // Вытаскиваем параметры из нашей статической JSON ДНК
-                string nameKey = dbCfg.identity.name_key;
+                string nameKey = !markerData.UniqueNameKey.IsEmpty 
+                    ? markerData.UniqueNameKey.ToString() 
+                    : dbCfg.identity.name_key;
+
                 float baseSpeed = dbCfg.parameters.base_speed;
                 float hitboxRadius = dbCfg.parameters.hitbox_radius;
+                                
+                AiProfileKind profileKind = AiProfileKind.AggressivePatrol; // Дефолт для монстров
+                if (isPlayer)
+                {
+                    profileKind = AiProfileKind.Passive;
+                }
+                else if (dbCfg.ai != null)
+                {
+                    string profileStr = dbCfg.ai.profile?.ToLower().Trim();
+                    if (profileStr == "neutral_passive")
+                        profileKind = AiProfileKind.NeutralPassive;
+                    else if (profileStr == "passive")
+                        profileKind = AiProfileKind.Passive;
+                }
 
                 string markerFaction = markerData.Faction.ToString();
                 string faction = 
@@ -204,6 +221,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 em.AddComponentData(unitEntity, new AiComponent
                 {
                     IsFromFactory = !isPlayer,
+                    Profile = profileKind,
                     StartPoint = spawnPosition,
                     PatrolRadius = isPlayer ? 0f : 4.0f,
                     PatrolPoint = spawnPosition,
@@ -225,6 +243,8 @@ namespace ProjectTowerRpg.ECS.Systems
                     // 🔥 БУФЕР ВЗАИМОДЕЙСТВИЙ (ТОЛЬКО ДЛЯ ИГРОКА)
                     // ================================================================
                     em.AddBuffer<InteractionEntry>(unitEntity);
+                    em.AddBuffer<QuestComponent>(unitEntity);
+                    em.AddBuffer<DialogueHistoryElement>(unitEntity);
                 }
                 else
                 {

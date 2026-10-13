@@ -34,6 +34,10 @@ namespace ProjectTowerRpg.Core.UI
         [SerializeField] private VisualTreeAsset _chatLogUxml; 
         private ChatLog _chatLog;
 
+        [Header("Настройки Диалогов NPC")]
+        [SerializeField] private VisualTreeAsset _dialogueOverlayUxml;
+        private DialogueOverlay _dialogueOverlay;
+
         private PanelRenderer _panelRenderer;
         private VisualElement _root;
         private bool _isUiReady = false;
@@ -178,6 +182,13 @@ namespace ProjectTowerRpg.Core.UI
                     _chatLog = null;
                 }
 
+                if (_dialogueOverlay != null)
+                {
+                    if (oldPlayerEntity != Entity.Null)
+                        UIRegistry.Unregister(oldPlayerEntity, _dialogueOverlay);
+                    _dialogueOverlay = null;
+                }
+
                 globalUiRoot.Remove(_root);
                 _isPlayerBound = false;
                 _lastTargetEntity = Entity.Null; 
@@ -304,6 +315,33 @@ namespace ProjectTowerRpg.Core.UI
                 _root.Add(chatRoot);
             }
 
+            // =========================================================================
+            // 🦾 КАНOНИЧНАЯ СБOРКА ДИАЛОГОВОГО ОВЕРЛЕЯ (Копейка в копейку как Чат-Лог!):
+            // =========================================================================
+            if (_dialogueOverlayUxml != null && _root != null)
+            {
+                var dialogueRoot = _dialogueOverlayUxml.CloneTree();
+                dialogueRoot.name = "dialogue-overlay";
+                dialogueRoot.AddToClassList("hud__dialogue-overlay");
+                dialogueRoot.pickingMode = PickingMode.Ignore;
+
+                _dialogueOverlay = gameObject.GetComponent<DialogueOverlay>();
+                if (_dialogueOverlay == null)
+                    _dialogueOverlay = gameObject.AddComponent<DialogueOverlay>();
+
+                _dialogueOverlay.Initialize(dialogueRoot);
+
+                _root.Add(dialogueRoot);
+
+                // 🦾 РЕГИСТРАЦИЯ НА ИГРОКЕ — оверлей теперь реактивный ресивер
+                Entity playerForDialogue = PlayerUtils.GetEntityByTag<PlayerTag>();
+                if (playerForDialogue != Entity.Null)
+                {
+                    _dialogueOverlay.BindToEntity(playerForDialogue);
+                    UIRegistry.Register(playerForDialogue, _dialogueOverlay);
+                }
+            }
+
             _isUiReady = true;
             Debug.Log("[HUDManager]: Все фреймы шёлково собраны внутри своих слотов после релоада!");
         }
@@ -326,6 +364,11 @@ namespace ProjectTowerRpg.Core.UI
             if (_lastControlledEntity != Entity.Null && _castBar != null)
             {
                 UIRegistry.Unregister(_lastControlledEntity, _castBar);
+            }
+
+            if (playerEntity != Entity.Null && _dialogueOverlay != null)
+            {
+                UIRegistry.Unregister(playerEntity, _dialogueOverlay);
             }
         }     
     }

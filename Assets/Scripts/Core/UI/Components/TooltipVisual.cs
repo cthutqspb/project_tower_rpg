@@ -126,7 +126,9 @@ namespace ProjectTowerRpg.Core.UI.Components
                     }
                     else if (payload.Kind == TooltipKind.UNIT && payload.Info is UnitConfig worldUnit)
                     {
-                        RenderUnit(worldUnit);
+                        // 🦾 СИ-ФИКС: Достаем сырой nameKey из контекста сессии!
+                        string overrideNameKey = payload.Context as string;
+                        RenderUnit(worldUnit, overrideNameKey);
                     }
                     break;
             }
@@ -278,9 +280,13 @@ namespace ProjectTowerRpg.Core.UI.Components
             AddLine(nameText, styleClass: "text-normal", isHeader: true);
         }
 
-        private void RenderUnit(UnitConfig cfg)
+        private void RenderUnit(UnitConfig cfg, string overrideNameKey = null)
         {
-            string nameText = LocalizationManager.Get(cfg.identity.name_key).ToUpper();
+            // 🦾 Никаких EntityManager и прыжков в C++! Чистый O(1) вывод готовой строки.
+            string nameText = !string.IsNullOrEmpty(overrideNameKey) 
+                ? LocalizationManager.Get(overrideNameKey) 
+                : LocalizationManager.Get(cfg.identity.name_key).ToUpper();
+
             AddLine(nameText, styleClass: "text-normal", isHeader: true);
         }
 

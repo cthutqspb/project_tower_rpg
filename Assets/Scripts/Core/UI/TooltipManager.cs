@@ -1,5 +1,3 @@
-using UnityEngine;
-
 namespace ProjectTowerRpg.Core.UI
 {
     // Четкие геймплейные домены без путаницы с ECS-сущностями

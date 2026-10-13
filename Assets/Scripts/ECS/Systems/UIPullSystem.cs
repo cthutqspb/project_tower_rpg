@@ -24,9 +24,13 @@ namespace ProjectTowerRpg.ECS.Systems
 
             var castLookup = SystemAPI.GetComponentLookup<CastComponent>(true);
 
+            var questLookup = SystemAPI.GetBufferLookup<QuestComponent>(true);
+            var dialogueStateLookup = SystemAPI.GetComponentLookup<DialogueStateComponent>(true);
+            var dialogueOptionsLookup = SystemAPI.GetBufferLookup<DialogueOptionElement>(true);
+
             // 🔄 2. ЕДИНЫЙ ЦИКЛ ПО ВСЕМУ АКТИВНОМУ ИНТЕРФЕЙСУ ИГРЫ
             foreach (var entity in UIRegistry.GetActiveEntities())
- {
+            {
                 var receivers = UIRegistry.GetReceivers(entity);
                 if (receivers == null) continue;
 
@@ -168,6 +172,49 @@ namespace ProjectTowerRpg.ECS.Systems
                         if (receiver is IEcsUiComponentReceiver<CastComponent> castUi)
                         {
                             castUi.UpdateFromComponent(ref castData);
+                        }
+                    }
+                }
+
+                // =========================================================================
+                // 📊 РЕАКТИВНЫЙ КВЕСТOВЫЙ МОСТ: Копейка в копейку по канону Аур и Инвентаря!
+                // =========================================================================
+                if (questLookup.HasBuffer(entity) && questLookup.DidChange(entity, LastSystemVersion))
+                {
+                    var questSlots = questLookup[entity];
+                    
+                    foreach (var receiver in receivers)
+                    {
+                        // Вслепую скармливаем unmanaged-буфер квестов любому подписанному окну или оверлею!
+                        if (receiver is IEcsUiBufferReceiver<QuestComponent> questUi)
+                        {
+                            questUi.UpdateFromBuffer(questSlots, false);
+                        }
+                    }
+                }
+
+                // Диалоговое состояние (текущий спикер, нода)
+                if (dialogueStateLookup.HasComponent(entity) && dialogueStateLookup.DidChange(entity, LastSystemVersion))
+                {
+                    var stateData = dialogueStateLookup[entity];
+                    foreach (var receiver in receivers)
+                    {
+                        if (receiver is IEcsUiComponentReceiver<DialogueStateComponent> stateUi)
+                        {
+                            stateUi.UpdateFromComponent(ref stateData);
+                        }
+                    }
+                }
+
+                // Буфер видимых опций диалога
+                if (dialogueOptionsLookup.HasBuffer(entity) && dialogueOptionsLookup.DidChange(entity, LastSystemVersion))
+                {
+                    var options = dialogueOptionsLookup[entity];
+                    foreach (var receiver in receivers)
+                    {
+                        if (receiver is IEcsUiBufferReceiver<DialogueOptionElement> optUi)
+                        {
+                            optUi.UpdateFromBuffer(options, false);
                         }
                     }
                 }

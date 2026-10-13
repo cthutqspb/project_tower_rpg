@@ -7,6 +7,8 @@ using ProjectTowerRpg.Core.Units; // ← Добавь юзинг базы юни
 //using ProjectTowerRpg.Core.Factions;
 using ProjectTowerRpg.Core.Abilities;
 using ProjectTowerRpg.Core.Auras;
+using ProjectTowerRpg.Core.Dialogue;
+using ProjectTowerRpg.Core.Quest;
 
 public class GameInitializer : MonoBehaviour
 {
@@ -21,6 +23,8 @@ public class GameInitializer : MonoBehaviour
         AbilitiesDatabase.Load();
         AurasDatabase.Load();
         FactionsDatabase.Load();
+        DialoguesDatabase.Load();
+        QuestsDatabase.Load();
 
         // 🌟 3. НАКАТЫВАЕМ БАЗУ ДАННЫХ СУЩЕСТВ (Исправляет слепоту UI на чистой сцене!)
         if (!UnitsDatabase.IsLoaded)
