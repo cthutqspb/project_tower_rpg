@@ -71,3 +71,53 @@
 TemplateContainer {
     picking-mode: ignore;
 }
+
+/* ============================================================
+   SCROLLER (Osaka Night, тонкий) — Unity 7
+   ============================================================ */
+
+/* Скрываем стрелки-кнопки */
+.unity-scroller__low-button,
+.unity-scroller__high-button {
+    display: none;
+}
+
+/* Сам скроллер — тонкий */
+.unity-scroller--vertical {
+    width: 6px;
+    min-width: 6px;
+    max-width: 6px;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    border-width: 0;
+}
+
+/* Трек */
+.unity-scroller__slider {
+    background-color: rgba(26, 27, 38, 0.5);
+    border-width: 0;
+    border-radius: 3px;
+    margin: 0;
+    padding: 0;
+}
+
+/* Ползунок — ищем через drag-container внутри слайдера */
+.unity-scroller__slider .unity-base-slider__drag-container,
+.unity-scroller__slider .unity-slider-button {
+    background-color: var(--osaka-text-dim);
+    border-width: 0;
+    border-radius: 3px;
+    margin: 0;
+    min-height: 24px;
+}
+
+.unity-scroller__slider .unity-base-slider__drag-container:hover,
+.unity-scroller__slider .unity-slider-button:hover {
+    background-color: var(--osaka-blue);
+}
+
+.unity-scroller__slider .unity-base-slider__drag-container:active,
+.unity-scroller__slider .unity-slider-button:active {
+    background-color: var(--osaka-cyan);
+}

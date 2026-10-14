@@ -74,7 +74,7 @@ namespace ProjectTowerRpg.ECS.Systems
             var startRequests = new NativeList<Entity>(Allocator.Temp);
             var chooseRequests = new NativeList<Entity>(Allocator.Temp);
 
-            foreach (var (req, reqEntity) in SystemAPI.Query<RefRO<StartDialogueRequest>>().WithEntityAccess())
+            foreach (var (req, reqEntity) in SystemAPI.Query<RefRO<DialogueStartRequest>>().WithEntityAccess())
                 startRequests.Add(reqEntity);
 
             foreach (var (req, reqEntity) in SystemAPI.Query<RefRO<DialogueChooseOptionRequest>>().WithEntityAccess())
@@ -85,15 +85,15 @@ namespace ProjectTowerRpg.ECS.Systems
             // ================================================================
             foreach (var reqEntity in startRequests)
             {
-                var req = em.GetComponentData<StartDialogueRequest>(reqEntity);
-                HandleStartDialogue(req.Player, req.Npc, em);
+                var req = em.GetComponentData<DialogueStartRequest>(reqEntity);
+                HandleDialogueStart(req.Unit, req.Npc, em);
                 ecb.DestroyEntity(reqEntity);
             }
 
             foreach (var reqEntity in chooseRequests)
             {
                 var req = em.GetComponentData<DialogueChooseOptionRequest>(reqEntity);
-                HandleChooseOption(req.Player, req.OptionIndex, em, ecb);
+                HandleChooseOption(req.Unit, req.OptionIndex, em, ecb);
                 ecb.DestroyEntity(reqEntity);
             }
 
@@ -105,7 +105,7 @@ namespace ProjectTowerRpg.ECS.Systems
         // ================================================================
         // СТАРТ ДИАЛОГА
         // ================================================================
-        private void HandleStartDialogue(Entity player, Entity npc, EntityManager em)
+        private void HandleDialogueStart(Entity player, Entity npc, EntityManager em)
         {
             if (player == Entity.Null || !em.Exists(player)) return;
             if (npc == Entity.Null || !em.Exists(npc)) return;
@@ -167,7 +167,8 @@ namespace ProjectTowerRpg.ECS.Systems
         {
             if (player == Entity.Null || !em.Exists(player)) return;
             if (!em.HasComponent<DialogueStateComponent>(player)) return;
-
+    
+            Debug.Log($"HandleChooseOption {optionIndex}");
             var state = em.GetComponentData<DialogueStateComponent>(player);
             if (!state.IsActive) return;
 
@@ -181,7 +182,7 @@ namespace ProjectTowerRpg.ECS.Systems
             // Текущая нода
             if (!graph.nodes.TryGetValue(state.CurrentNode.ToString(), out var currentNode))
             {
-                CloseDialogue(player, em);
+                DialogueClose(player, em);
                 return;
             }
             if (currentNode.type != "dialogue" || currentNode.options == null) return;
@@ -204,14 +205,14 @@ namespace ProjectTowerRpg.ECS.Systems
 
             if (string.IsNullOrEmpty(nextNode) || nextNode == "end" || nextNode == "none")
             {
-                CloseDialogue(player, em);
+                DialogueClose(player, em);
                 return;
             }
 
             nextNode = ResolveNodeChain(nextNode, graph, player, em);
             if (string.IsNullOrEmpty(nextNode))
             {
-                CloseDialogue(player, em);
+                DialogueClose(player, em);
                 return;
             }
 
@@ -384,19 +385,19 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         switch (opt.actions[a].type)
                         {
-                            case "accept_quest":
+                            case "quest_accept":
                                 suffix = "ui_dialogue_action_quest";
                                 break;
-                            case "complete_quest":
+                            case "quest_complete":
                                 suffix = "ui_dialogue_action_quest";
                                 break;
-                            case "close_dialogue":
+                            case "dialogue_close":
                                 suffix = "ui_dialogue_action_close";
                                 break;
                             case "back":
                                 suffix = "ui_dialogue_action_back";
                                 break;
-                            case "open_vendor":
+                            case "vendor_open":
                                 suffix = "ui_dialogue_action_vendor";
                                 break;
                         }
@@ -448,7 +449,7 @@ namespace ProjectTowerRpg.ECS.Systems
         // ================================================================
         // ЗАКРЫТИЕ ДИАЛОГА
         // ================================================================
-        private void CloseDialogue(Entity player, EntityManager em)
+        private void DialogueClose(Entity player, EntityManager em)
         {
             if (em.HasComponent<DialogueStateComponent>(player))
             {
@@ -468,15 +469,31 @@ namespace ProjectTowerRpg.ECS.Systems
         {
             switch (act.type)
             {
-                case "accept_quest":
-                    PlayerReducer.QuestAccept(em, ecb, player, act.quest_id);
-                    break;
+                case "quest_accept":
+                {   
+                    Debug.Log($"quest_accept {act.quest_id}");
 
-                case "complete_quest":
-                    Debug.Log($"[DialogueSystem] complete_quest '{act.quest_id}' (не реализовано)");
+                    var reqEntity = ecb.CreateEntity();
+                    ecb.AddComponent(reqEntity, new QuestAcceptRequest
+                    {
+                        Unit = player,
+                        QuestId = act.quest_id
+                    });
                     break;
+                }
 
-                case "close_dialogue":
+                case "quest_complete":
+                {   
+                    var reqEntity = ecb.CreateEntity();
+                    ecb.AddComponent(reqEntity, new QuestCompleteRequest
+                    {
+                        Unit = player,
+                        QuestId = act.quest_id
+                    });
+                    break;
+                }
+
+                case "dialogue_close":
                     break;
 
                 case "set_flag":

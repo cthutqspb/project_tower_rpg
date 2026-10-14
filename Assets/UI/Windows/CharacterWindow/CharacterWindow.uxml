@@ -1,34 +1,44 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <ui:Style src="project://database/Assets/UI/Windows/CharacterWindow/CharacterWindow.uss" />
 
-    <!-- Общий фон окна -->
     <ui:VisualElement class="character-window" name="root" picking-mode="Position">
-        
-        <!-- Хедер (общий для всего окна) -->
+
         <ui:VisualElement name="header" />
-        
-        <!-- Тело: три колонки -->
-        <ui:VisualElement class="character-window__content" name="content">
-            
-            <!-- Статы (левая колонка) -->
-            <ui:VisualElement class="character-window__stats" name="stats">
-            </ui:VisualElement>
-            
-            <!-- Кукла (центр) -->
-            <ui:VisualElement class="character-window__paperdoll" name="paperdoll">
-                <!-- Слоты куклы создаются в коде -->
-            </ui:VisualElement>
-            
-            <!-- Инвентарь (правая колонка) -->
-            <ui:ScrollView
-              class="character-window__inventory"
-              name="inventory"
-              movement-type="Elastic"
-              elasticity="0.1">
-                <!-- Статик грид создаётся в коде -->
-            </ui:ScrollView>
-            
+
+        <!-- ТАБЫ -->
+        <ui:VisualElement class="character-window__tabs" name="tabs">
+            <ui:Button class="tabs__button" name="tab-character-btn" />
+            <ui:Button class="tabs__button" name="tab-quest-journal-btn" />
+            <ui:Button class="tabs__button" name="tab-spellbook-btn" />
         </ui:VisualElement>
-        
+
+        <!-- КОНТЕНТ: одна активная страница -->
+        <ui:VisualElement class="character-window__content" name="content">
+
+            <!-- Страница: Персонаж (текущий layout) -->
+            <ui:VisualElement class="character-window__page" name="page-character">
+                <ui:VisualElement class="character-window__page-inner" name="character-content">
+
+                    <ui:VisualElement class="character-window__stats" name="stats" />
+
+                    <ui:VisualElement class="character-window__paperdoll" name="paperdoll" />
+
+                    <ui:ScrollView
+                        class="character-window__inventory"
+                        name="inventory"
+                        movement-type="Elastic"
+                        elasticity="0.1" />
+
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Страница: Квесты -->
+            <ui:VisualElement class="character-window__page" name="page-quest-journal" />
+
+            <!-- Страница: Способности -->
+            <ui:VisualElement class="character-window__page" name="page-spellbook" />
+
+        </ui:VisualElement>
+
     </ui:VisualElement>
 </ui:UXML>

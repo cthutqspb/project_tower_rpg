@@ -244,6 +244,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     // ================================================================
                     em.AddBuffer<InteractionEntry>(unitEntity);
                     em.AddBuffer<QuestComponent>(unitEntity);
+                    em.AddBuffer<QuestObjectiveComponent>(unitEntity);
                     em.AddBuffer<DialogueHistoryElement>(unitEntity);
                 }
                 else

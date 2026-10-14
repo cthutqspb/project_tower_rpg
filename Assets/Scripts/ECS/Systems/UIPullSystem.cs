@@ -25,6 +25,7 @@ namespace ProjectTowerRpg.ECS.Systems
             var castLookup = SystemAPI.GetComponentLookup<CastComponent>(true);
 
             var questLookup = SystemAPI.GetBufferLookup<QuestComponent>(true);
+            var questObjectiveLookup = SystemAPI.GetBufferLookup<QuestObjectiveComponent>(true);
             var dialogueStateLookup = SystemAPI.GetComponentLookup<DialogueStateComponent>(true);
             var dialogueOptionsLookup = SystemAPI.GetBufferLookup<DialogueOptionElement>(true);
 
@@ -189,6 +190,18 @@ namespace ProjectTowerRpg.ECS.Systems
                         if (receiver is IEcsUiBufferReceiver<QuestComponent> questUi)
                         {
                             questUi.UpdateFromBuffer(questSlots, false);
+                        }
+                    }
+                }
+
+                if (questObjectiveLookup.HasBuffer(entity) && questObjectiveLookup.DidChange(entity, LastSystemVersion))
+                {
+                    var objectiveSlots = questObjectiveLookup[entity];
+                    foreach (var receiver in receivers)
+                    {
+                        if (receiver is IEcsUiBufferReceiver<QuestObjectiveComponent> objUi)
+                        {
+                            objUi.UpdateFromBuffer(objectiveSlots, false);
                         }
                     }
                 }

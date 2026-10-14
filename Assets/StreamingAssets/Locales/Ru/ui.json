@@ -29,6 +29,9 @@
   "stat_armor": "Броня",
   "stat_magic_resist": "Сопротивление магии",
 
+  "_comment_QuestJournal": "",
+  "quest_journal_reward_header": "Награда:",
+
   "_comment_Container_window": "",
   "btn_take_all": "Взять всё",
 

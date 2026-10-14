@@ -4,7 +4,7 @@ namespace ProjectTowerRpg.ECS.Components
 {
     public struct DialogueChooseOptionRequest : IComponentData
     {
-        public Entity Player;
+        public Entity Unit;
         public int OptionIndex;
     }
 }

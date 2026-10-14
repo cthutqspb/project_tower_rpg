@@ -6,30 +6,35 @@ namespace ProjectTowerRpg.Core.Quest
     [Serializable]
     public enum QuestState : byte
     {
-        Locked = 0,       // Еще не доступен
-        Available = 1,    // Можно взять у NPC
-        Active = 2,       // В процессе выполнения (висит в журнале)
-        ReadyToTurnIn = 3,// Цели выполнены, можно сдать
-        Completed = 4     // Сдан, награда получена
+        Locked = 0,
+        Available = 1,
+        Active = 2,
+        ReadyToTurnIn = 3,
+        Completed = 4
     }
 
     [Serializable]
     public class QuestObjective
     {
-        public string id;            // ID цели, например "kill_anatoliy" или "talk_anatoliy"
-        public string text_key;      // Ключ локализации для текста задачи ("Разогнать казино Анатолия")
-        public int current_amount;   // Сколько уже сделали
-        public int required_amount;  // Сколько надо сделать
-        public bool is_completed;
+        public string id;              // ID цели ("resolve_casino")
+        public string text_key;        // ключ локализации текста цели
+        public int required_amount;    // сколько надо сделать
+    }
+
+    [Serializable]
+    public class QuestRewardItem
+    {
+        public string item_id;         // "crystal_sword"
+        public int amount = 1;
     }
 
     [Serializable]
     public class QuestConfig
     {
-        public string id;            // Уникальный ID квеста ("quest_zalina_casino")
-        public string title_key;     // Ключ локализации названия ("Элитная недвижимость")
-        public string desc_key;      // Ключ локализации описания лора задачи
-        public List<QuestObjective> objectives; // Список подзадач (массив целей)
+        public string id;
+        public string title_key;
+        public string desc_key;
+        public List<QuestObjective> objectives;
+        public List<QuestRewardItem> rewards;
     }
 }
-

@@ -8,7 +8,66 @@
     border-radius: 4px;
     flex-direction: column;
     align-self: flex-start;  /* сжимается под контент */
+    width: 1024px;
     height: 640px;
+}
+
+/* ============================================================
+   ТАБЫ
+   ============================================================ */
+.character-window__tabs {
+    flex-direction: row;
+    gap: 4px;
+    margin-bottom: 8px;
+    flex-shrink: 0;   /* ← запрещаем сжатие */
+    flex-grow: 0;     /* ← запрещаем растягивание */
+    min-height: 48px; /* ← жёсткий минимум под кнопки */
+}
+
+.character-window__tabs .tabs__button {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;   /* ← кнопки тоже не сжимаются */
+    flex-grow: 0;
+    font-size: 28px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-width: 0;
+    border-bottom-width: 2px;
+    border-bottom-color: transparent;
+    color: var(--color-text-dim);
+    -unity-text-align: middle-center;
+}
+
+.character-window__tabs .tabs__button:hover {
+    color: var(--color-text);
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.character-window__tabs .tabs__button--active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    background-color: rgba(0, 0, 0, 0.55);
+}
+
+/* ============================================================
+   СТРАНИЦЫ
+   ============================================================ */
+.character-window__page {
+    display: none;
+    flex-grow: 1;
+    flex-direction: row;
+    min-height: 0;
+}
+
+.character-window__page--active {
+    display: flex;
+}
+
+.character-window__page-inner {
+    flex-direction: row;
+    flex-grow: 1;
+    gap: 8px;
 }
 
 /* Тело окна — три колонки */
@@ -16,6 +75,7 @@
     flex-direction: row;
     flex-grow: 1;
     gap: 8px;
+    min-height: 0;
 }
 
 /* Колонка со статами */
@@ -53,10 +113,10 @@
 .character-window__inventory-grid {
     display: flex;
     justify-content: center;
+    gap: 4px;
 }
 
 .character-window__inventory-grid .slot {
-    margin: 2px;
     width: 42px;
     height: 42px;
 }

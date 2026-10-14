@@ -1,0 +1,41 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="project://database/Assets/UI/Windows/CharacterWindow/QuestJournal.uss" />
+
+    <ui:VisualElement class="quest-journal" name="root" picking-mode="Position">
+
+        <!-- Toolbar: скрыть завершённые -->
+        <ui:VisualElement class="quest-journal__toolbar" name="toolbar">
+            <ui:Toggle class="quest-journal__toggle" name="hide-completed-toggle" label="Скрыть завершённые" value="true" />
+        </ui:VisualElement>
+
+        <!-- Две колонки -->
+        <ui:VisualElement class="quest-journal__columns" name="columns">
+
+            <!-- Список квестов (30%) -->
+            <ui:ScrollView class="quest-journal__list" name="quest-list"
+                           movement-type="Elastic" elasticity="0.1"
+                           show-vertical-scroller="true"
+                           show-horizontal-scroller="false" />
+
+            <!-- Детали квеста (70%) -->
+            <ui:ScrollView class="quest-journal__details" name="quest-details"
+                           movement-type="Elastic" elasticity="0.1"
+                           show-vertical-scroller="true"
+                           show-horizontal-scroller="false">
+
+                <ui:Label class="quest-journal__title" name="detail-title" />
+                <ui:Label class="quest-journal__description" name="detail-description" />
+                <ui:VisualElement class="quest-journal__objectives" name="detail-objectives" />
+
+                <!-- Блок награды -->
+                <ui:VisualElement class="quest-journal__reward-block" name="detail-reward-block">
+                    <ui:Label class="quest-journal__reward-header" name="detail-reward-header" />
+                    <ui:VisualElement class="quest-journal__reward-items" name="detail-reward-items" />
+                </ui:VisualElement>
+
+            </ui:ScrollView>
+
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>

@@ -107,7 +107,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             var req = ecb.CreateEntity();
             ecb.AddComponent(req, new DialogueChooseOptionRequest
             {
-                Player = _boundEntity,
+                Unit = _boundEntity,
                 OptionIndex = optionIndex
             });
         }

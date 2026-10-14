@@ -1,7 +1,6 @@
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.ECS.Actions;
-using ProjectTowerRpg.Core.Quest;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Reducers
@@ -95,7 +94,7 @@ namespace ProjectTowerRpg.ECS.Reducers
         /// 🦾 ААА-КАНOН ВЗАИМОДЕЙСТВИЯ С NPC И ДРУЖЕСТВЕННЫМИ ЮНИТАМИ:
         /// Записывает цель в буфер дистанции игрока и напрямую триггерит 2D-оверлей диалога!
         /// </summary>
-        public static void Interact(EntityManager em, EntityCommandBuffer ecb, Entity playerEntity, Entity targetNpc)
+        public static void Interact(EntityManager em, EntityCommandBuffer ecb, Entity unitEntity, Entity targetNpc)
         {
             // 🦾 ГВАРД БЕЗОПАСНОСТИ: Проверяем, существует ли вообще цель и есть ли на ней паспорт
             if (targetNpc == Entity.Null || !em.Exists(targetNpc) || !em.HasComponent<UnitComponent>(targetNpc)) 
@@ -108,9 +107,9 @@ namespace ProjectTowerRpg.ECS.Reducers
             // ================================================================
             // 🦾 ВЗАИМОДЕЙСТВИЕ В БУФЕР ИГРОКА (WoW-замок отбегания дистанции)
             // ================================================================
-            if (playerEntity != Entity.Null && em.HasBuffer<InteractionEntry>(playerEntity))
+            if (unitEntity != Entity.Null && em.HasBuffer<InteractionEntry>(unitEntity))
             {
-                ecb.AppendToBuffer(playerEntity, new InteractionEntry
+                ecb.AppendToBuffer(unitEntity, new InteractionEntry
                 {
                     TargetEntity = targetNpc,
                     MaxDistance = 2.5f, // Честное расстояние разговора с Баньши в 3D
@@ -121,44 +120,14 @@ namespace ProjectTowerRpg.ECS.Reducers
             // 🚀 СНАЙПЕРСКИЙ ТРИГГЕР UI: Открываем DialogueOverlay без лишних мостов!
             // ================================================================
             var reqEntity = ecb.CreateEntity();
-            ecb.AddComponent(reqEntity, new StartDialogueRequest
+            ecb.AddComponent(reqEntity, new DialogueStartRequest
             {
-                Player = playerEntity,
+                Unit = unitEntity,
                 Npc = targetNpc
             });
             
             Debug.Log($"[PlayerReducer]: Контур замкнут! NPC [{uniqueNameKey}] добавлен в буфер дистанции, пушу сигнал открытия оверлея.");
         }
-        
-        /// <summary>
-        /// 🦾 БЭКЕНД-МУТАЦИЯ: Вызывается из ActionDispatcherSystem при перехвате интента квеста.
-        /// Безопасно и на максимальной скорости Burst-памяти запекает квест в буфер Игрока!
-        /// </summary>
-        public static void QuestAccept(EntityManager em, EntityCommandBuffer ecb, Entity playerEntity, string questId)
-        {
-            if (playerEntity == Entity.Null || !em.Exists(playerEntity)) return;
-            if (!em.HasBuffer<QuestComponent>(playerEntity)) return;
-
-            var qBuffer = em.GetBuffer<QuestComponent>(playerEntity);
-
-            for (int i = 0; i < qBuffer.Length; i++)
-            {
-                // Явное сравнение через ToString()!
-                if (qBuffer[i].QuestId.ToString() == questId) return; 
-            }
-
-            // Явно запекаем Си-байты строки в unmanaged-поле!
-            var component = new QuestComponent
-            {
-                State = QuestState.Active,
-                Progress = 0
-            };
-            component.QuestId = questId; // FixedString сам скопирует байты через оператор присвоения!
-
-            ecb.AppendToBuffer(playerEntity, component);
-            Debug.Log($"📊 [PlayerReducer]: Квест '{questId}' успешно вшит в unmanaged-тело игрока на бэкенде!");
-        }
-
     }
 }
 

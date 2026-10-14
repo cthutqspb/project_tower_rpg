@@ -85,10 +85,6 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     case ActionKind.AuraDisable:
                         ExecuteAuraDisable(cmd.ValueRO);
-                        break;     
-
-                    case ActionKind.QuestAccept:
-                        ExecuteQuestAccept(cmd.ValueRO, ecb);
                         break;
 
                     default:
@@ -332,25 +328,11 @@ namespace ProjectTowerRpg.ECS.Systems
             PlayerReducer.AuraDisable(EntityManager, cmd);
         }
 
-        private void ExecuteQuestAccept(ActionCommand cmd, EntityCommandBuffer ecb)
-        {
-            var em = EntityManager;
-            
-            // Забираем строковый ID квеста ("quest_zalina_casino") из поля ItemId команды
-            string questIdStr = cmd.ItemId.ToString();
-
-            // Шёлково перенаправляем в наш стерильный Reducer, передавая ECB кадра!
-            PlayerReducer.QuestAccept(em, ecb, cmd.SourceEntity, questIdStr);
-            
-            Debug.Log($"[ActionDispatcher]: Перехватил интент квеста. Передаю '{questIdStr}' для актора {cmd.SourceEntity.Index} в PlayerReducer.");
-        }
-
         private ISlotContainer CreateContainer(Entity entity)
         {
             return _slotDataLookup.HasBuffer(entity)
                 ? new BufferSlotContainer(entity, _slotDataLookup)
                 : null;
         }
-
     }
 }

@@ -32,7 +32,7 @@
             "text_key": "dialogue_zalina_opt_goodbye",
             "next_node": "end",
             "actions": [
-              { "type": "close_dialogue" }
+              { "type": "dialogue_close" }
             ]
           }
         ]
@@ -57,14 +57,14 @@
             "text_key": "dialogue_zalina_opt_accept_help",
             "next_node": "zalina_quest_accepted",
             "actions": [
-              { "type": "accept_quest", "quest_id": "quest_zalina_casino" }
+              { "type": "quest_accept", "quest_id": "quest_zalina_casino" }
             ]
           },
           {
             "text_key": "dialogue_zalina_opt_decline_quest",
             "next_node": "end",
             "actions": [
-              { "type": "close_dialogue" }
+              { "type": "dialogue_close" }
             ]
           },
           {
@@ -104,7 +104,7 @@
             "text_key": "dialogue_zalina_opt_leave_recent",
             "next_node": "end",
             "actions": [
-              { "type": "close_dialogue" }
+              { "type": "dialogue_close" }
             ]
           }
         ]
@@ -137,7 +137,7 @@
             "text_key": "dialogue_zalina_opt_leave_active",
             "next_node": "end",
             "actions": [
-              { "type": "close_dialogue" }
+              { "type": "dialogue_close" }
             ]
           }
         ]
@@ -151,7 +151,7 @@
             "text_key": "dialogue_zalina_opt_turn_in",
             "next_node": "zalina_greet_completed",
             "actions": [
-              { "type": "complete_quest", "quest_id": "quest_zalina_casino" }
+              { "type": "quest_complete", "quest_id": "quest_zalina_casino" }
             ]
           }
         ]
@@ -169,7 +169,7 @@
             "text_key": "dialogue_zalina_opt_leave_recent",
             "next_node": "end",
             "actions": [
-              { "type": "close_dialogue" }
+              { "type": "dialogue_close" }
             ]
           }
         ]

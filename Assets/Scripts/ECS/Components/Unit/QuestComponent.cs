@@ -8,7 +8,7 @@ namespace ProjectTowerRpg.ECS.Components
     // Никаких слотов, никакой мусорной терминологии. Чистый ECS-буфер квестов.
     public struct QuestComponent : IBufferElementData
     {
-        public FixedString32Bytes QuestId; // Уникальный строковый ID ("quest_zalina_casino")
+        public FixedString64Bytes QuestId; // Уникальный строковый ID ("quest_zalina_casino")
         public QuestState State; // Стейт (Active, Completed...)
         public int Progress;               // Счетчик убитых скелетов Анатолия
     }

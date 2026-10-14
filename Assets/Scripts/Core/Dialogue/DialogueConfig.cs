@@ -31,9 +31,9 @@ namespace ProjectTowerRpg.Core.Dialogue
     // ============================================================
     // ДЕЙСТВИЯ
     // ============================================================
-    // type = "accept_quest"    → quest_id
-    // type = "complete_quest"  → quest_id
-    // type = "close_dialogue"
+    // type = "quest_accept"    → quest_id
+    // type = "quest_complete"  → quest_id
+    // type = "dialogue_close"
     // type = "set_flag"        → flag_id + flag_value
     // type = "clear_flag"      → flag_id
     [Serializable]
