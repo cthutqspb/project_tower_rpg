@@ -331,7 +331,7 @@ MonoBehaviour:
     SplineCurvature: 0.5
   RecenteringTarget: 2
   HorizontalAxis:
-    Value: 167.0384
+    Value: 167.03839
     Center: -142.9331
     Range: {x: -180, y: 180}
     Wrap: 1
@@ -988,6 +988,7 @@ MonoBehaviour:
   m_UnmodifiedMeshVersion: 22
   m_Size: {x: 8, y: 2.5, z: 4}
   m_LocalCenter: {x: 0, y: 0, z: 0}
+  m_PivotRatio: {x: 0, y: 0, z: 0}
   references:
     version: 2
     RefIds:
@@ -3161,6 +3162,7 @@ MonoBehaviour:
   m_UnmodifiedMeshVersion: 15
   m_Size: {x: 2, y: 2.5, z: 4}
   m_LocalCenter: {x: 0, y: 0, z: 0}
+  m_PivotRatio: {x: 0, y: 0, z: 0}
   references:
     version: 2
     RefIds:

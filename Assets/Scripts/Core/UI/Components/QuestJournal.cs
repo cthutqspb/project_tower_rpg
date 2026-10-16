@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
-using Unity.Collections;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Quest;
 using ProjectTowerRpg.Core.Items;
@@ -182,9 +181,9 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             foreach (var q in _quests)
             {
-                if (q.State == QuestState.Active || q.State == QuestState.ReadyToTurnIn)
+                if (q.State == QuestState.Active || q.State == QuestState.Completed)
                     active.Add(q);
-                else if (q.State == QuestState.Completed)
+                else if (q.State == QuestState.TurnedIn)
                     completed.Add(q);
             }
 

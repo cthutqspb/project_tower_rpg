@@ -18,17 +18,17 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         public HeaderComponent(bool hasCloseButton = true)
         {
-            this.AddToClassList("header-component");
+            this.AddToClassList("header");
             
             _titleLabel = new Label();
-            _titleLabel.AddToClassList("header-component__label");
+            _titleLabel.AddToClassList("header__label");
             _titleLabel.text = "Заголовок";
             Add(_titleLabel);
             
             if (hasCloseButton)
             {
                 _closeButton = new Button();
-                _closeButton.AddToClassList("header-component__close-btn");
+                _closeButton.AddToClassList("header__close-btn");
                 _closeButton.text = "✕";
                 _closeButton.RegisterCallback<ClickEvent>(_ => OnClose?.Invoke());
                 Add(_closeButton);

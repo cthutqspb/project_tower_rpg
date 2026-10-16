@@ -6,8 +6,12 @@
       "start_routing": {
         "type": "condition",
         "branches": [
-          { "type": "quest", "quest_id": "quest_zalina_casino", "required_state": "Completed",     "next_node": "zalina_greet_completed" },
-          { "type": "quest", "quest_id": "quest_zalina_casino", "required_state": "ReadyToTurnIn", "next_node": "zalina_greet_ready" },
+          { "type": "quest",
+            "quest_id": "quest_zalina_casino",
+            "required_state": "TurnedIn",
+            "next_node": "zalina_greet_turned_in"
+          },
+          { "type": "quest", "quest_id": "quest_zalina_casino", "required_state": "Completed", "next_node": "zalina_greet_ready" },
           { "type": "quest", "quest_id": "quest_zalina_casino", "required_state": "Active",        "next_node": "zalina_greet_active" }
         ],
         "default_next": "zalina_greet"
@@ -149,7 +153,7 @@
         "options": [
           {
             "text_key": "dialogue_zalina_opt_turn_in",
-            "next_node": "zalina_greet_completed",
+            "next_node": "zalina_greet_turned_in",
             "actions": [
               { "type": "quest_complete", "quest_id": "quest_zalina_casino" }
             ]
@@ -157,9 +161,9 @@
         ]
       },
 
-      "zalina_greet_completed": {
+      "zalina_greet_turned_in": {
         "type": "dialogue",
-        "text_key": "dialogue_zalina_greet_completed_text",
+        "text_key": "dialogue_zalina_greet_turned_in_text",
         "options": [
           {
             "text_key": "dialogue_zalina_opt_need_help_2",

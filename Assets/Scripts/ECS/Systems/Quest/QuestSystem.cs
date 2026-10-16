@@ -82,8 +82,7 @@ namespace ProjectTowerRpg.ECS.Systems
             ecb.AppendToBuffer(unit, new QuestComponent
             {
                 QuestId = questId,
-                State = QuestState.Active,
-                Progress = 0
+                State = QuestState.Active
             });
 
             // Записываем цели

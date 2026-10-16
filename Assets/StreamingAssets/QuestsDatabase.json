@@ -4,13 +4,26 @@
     "desc_key": "quest_zalina_casino_desc",
     "objectives": [
       {
-        "id": "resolve_casino",
+        "id": "kill_anatoliy",
+        "type": "kill",
         "text_key": "quest_zalina_casino_obj_1",
-        "current_amount": 0,
         "required_amount": 1,
-        "is_completed": false
+        "identity": {
+          "name_key": "unit_skeleton_warrior_anatoliy_name"
+        }
+      },
+      {
+        "id": "kill_3_skeleton_warriors",
+        "type": "kill",
+        "text_key": "quest_zalina_casino_obj_2",
+        "required_amount": 3,
+        "identity": {
+          "name_key": "unit_skeleton_warrior_name"
+        }
       }
+    ],
+    "rewards": [
+      { "item_id": "crystal_sword", "amount": 1 }
     ]
   }
 }
-

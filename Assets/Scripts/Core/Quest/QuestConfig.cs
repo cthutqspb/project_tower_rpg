@@ -9,8 +9,8 @@ namespace ProjectTowerRpg.Core.Quest
         Locked = 0,
         Available = 1,
         Active = 2,
-        ReadyToTurnIn = 3,
-        Completed = 4
+        Completed = 3,
+        TurnedIn = 4
     }
 
     [Serializable]

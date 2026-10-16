@@ -92,7 +92,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     UnitId = markerData.UnitId, // Передаем FixedString
                     NameKey = isPlayer ? "player" : nameKey,
                     Level = markerData.Level,
-                    Position = spawnPosition,
+                    //Position = spawnPosition,
                     Faction = faction,
                     AggroRadius = dbCfg.ai != null ? dbCfg.ai.base_aggro_radius : 20f
                 });

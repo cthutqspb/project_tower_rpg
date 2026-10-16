@@ -192,16 +192,27 @@ namespace ProjectTowerRpg.ECS.Systems
             bool isCameraRotatingNow = !isUiBlocked && (isLmbPressed || isRmbPressed);
             var axisController = UnityEngine.Object.FindAnyObjectByType<Unity.Cinemachine.CinemachineInputAxisController>();
 
-            if (axisController != null && !DragManager.Instance.IsDragging)
+            if (axisController != null)
             {
                 float baseSensitivity = 27f;
 
                 foreach (var controller in axisController.Controllers)
                 {
                     if (controller.Name == "Look Orbit X")
-                        controller.Input.Gain = isCameraRotatingNow ? baseSensitivity : 0f;
+                    {
+                        controller.Input.Gain = (isCameraRotatingNow && !isUiBlocked && !DragManager.Instance.IsDragging)
+                            ? baseSensitivity : 0f;
+                    }
                     else if (controller.Name == "Look Orbit Y")
-                        controller.Input.Gain = isCameraRotatingNow ? -baseSensitivity : 0f;
+                    {
+                        controller.Input.Gain = (isCameraRotatingNow && !isUiBlocked && !DragManager.Instance.IsDragging)
+                            ? -baseSensitivity : 0f;
+                    }
+                    else if (controller.Name == "Orbit Scale")
+                    {
+                        // 🦾 Зум работает ТОЛЬКО когда мышь не над UI и не идёт драг
+                        controller.Input.Gain = (isUiBlocked || DragManager.Instance.IsDragging) ? 0f : -2.7f;
+                    }
                 }
             }
 

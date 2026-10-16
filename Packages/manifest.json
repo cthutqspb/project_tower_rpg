@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.unity.ai.navigation": "2.0.14",
+    "com.unity.ai.navigation": "2.0.16",
     "com.unity.cinemachine": "6.7.0",
     "com.unity.collab-proxy": "2.13.6",
     "com.unity.entities.graphics": "6.7.0",
@@ -11,7 +11,7 @@
     "com.unity.memoryprofiler": "1.2.0-pre.1",
     "com.unity.multiplayer.center": "3.0.0",
     "com.unity.nuget.newtonsoft-json": "3.2.2",
-    "com.unity.probuilder": "6.1.2",
+    "com.unity.probuilder": "6.1.3",
     "com.unity.render-pipelines.high-definition": "17.7.0",
     "com.unity.render-pipelines.universal": "17.7.0",
     "com.unity.sdk.linux-x86_64": "1.1.0",
@@ -20,7 +20,7 @@
     "com.unity.test-framework": "1.9.0",
     "com.unity.timeline": "6.7.0",
     "com.unity.toolchain.linux-x86_64-linux": "1.1.0",
-    "com.unity.ugui": "2.7.0",
+    "com.unity.ugui": "7.0.0",
     "com.unity.visualscripting": "1.9.12",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.adaptiveperformance": "1.0.0",

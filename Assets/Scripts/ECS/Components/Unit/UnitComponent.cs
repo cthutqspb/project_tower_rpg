@@ -1,6 +1,5 @@
 using Unity.Entities;
 using Unity.Collections;
-using Unity.Mathematics;
 
 namespace ProjectTowerRpg.ECS.Components
 {
@@ -10,7 +9,6 @@ namespace ProjectTowerRpg.ECS.Components
         public FixedString64Bytes UnitId;    // "player_mage", "skeleton_warrior",
         public FixedString64Bytes NameKey;
         public int Level;                    // 1, 5, 10...
-        public float3 Position;              // позиция в мире
         public FixedString64Bytes LootTableId;
         public FixedString32Bytes Faction;
         public float AggroRadius;

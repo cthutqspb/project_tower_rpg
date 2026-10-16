@@ -1,4 +1,4 @@
-.header-component {
+.header {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -13,14 +13,14 @@
     max-height: 28px;
 }
 
-.header-component__label {
+.header__label {
     flex-grow: 1;  /* ← Заголовок занимает всё свободное место */
     color: #ffffff;
     font-size: 14px;
     font-style: bold;
 }
 
-.header-component__close-btn {
+.header__close-btn {
     flex-shrink: 0;  /* ← Кнопка не сжимается */
     background-color: transparent;
     color: #ff6b6b;

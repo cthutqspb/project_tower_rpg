@@ -64,8 +64,7 @@ namespace ProjectTowerRpg.ECS.Authoring
             {
                 Uid = "", 
                 UnitId = authoring.unitId,
-                Level = authoring.unitLevel,
-                Position = float3.zero 
+                Level = authoring.unitLevel, 
             });
 
             // Компонент движения и физики
@@ -90,7 +89,6 @@ namespace ProjectTowerRpg.ECS.Authoring
             {
                 NextActionTime = 0f,
                 HasPatrolTarget = false,
-                //IsPatrolling = false,
 
                 State = AiState.Idle,
                 AttackTimer = 0f,

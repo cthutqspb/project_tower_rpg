@@ -16,7 +16,7 @@ namespace ProjectTowerRpg.Core.Quest
         {
             if (IsLoaded) return;
             
-            string filePath = Path.Combine(Application.streamingAssetsPath, "Units", "QuestsDatabase.json");
+            string filePath = Path.Combine(Application.streamingAssetsPath, "QuestsDatabase.json");
 
             if (!File.Exists(filePath))
             {
