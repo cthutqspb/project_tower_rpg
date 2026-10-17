@@ -381,14 +381,52 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             foreach (var reward in config.rewards)
             {
-                var itemConfig = ItemsDatabase.GetItem(reward.item_id);
-                string displayName = itemConfig != null
-                    ? LocalizationManager.Get(itemConfig.identity.name_key)
-                    : reward.item_id;
-                string iconChar = itemConfig?.visuals?.icon_char ?? "?";
+                string displayName;
+                string iconChar;
+
+                switch (reward.kind)
+                {
+                    case "item":
+                    {
+                        var itemConfig = ItemsDatabase.GetItem(reward.id);
+                        displayName = itemConfig != null
+                            ? LocalizationManager.Get(itemConfig.identity.name_key)
+                            : reward.id;
+                        iconChar = itemConfig?.visuals?.icon_char ?? "?";
+                        break;
+                    }
+
+                    case "experience":
+                        displayName = $"Опыт: {reward.amount}";
+                        iconChar = "★";
+                        break;
+
+                    case "currency":
+                        displayName = $"Валюта: {reward.id}";
+                        iconChar = "¤";
+                        break;
+
+                    case "ability":
+                        displayName = $"Способность: {reward.id}";
+                        iconChar = "✦";
+                        break;
+
+                    default:
+                        displayName = reward.id ?? reward.kind;
+                        iconChar = "?";
+                        break;
+                }
 
                 var row = new VisualElement();
                 row.AddToClassList("quest-journal__reward-item");
+
+                // 🆕 Метка «выбор» (жёлтая точка или звёздочка)
+                if (reward.is_choice)
+                {
+                    var marker = new Label("★");
+                    marker.AddToClassList("quest-journal__reward-choice-marker");
+                    row.Add(marker);
+                }
 
                 var icon = new Label(iconChar);
                 icon.AddToClassList("quest-journal__reward-icon");
@@ -398,7 +436,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 name.AddToClassList("quest-journal__reward-name");
                 row.Add(name);
 
-                if (reward.amount > 1)
+                if (reward.amount > 1 && reward.kind != "experience")
                 {
                     var amount = new Label($"x{reward.amount}");
                     amount.AddToClassList("quest-journal__reward-amount");

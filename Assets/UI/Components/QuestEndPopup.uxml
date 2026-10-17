@@ -1,0 +1,26 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="project://database/Assets/UI/Windows/QuestEndPopup.uss" />
+
+    <ui:VisualElement class="quest-end" name="root" picking-mode="Position">
+
+        <!-- Хедер (drag) -->
+        <ui:VisualElement class="quest-end__header" name="header">
+            <ui:Label text="ЗАДАНИЕ ВЫПОЛНЕНО" class="quest-end__title" />
+        </ui:VisualElement>
+
+        <!-- Название квеста -->
+        <ui:Label class="quest-end__quest-name" name="quest-name" />
+
+        <!-- Выбор -->
+        <ui:Label text="ВЫБЕРИТЕ НАГРАДУ:" class="quest-end__reward-header" name="choice-header" />
+        <ui:VisualElement class="quest-end__rewards" name="rewards-choice" />
+
+        <!-- Гарантированные -->
+        <ui:Label text="ГАРАНТИРОВАННЫЕ:" class="quest-end__reward-header" name="guaranteed-header" />
+        <ui:VisualElement class="quest-end__rewards" name="rewards-guaranteed" />
+
+        <!-- Кнопка -->
+        <ui:Button text="Завершить" class="quest-end__btn" name="complete-btn" />
+
+    </ui:VisualElement>
+</ui:UXML>

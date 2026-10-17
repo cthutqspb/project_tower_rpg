@@ -20,6 +20,7 @@ namespace ProjectTowerRpg.Core.UI
 
         public abstract WindowType Type { get; }
         public virtual Entity BoundEntity => Entity.Null;
+        public virtual bool CanCloseByEscape => true;
         
         [HideInInspector] public bool IsInPool;
 
@@ -42,7 +43,8 @@ namespace ProjectTowerRpg.Core.UI
             _context = new WindowContext(
                 _root,
                 onClose: OnInternalWindowClosed,
-                onShow: OnInternalWindowShown
+                onShow: OnInternalWindowShown,
+                owner: this
             );
 
             OnWindowBuilt(_root);

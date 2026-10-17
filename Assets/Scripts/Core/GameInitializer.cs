@@ -58,6 +58,7 @@ public class GameInitializer : MonoBehaviour
             em.AddBuffer<ItemUsedEvent>(gameEventsEntity);
             em.AddBuffer<DiscoverLocationEvent>(gameEventsEntity);
             em.AddBuffer<DialogueCompletedEvent>(gameEventsEntity);
+            em.AddBuffer<QuestReadyToClaimEvent>(gameEventsEntity);
 
             Debug.Log("🌐 [GameInitializer]: Синглтон GameEvent с 4 буферами развернут в ECS!");
         }

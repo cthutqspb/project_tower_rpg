@@ -24,10 +24,12 @@ namespace ProjectTowerRpg.Core.Quest
     }
 
     [Serializable]
-    public class QuestRewardItem
+    public class QuestReward
     {
-        public string item_id;
+        public string kind;    // "item", "experience", "currency", "ability", ...
+        public string id;
         public int amount = 1;
+        public bool is_choice; // 🆕 true = участвует в выборе, false = гарантированная
     }
 
     [Serializable]
@@ -37,6 +39,6 @@ namespace ProjectTowerRpg.Core.Quest
         public string title_key;
         public string desc_key;
         public List<QuestObjective> objectives;
-        public List<QuestRewardItem> rewards;
+        public List<QuestReward> rewards;   // 🆕 один список
     }
 }

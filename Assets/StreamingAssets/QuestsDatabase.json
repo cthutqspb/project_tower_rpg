@@ -11,19 +11,12 @@
         "identity": {
           "name_key": "unit_skeleton_warrior_anatoliy_name"
         }
-      },
-      {
-        "id": "kill_3_skeleton_warriors",
-        "type": "kill",
-        "text_key": "quest_zalina_casino_obj_2",
-        "required_amount": 3,
-        "identity": {
-          "name_key": "unit_skeleton_warrior_name"
-        }
       }
     ],
     "rewards": [
-      { "item_id": "crystal_sword", "amount": 1 }
+      { "kind": "item", "id": "lesser_mana_potion", "amount": 3, "is_choice": false },
+      { "kind": "item", "id": "crystal_sword", "amount": 1, "is_choice": true },
+      { "kind": "item", "id": "iron_sword", "amount": 1, "is_choice": true }
     ]
   }
 }

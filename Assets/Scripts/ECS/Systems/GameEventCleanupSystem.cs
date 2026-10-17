@@ -16,6 +16,7 @@ namespace ProjectTowerRpg.ECS.Systems
             em.GetBuffer<ItemUsedEvent>(gameEventsEntity).Clear();
             em.GetBuffer<DiscoverLocationEvent>(gameEventsEntity).Clear();
             em.GetBuffer<DialogueCompletedEvent>(gameEventsEntity).Clear();
+            em.GetBuffer<QuestReadyToClaimEvent>(gameEventsEntity).Clear();
         }
     }
 }

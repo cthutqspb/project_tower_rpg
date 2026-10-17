@@ -83,7 +83,9 @@ namespace ProjectTowerRpg.Core.UI
                 // Если у тебя метод void, то гвард пишется через проверку: WindowManager.HasOpenWindows
                 else if (WindowManager.IsAnyOpen)
                 {
-                    WindowManager.CloseTop();
+                    var top = WindowManager.GetTop();
+                    if (top?.Owner != null && top.Owner.CanCloseByEscape)
+                        WindowManager.CloseTop();
                 }
                 else
                 {

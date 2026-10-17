@@ -7,13 +7,15 @@ namespace ProjectTowerRpg.Core.UI
         public VisualElement Root { get; private set; }
         public System.Action OnClose { get; private set; }
         public System.Action OnShow { get; private set; }
+        public UIWindow Owner { get; private set; }   // 🆕
         public bool IsVisible => Root != null && Root.style.display == DisplayStyle.Flex;
 
-        public WindowContext(VisualElement root, System.Action onClose = null, System.Action onShow = null)
+        public WindowContext(VisualElement root, System.Action onClose = null, System.Action onShow = null, UIWindow owner = null)
         {
             Root = root;
             OnClose = onClose;
             OnShow = onShow;
+            Owner = owner;
         }
 
         public void Show()

@@ -11,6 +11,7 @@ namespace ProjectTowerRpg.ECS.Components
         public FixedString64Bytes QuestId; // Уникальный строковый ID ("quest_zalina_casino")
         public QuestState State; // Стейт (Active, Completed...)
         public bool IsTracked;
+        public bool RewardClaimed;
     }
 }
 

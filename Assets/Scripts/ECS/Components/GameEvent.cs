@@ -36,4 +36,10 @@ namespace ProjectTowerRpg.ECS.Components
         public FixedString64Bytes TargetNameKey;
         public FixedString64Bytes DialogueId;
     }
+
+    public struct QuestReadyToClaimEvent : IBufferElementData
+    {
+        public Entity Unit;                       // кому сдавать
+        public FixedString64Bytes QuestId;        // какой квест
+    }
 }

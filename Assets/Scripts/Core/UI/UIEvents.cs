@@ -25,7 +25,7 @@ namespace ProjectTowerRpg.Core.UI
 
     public static class UIEvents
     {        
-        public static System.Action<WindowType, Entity, string> OnOpenWindow;
+        public static System.Action<WindowType, Entity, object> OnOpenWindow;
         public static System.Action<WindowType, Entity> OnCloseWindow;
         public static event System.Action CloseAllWindows;
  
@@ -39,9 +39,10 @@ namespace ProjectTowerRpg.Core.UI
 
         public static System.Action<int, SlotAnimationType> OnSlotAnimation;        
 
-        public static void TriggerOpenWindow(WindowType type, Entity entity = default, string tabId = null)
+        public static void TriggerOpenWindow(WindowType type, Entity entity = default, object payload = null)
         {
-            OnOpenWindow?.Invoke(type, entity, tabId);
+            OnOpenWindow?.Invoke(type, entity, payload);
+        
         }
         public static void TriggerCloseWindow(WindowType type, Entity entity = default)
         {

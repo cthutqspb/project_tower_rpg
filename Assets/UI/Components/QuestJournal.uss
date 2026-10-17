@@ -85,7 +85,7 @@
     border-left-color: var(--color-primary);
 }
 
-/* 🆕 Строка заголовка квеста: чекбокс + название */
+/* Строка заголовка квеста: чекбокс + название */
 .quest-journal__header-row {
     flex-direction: row;
     align-items: center;
@@ -102,7 +102,7 @@
 }
 
 /* ============================================================
-   🆕 ЧЕКБОКС ТРЕКИНГА (Toggle)
+   ЧЕКБОКС ТРЕКИНГА (Toggle)
    ============================================================ */
 .quest-journal__track-toggle {
     margin-right: 6px;
@@ -136,7 +136,7 @@
     color: var(--color-text-dim);
     font-size: 11px;
     white-space: normal;
-    margin-left: 22px;   /* 🆕 чуть больше отступ, чтобы выровнять под названием (а не под чекбоксом) */
+    margin-left: 22px;
     margin-top: 1px;
 }
 
@@ -214,6 +214,13 @@
     padding: 4px 6px;
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 3px;
+}
+
+/* 🆕 Звёздочка «выбор» перед иконкой награды */
+.quest-journal__reward-choice-marker {
+    color: var(--color-warning);
+    font-size: 12px;
+    margin-right: 4px;
 }
 
 .quest-journal__reward-icon {

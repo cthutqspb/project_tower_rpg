@@ -1,7 +1,6 @@
 using Unity.Collections;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.Core.Quest;
 using Debug = UnityEngine.Debug;
 
@@ -63,16 +62,12 @@ namespace ProjectTowerRpg.ECS.Systems
             _ecbSystem.AddJobHandleForProducer(Dependency);
         }
 
-        // ================================================================
-        // ПРИНЯТИЕ КВЕСТА
-        // ================================================================
         private void HandleAccept(Entity unit, FixedString64Bytes questId, EntityManager em, EntityCommandBuffer ecb)
         {
             if (unit == Entity.Null || !em.Exists(unit)) return;
             if (!em.HasBuffer<QuestComponent>(unit)) return;
             if (!em.HasBuffer<QuestObjectiveComponent>(unit)) return;
 
-            // Защита от дубля
             var qBuffer = em.GetBuffer<QuestComponent>(unit);
             for (int i = 0; i < qBuffer.Length; i++)
             {
@@ -83,7 +78,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
-            // Получаем конфиг
             var config = QuestsDatabase.GetQuest(questId.ToString());
             if (config == null)
             {
@@ -91,15 +85,14 @@ namespace ProjectTowerRpg.ECS.Systems
                 return;
             }
 
-            // Записываем сам квест
             ecb.AppendToBuffer(unit, new QuestComponent
             {
                 QuestId = questId,
                 State = QuestState.Active,
-                IsTracked = true
+                IsTracked = true,
+                RewardClaimed = false
             });
 
-            // Записываем цели
             if (config.objectives != null)
             {
                 foreach (var obj in config.objectives)
@@ -118,9 +111,6 @@ namespace ProjectTowerRpg.ECS.Systems
             Debug.Log($"[QuestSystem] Квест '{questId}' принят юнитом {unit.Index}. Целей: {config.objectives?.Count ?? 0}");
         }
 
-        // ================================================================
-        // СДАЧА КВЕСТА
-        // ================================================================
         private void HandleComplete(Entity unit, FixedString64Bytes questId, EntityManager em, EntityCommandBuffer ecb)
         {
             if (unit == Entity.Null || !em.Exists(unit)) return;
@@ -137,39 +127,23 @@ namespace ProjectTowerRpg.ECS.Systems
                         return;
                     }
 
-                    var q = qBuffer[i];
-                    q.State = QuestState.TurnedIn;
-                    qBuffer[i] = q;
-
-                    Debug.Log($"[QuestSystem] Квест '{questId}' сдан юнитом {unit.Index}.");
-
-                    GrantRewards(unit, questId, em, ecb);
+                    // 🆕 Пишем событие в GameEvent — попап откроется через мост
+                    if (SystemAPI.TryGetSingletonEntity<GameEvent>(out var gameEventsEntity))
+                    {
+                        var buf = em.GetBuffer<QuestReadyToClaimEvent>(gameEventsEntity);
+                        buf.Add(new QuestReadyToClaimEvent { Unit = unit, QuestId = questId });
+                        Debug.Log($"[QuestSystem] Квест '{questId}' готов к сдаче, событие отправлено.");
+                    }
+                    else
+                    {
+                        Debug.LogError($"[QuestSystem] Не найдена шина GameEvent!");
+                    }
 
                     return;
                 }
             }
 
             Debug.LogWarning($"[QuestSystem] Попытка сдать '{questId}', которого нет у юнита.");
-        }
-
-        private void GrantRewards(Entity unit, FixedString64Bytes questId, EntityManager em, EntityCommandBuffer ecb)
-        {
-            var config = QuestsDatabase.GetQuest(questId.ToString());
-            if (config?.rewards == null || config.rewards.Count == 0) return;
-
-            foreach (var reward in config.rewards)
-            {
-                var cmdEntity = ecb.CreateEntity();
-                ecb.AddComponent(cmdEntity, new ActionCommand
-                {
-                    Action = ItemActions.Create,
-                    TargetEntity = unit,
-                    ItemId = reward.item_id,
-                    Amount = reward.amount
-                });
-            }
-
-            Debug.Log($"[QuestSystem] Квест '{questId}' сдан — {config.rewards.Count} награды отправлены в диспетчер.");
         }
 
         private void HandleTrack(Entity unit, FixedString64Bytes questId, EntityManager em)

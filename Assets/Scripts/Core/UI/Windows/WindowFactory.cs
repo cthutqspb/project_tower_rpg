@@ -71,23 +71,19 @@ namespace ProjectTowerRpg.Core.UI
             UIEvents.CloseAllWindows -= CloseAll;
         }
 
-        private void OnOpenWindowRequested(WindowType type, Entity entity, string tabId)
+        private void OnOpenWindowRequested(WindowType type, Entity entity, object payload)
         {
             Debug.Log($"🔔 [WindowFactory]: Поймали запрос на {type} для сущности {entity.Index}.");
 
-            // 🦾 ЮНИТИ 6 КАНОН: Ищем только среди АКТИВНЫХ окон на сцене, без устаревшей сортировки
             var activeWindows = FindObjectsByType<UIWindow>(FindObjectsInactive.Exclude);
             
             foreach (var activeWindow in activeWindows)
             {
-                // 🦾 ТОТАЛЬНЫЙ ОЧИЩЕННЫЙ TOGGLE:
-                // Если окно этого типа горит на экране, и либо сущности равны,
-                // либо пришел дефолтный запрос (Entity.Null), а открытое окно тоже дефолтное — ЗАКРЫВАЕМ ЕГО!
                 if (activeWindow.IsOpen && activeWindow.Type == type)
                 {
                     if (activeWindow.BoundEntity == entity || entity == Entity.Null)
                     {
-                        if (TryOpenTabOnActive(activeWindow, tabId, type, entity)) return;
+                        if (TryOpenTabOnActive(activeWindow, payload, type, entity)) return;
                         return;
                     }
                 }
@@ -97,31 +93,30 @@ namespace ProjectTowerRpg.Core.UI
             UIWindow window = GetWindow(type);
             if (window == null) return;
 
-            // Слепо скармливаем сущность. Окно внутри себя вызовет Open()
             window.Setup(entity);
 
-            // 🆕 После Setup — переключаем вкладку, если окно поддерживает
-            if (!string.IsNullOrEmpty(tabId) && window is ITabbedWindow tabbed)
+            // 🆕 Payload для окна
+            if (payload != null && window is IPayloadReceiver receiver)
+                receiver.ReceivePayload(payload);
+
+            // 🆕 Для вкладок (старое поведение)
+            if (payload is string tabId && !string.IsNullOrEmpty(tabId) && window is ITabbedWindow tabbed)
             {
                 tabbed.OpenOnTabId(tabId);
             }
         }
 
-        private bool TryOpenTabOnActive(UIWindow activeWindow, string tabId, WindowType type, Entity entity)
+        private bool TryOpenTabOnActive(UIWindow activeWindow, object payload, WindowType type, Entity entity)
         {
-            // tabId задан (J) — просим окно переключиться. Окно само скажет, обработало ли.
-            if (!string.IsNullOrEmpty(tabId) && activeWindow is ITabbedWindow tabbed)
+            if (payload is string tabId && !string.IsNullOrEmpty(tabId) 
+                && activeWindow is ITabbedWindow tabbed)
             {
                 bool handled = tabbed.OpenOnTabId(tabId);
                 if (!handled)
-                {
-                    // Окно уже на этой вкладке → просит закрыть
                     UIEvents.TriggerCloseWindow(type, activeWindow.BoundEntity);
-                }
                 return true;
             }
 
-            // tabId не задан (I) — обычный toggle-close
             UIEvents.TriggerCloseWindow(type, activeWindow.BoundEntity);
             return true;
         }

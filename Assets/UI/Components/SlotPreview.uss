@@ -1,0 +1,28 @@
+.slot-preview {
+    flex-direction: row;
+    align-items: center;
+    padding: 4px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+    border-width: 2px;
+    border-color: transparent;
+}
+
+.slot-preview--choice {
+    border-color: var(--color-warning);
+}
+
+.slot-preview--selected {
+    border-color: var(--color-primary);
+    background-color: rgba(122, 162, 247, 0.3);
+}
+
+.slot-preview__name {
+    width: 120px;
+    height: 42px;
+    margin-left: 6px;
+    color: var(--color-text);
+    font-size: 11px;
+    white-space: normal;
+    -unity-text-align: middle-left;
+}
