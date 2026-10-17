@@ -799,6 +799,16 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""initialStateCheck"": false,
                     ""priority"": 0
+                },
+                {
+                    ""name"": ""ToggleQuestJournal"",
+                    ""type"": ""Button"",
+                    ""id"": ""ded54be6-d1b1-439b-94a2-55630533c28a"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
                 }
             ],
             ""bindings"": [
@@ -1241,6 +1251,17 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""action"": ""CloseWindow"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""91cefc9e-355e-4308-80f4-50ff3e08744b"",
+                    ""path"": ""<Keyboard>/j"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ToggleQuestJournal"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -1338,6 +1359,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_UI_TrackedDeviceOrientation = m_UI.FindAction("TrackedDeviceOrientation", throwIfNotFound: true);
         m_UI_ToggleCharacterWindow = m_UI.FindAction("ToggleCharacterWindow", throwIfNotFound: true);
         m_UI_CloseWindow = m_UI.FindAction("CloseWindow", throwIfNotFound: true);
+        m_UI_ToggleQuestJournal = m_UI.FindAction("ToggleQuestJournal", throwIfNotFound: true);
     }
 
     ~@InputSystem_Actions()
@@ -1670,6 +1692,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_UI_TrackedDeviceOrientation;
     private readonly InputAction m_UI_ToggleCharacterWindow;
     private readonly InputAction m_UI_CloseWindow;
+    private readonly InputAction m_UI_ToggleQuestJournal;
     /// <summary>
     /// Provides access to input actions defined in input action map "UI".
     /// </summary>
@@ -1729,6 +1752,10 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "UI/CloseWindow".
         /// </summary>
         public InputAction @CloseWindow => m_Wrapper.m_UI_CloseWindow;
+        /// <summary>
+        /// Provides access to the underlying input action "UI/ToggleQuestJournal".
+        /// </summary>
+        public InputAction @ToggleQuestJournal => m_Wrapper.m_UI_ToggleQuestJournal;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -1791,6 +1818,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @CloseWindow.started += instance.OnCloseWindow;
             @CloseWindow.performed += instance.OnCloseWindow;
             @CloseWindow.canceled += instance.OnCloseWindow;
+            @ToggleQuestJournal.started += instance.OnToggleQuestJournal;
+            @ToggleQuestJournal.performed += instance.OnToggleQuestJournal;
+            @ToggleQuestJournal.canceled += instance.OnToggleQuestJournal;
         }
 
         /// <summary>
@@ -1838,6 +1868,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @CloseWindow.started -= instance.OnCloseWindow;
             @CloseWindow.performed -= instance.OnCloseWindow;
             @CloseWindow.canceled -= instance.OnCloseWindow;
+            @ToggleQuestJournal.started -= instance.OnToggleQuestJournal;
+            @ToggleQuestJournal.performed -= instance.OnToggleQuestJournal;
+            @ToggleQuestJournal.canceled -= instance.OnToggleQuestJournal;
         }
 
         /// <summary>
@@ -2133,5 +2166,12 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnCloseWindow(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "ToggleQuestJournal" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnToggleQuestJournal(InputAction.CallbackContext context);
     }
 }

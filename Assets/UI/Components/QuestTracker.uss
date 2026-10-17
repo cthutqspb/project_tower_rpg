@@ -1,0 +1,115 @@
+/* ============================================================
+   QUEST TRACKER
+   ============================================================ */
+
+.quest-tracker {
+    position: absolute;
+    top: 220px;
+    right: 20px;
+    width: 320px;
+    max-height: 640px;
+    background-color: rgba(30, 30, 30, 0.27);
+    border-radius: 6px;
+    padding: 8px;
+    flex-direction: column;
+}
+
+/* ============================================================
+   ЗАГОЛОВОК (ЗАДАНИЯ + свернуть)
+   ============================================================ */
+.quest-tracker__header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.quest-tracker__title {
+    font-size: 14px;
+    color: var(--color-text);
+    -unity-font-style: bold;
+}
+
+.quest-tracker__btn {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    border-width: 0;
+    color: var(--color-text);
+    font-size: 14px;
+    -unity-text-align: middle-center;
+}
+
+.quest-tracker__btn:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ============================================================
+   ТЕЛО (скролл)
+   ============================================================ */
+.quest-tracker__body {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+/* ============================================================
+   СТРОКА ЗАГОЛОВКА КВЕСТА (название + ×)
+   ============================================================ */
+.quest-tracker__quest-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.quest-tracker__quest-title {
+    font-size: 13px;
+    color: var(--color-warning);
+    -unity-font-style: bold;
+    white-space: normal;
+    flex-grow: 1;
+}
+
+.quest-tracker__quest-remove-btn {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    margin-left: 4px;
+    background-color: transparent;
+    border-width: 0;
+    color: var(--color-text-dim);
+    font-size: 14px;
+    -unity-text-align: middle-center;
+    flex-shrink: 0;
+}
+
+.quest-tracker__quest-remove-btn:hover {
+    color: #ff6b6b;
+}
+
+/* ============================================================
+   ЦЕЛИ
+   ============================================================ */
+.quest-tracker__objective {
+    font-size: 12px;
+    color: var(--color-text-dim);
+    margin-left: 6px;
+    margin-bottom: 2px;
+    white-space: normal;
+}
+
+.quest-tracker__objective--completed {
+    color: var(--color-success);
+    -unity-font-style: italic;
+}
+
+/* ============================================================
+   ПУСТО (не используется, но на всякий случай)
+   ============================================================ */
+.quest-tracker__empty {
+    font-size: 12px;
+    color: var(--color-text-dim);
+    -unity-font-style: italic;
+}

@@ -1,6 +1,7 @@
 using Unity.Collections;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.Core.Quest;
 using Debug = UnityEngine.Debug;
 
@@ -24,12 +25,16 @@ namespace ProjectTowerRpg.ECS.Systems
 
             var acceptList = new NativeList<Entity>(Allocator.Temp);
             var completeList = new NativeList<Entity>(Allocator.Temp);
+            var trackList = new NativeList<Entity>(Allocator.Temp);
 
             foreach (var (req, reqEntity) in SystemAPI.Query<RefRO<QuestAcceptRequest>>().WithEntityAccess())
                 acceptList.Add(reqEntity);
 
             foreach (var (req, reqEntity) in SystemAPI.Query<RefRO<QuestCompleteRequest>>().WithEntityAccess())
                 completeList.Add(reqEntity);
+
+            foreach (var (req, reqEntity) in SystemAPI.Query<RefRO<QuestTrackRequest>>().WithEntityAccess())
+                trackList.Add(reqEntity);
 
             foreach (var reqEntity in acceptList)
             {
@@ -45,8 +50,16 @@ namespace ProjectTowerRpg.ECS.Systems
                 ecb.DestroyEntity(reqEntity);
             }
 
+            foreach (var reqEntity in trackList)
+            {
+                var req = em.GetComponentData<QuestTrackRequest>(reqEntity);
+                HandleTrack(req.Unit, req.QuestId, em);
+                ecb.DestroyEntity(reqEntity);
+            }
+
             acceptList.Dispose();
             completeList.Dispose();
+            trackList.Dispose();
             _ecbSystem.AddJobHandleForProducer(Dependency);
         }
 
@@ -82,7 +95,8 @@ namespace ProjectTowerRpg.ECS.Systems
             ecb.AppendToBuffer(unit, new QuestComponent
             {
                 QuestId = questId,
-                State = QuestState.Active
+                State = QuestState.Active,
+                IsTracked = true
             });
 
             // Записываем цели
@@ -117,24 +131,57 @@ namespace ProjectTowerRpg.ECS.Systems
             {
                 if (qBuffer[i].QuestId == questId)
                 {
+                    if (qBuffer[i].State != QuestState.Completed)
+                    {
+                        Debug.LogWarning($"[QuestSystem] Квест '{questId}' не выполнен (State={qBuffer[i].State}), сдача отклонена.");
+                        return;
+                    }
+
                     var q = qBuffer[i];
-                    q.State = QuestState.Completed;
+                    q.State = QuestState.TurnedIn;
                     qBuffer[i] = q;
 
                     Debug.Log($"[QuestSystem] Квест '{questId}' сдан юнитом {unit.Index}.");
 
-                    // TODO: Выдача награды.
-                    // 1. Взять config = QuestsDatabase.GetQuest(questId)
-                    // 2. Для каждого reward в config.rewards:
-                    //    - создать сущность предмета через ItemSpawnSystem / отдельный SpawnRewardItemRequest
-                    //    - положить в инвентарь юнита через ItemReducer.AddItem / Transfer
-                    // Пока заглушка.
+                    GrantRewards(unit, questId, em, ecb);
 
                     return;
                 }
             }
 
             Debug.LogWarning($"[QuestSystem] Попытка сдать '{questId}', которого нет у юнита.");
+        }
+
+        private void GrantRewards(Entity unit, FixedString64Bytes questId, EntityManager em, EntityCommandBuffer ecb)
+        {
+            var config = QuestsDatabase.GetQuest(questId.ToString());
+            if (config?.rewards == null || config.rewards.Count == 0) return;
+
+            foreach (var reward in config.rewards)
+            {
+                var cmdEntity = ecb.CreateEntity();
+                ecb.AddComponent(cmdEntity, new ActionCommand
+                {
+                    Action = ItemActions.Create,
+                    TargetEntity = unit,
+                    ItemId = reward.item_id,
+                    Amount = reward.amount
+                });
+            }
+
+            Debug.Log($"[QuestSystem] Квест '{questId}' сдан — {config.rewards.Count} награды отправлены в диспетчер.");
+        }
+
+        private void HandleTrack(Entity unit, FixedString64Bytes questId, EntityManager em)
+        {
+            if (!em.HasBuffer<QuestComponent>(unit)) return;
+            var quests = em.GetBuffer<QuestComponent>(unit);
+            for (int i = 0; i < quests.Length; i++)
+            {
+                var q = quests[i];
+                q.IsTracked = (q.QuestId == questId);
+                quests[i] = q;
+            }
         }
     }
 }

@@ -79,6 +79,10 @@ namespace ProjectTowerRpg.ECS.Systems
                         ExecuteItemUse(cmd.ValueRO, ecb);
                         break;
 
+                    case ActionKind.ItemCreate:
+                        ExecuteItemCreate(cmd.ValueRO, ecb, presentationBufferEntity);
+                        break;
+
                     case ActionKind.ActionBarAssign:
                         ExecuteActionBarAssign(cmd.ValueRO);
                         break;
@@ -316,6 +320,35 @@ namespace ProjectTowerRpg.ECS.Systems
             );
 
             Debug.Log($"[ActionDispatcher] Использован {cmd.ItemId} актором {cmd.SourceEntity.Index}");
+        }
+
+        private void ExecuteItemCreate(ActionCommand cmd, EntityCommandBuffer ecb, Entity presentationBufferEntity)
+        {
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+
+            if (!em.HasComponent<BuffersLinkComponent>(cmd.TargetEntity))
+            {
+                Debug.LogError($"[ActionDispatcher.ItemCreate] У {cmd.TargetEntity.Index} нет BuffersLinkComponent");
+                return;
+            }
+
+            var links = em.GetComponentData<BuffersLinkComponent>(cmd.TargetEntity);
+            Entity inventory = links.Inventory;
+
+            if (inventory == Entity.Null || !em.Exists(inventory))
+            {
+                Debug.LogError($"[ActionDispatcher.ItemCreate] Инвентарь не найден");
+                return;
+            }
+
+            ItemReducer.Create(
+                ecb,
+                ref _slotDataLookup,
+                inventory,
+                cmd.ItemId.ToString(),
+                cmd.Amount,
+                presentationBufferEntity
+            );
         }
 
         private void ExecuteActionBarAssign(ActionCommand cmd)

@@ -15,6 +15,12 @@ namespace ProjectTowerRpg.ECS.Systems
             var em = EntityManager;
             var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(World.Unmanaged);
 
+            if (!SystemAPI.TryGetSingletonEntity<GameEvent>(out var gameEventsEntity))
+            {
+                Debug.LogError("[CombatSystem]: Не найдена шина GameEvent!");
+                return;
+            }
+
             foreach (var (request, requestEntity) in SystemAPI.Query<RefRO<CombatEventRequest>>().WithEntityAccess())
             {
                 Entity caster = request.ValueRO.Caster;
@@ -40,7 +46,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             switch (effect.type)
                             {
                                 case "direct_damage":
-                                    ApplyDirectDamage(target, effect, em, ref random, ecb);
+                                    ApplyDirectDamage(caster, target, effect, em, ref random, ecb, gameEventsEntity);
                                     break;
 
                                 case "direct_heal":
@@ -63,16 +69,21 @@ namespace ProjectTowerRpg.ECS.Systems
         // ПРИВАТНЫЕ ИЗОЛИРОВАННЫЕ МЕТOДЫ ПРИМЕНЕНИЯ ЭФФЕКТОВ
         // =========================================================================
 
-        private static void ApplyDirectDamage(Entity target, AbilityEffectConfig effect, EntityManager em, ref Unity.Mathematics.Random random, EntityCommandBuffer ecb)
+        private static void ApplyDirectDamage(
+            Entity caster,
+            Entity target,
+            AbilityEffectConfig effect,
+            EntityManager em,
+            ref Unity.Mathematics.Random random,
+            EntityCommandBuffer ecb,
+            Entity gameEventsEntity)
         {
             if (!em.HasComponent<HealthComponent>(target)) return;
 
-            // ГВАРД СМЕРТИ: Защита на случай, если тэг уже применился кадром ранее
             if (em.HasComponent<IsDeadTag>(target)) return;
 
             var health = em.GetComponentData<HealthComponent>(target);
-            
-            // Защита от избыточного урона: если ХП уже на нуле (но тэг еще долетает в буфере) — выходим
+
             if (health.Current <= 0f) return;
 
             float baseDamage = random.NextFloat(effect.min, effect.max);
@@ -83,19 +94,30 @@ namespace ProjectTowerRpg.ECS.Systems
 
             Debug.Log($"⚔️ [CombatSystem]: Цель {target} получила {baseDamage:F1} {effect.damage_type} урона! ХП: {health.Current}/{health.Max}");
 
-            // 🪦 WOW-КАНОН СМЕРТИ: Если ХП иссякло — отправляем отложенный тэг смерти!
             if (health.Current <= 0f)
             {
-                // 🦾 ПУЛЕНЕПРОБИВАЕМЫЙ ECS-СЛOЙ:
-                // Вместо EntityManager вызываем ecb.AddComponent! 
-                // Команда шёлково запишется в буфер, и применится сразу на выходе из системы, 
-                // полностью ликвидируя краш InvalidOperationException!
                 ecb.AddComponent<IsDeadTag>(target);
-                
-                Debug.Log($"🪦 [CombatSystem]: Сущность {target} скончалась. Команда накат IsDeadTag отправлена в ECB.");
+
+                // 🆕 Событие убийства
+                if (em.HasComponent<UnitComponent>(target))
+                {
+                    var targetUnit = em.GetComponentData<UnitComponent>(target);
+                    var killBuffer = em.GetBuffer<EntityKilledEvent>(gameEventsEntity);
+                    killBuffer.Add(new EntityKilledEvent
+                    {
+                        Source = caster,
+                        Target = target,
+                        TargetNameKey = targetUnit.NameKey,
+                        TargetRace = targetUnit.Race,
+                        TargetFaction = targetUnit.Faction,
+                        TargetType = targetUnit.Type,
+                        TargetDefaultRank = targetUnit.DefaultRank
+                    });
+                }
+
+                Debug.Log($"🪦 [CombatSystem]: Сущность {target} скончалась. Событие отправлено.");
             }
         }
-
 
         private static void ApplyDirectHeal(Entity target, AbilityEffectConfig effect, EntityManager em, ref Unity.Mathematics.Random random)
         {

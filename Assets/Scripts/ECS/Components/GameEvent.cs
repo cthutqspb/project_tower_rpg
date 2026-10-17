@@ -8,32 +8,32 @@ namespace ProjectTowerRpg.ECS.Components
 
     public struct EntityKilledEvent : IBufferElementData
     {
-        public Entity Killer;
-        public Entity Victim;
-        public FixedString64Bytes VictimNameKey;
-        public FixedString32Bytes VictimRace;
-        public FixedString32Bytes VictimFaction;
-        public FixedString32Bytes VictimType;
-        public FixedString32Bytes VictimDefaultRank;
+        public Entity Source;                       // кто убил
+        public Entity Target;                       // кого убили
+        public FixedString64Bytes TargetNameKey;
+        public FixedString32Bytes TargetRace;
+        public FixedString32Bytes TargetFaction;
+        public FixedString32Bytes TargetType;
+        public FixedString32Bytes TargetDefaultRank;
     }
 
     public struct ItemUsedEvent : IBufferElementData
     {
-        public Entity User;
+        public Entity Source;                       // кто использовал
         public FixedString64Bytes ItemId;
     }
 
     public struct DiscoverLocationEvent : IBufferElementData
     {
-        public Entity Discoverer;
+        public Entity Source;                       // кто обнаружил
         public FixedString64Bytes ZoneId;
     }
 
     public struct DialogueCompletedEvent : IBufferElementData
     {
-        public Entity Listener;
-        public Entity Speaker;
-        public FixedString64Bytes SpeakerNameKey;
+        public Entity Source;                       // игрок (инициатор)
+        public Entity Target;                       // NPC (с кем говорили)
+        public FixedString64Bytes TargetNameKey;
         public FixedString64Bytes DialogueId;
     }
 }

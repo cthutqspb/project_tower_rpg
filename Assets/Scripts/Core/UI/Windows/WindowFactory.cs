@@ -71,7 +71,7 @@ namespace ProjectTowerRpg.Core.UI
             UIEvents.CloseAllWindows -= CloseAll;
         }
 
-        private void OnOpenWindowRequested(WindowType type, Entity entity)
+        private void OnOpenWindowRequested(WindowType type, Entity entity, string tabId)
         {
             Debug.Log($"🔔 [WindowFactory]: Поймали запрос на {type} для сущности {entity.Index}.");
 
@@ -87,11 +87,7 @@ namespace ProjectTowerRpg.Core.UI
                 {
                     if (activeWindow.BoundEntity == entity || entity == Entity.Null)
                     {
-                        Debug.Log($"🔄 [WindowFactory]: Окно {type} уже горит на экране. Срабатывает Toggle -> Закрываем.");
-                        
-                        // Вместо ложного спавна или простого Open() — шлем чистый Си-сигнал на закрытие.
-                        // Наш исправленный метод OnCloseWindowRequested в этой же фабрике поймает его и вернет коробку в пул!
-                        UIEvents.TriggerCloseWindow(type, activeWindow.BoundEntity);
+                        if (TryOpenTabOnActive(activeWindow, tabId, type, entity)) return;
                         return;
                     }
                 }
@@ -103,6 +99,31 @@ namespace ProjectTowerRpg.Core.UI
 
             // Слепо скармливаем сущность. Окно внутри себя вызовет Open()
             window.Setup(entity);
+
+            // 🆕 После Setup — переключаем вкладку, если окно поддерживает
+            if (!string.IsNullOrEmpty(tabId) && window is ITabbedWindow tabbed)
+            {
+                tabbed.OpenOnTabId(tabId);
+            }
+        }
+
+        private bool TryOpenTabOnActive(UIWindow activeWindow, string tabId, WindowType type, Entity entity)
+        {
+            // tabId задан (J) — просим окно переключиться. Окно само скажет, обработало ли.
+            if (!string.IsNullOrEmpty(tabId) && activeWindow is ITabbedWindow tabbed)
+            {
+                bool handled = tabbed.OpenOnTabId(tabId);
+                if (!handled)
+                {
+                    // Окно уже на этой вкладке → просит закрыть
+                    UIEvents.TriggerCloseWindow(type, activeWindow.BoundEntity);
+                }
+                return true;
+            }
+
+            // tabId не задан (I) — обычный toggle-close
+            UIEvents.TriggerCloseWindow(type, activeWindow.BoundEntity);
+            return true;
         }
 
         private void OnCloseWindowRequested(WindowType type, Entity entity)

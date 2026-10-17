@@ -8,7 +8,7 @@ using ProjectTowerRpg.Core.Localization;
 
 namespace ProjectTowerRpg.Core.UI.Windows
 {
-    public class CharacterWindow : UIWindow
+    public class CharacterWindow : UIWindow, ITabbedWindow
     {
         [Header("UI Components")]
         [SerializeField] private VisualTreeAsset _paperdollUxml;
@@ -23,6 +23,8 @@ namespace ProjectTowerRpg.Core.UI.Windows
         private VisualElement _pageCharacter;
         private VisualElement _pageQuestJournal;
         private VisualElement _pageSpellbook;
+
+        private CharacterWindowTabs _currentTab = CharacterWindowTabs.Character;
 
         private Entity _playerEntity = Entity.Null;
 
@@ -106,6 +108,8 @@ namespace ProjectTowerRpg.Core.UI.Windows
 
         private void SwitchTab(CharacterWindowTabs tab)
         {
+            _currentTab = tab;
+
             _pageCharacter.RemoveFromClassList("character-window__page--active");
             _pageQuestJournal.RemoveFromClassList("character-window__page--active");
             _pageSpellbook.RemoveFromClassList("character-window__page--active");
@@ -127,6 +131,37 @@ namespace ProjectTowerRpg.Core.UI.Windows
         public void OpenOnTab(CharacterWindowTabs tab)
         {
             _tabsComponent?.SetActive((int)tab, notify: true);
+        }
+
+        public bool OpenOnTabId(string tabId)
+        {
+            if (string.IsNullOrEmpty(tabId))
+                return true;   // нечего переключать — окно не просит закрыться
+
+            CharacterWindowTabs? target = tabId switch
+            {
+                "character"     => CharacterWindowTabs.Character,
+                "quest_journal" => CharacterWindowTabs.QuestJournal,
+                "spellbook"     => CharacterWindowTabs.Spellbook,
+                _ => null
+            };
+
+            if (target == null)
+            {
+                Debug.LogWarning($"[CharacterWindow] Неизвестный tabId: '{tabId}'");
+                return true;   // не закрываем, просто игнорируем неизвестный токен
+            }
+
+            // Уже на этой вкладке → просим закрыться (toggle)
+            if (_currentTab == target.Value)
+            {
+                Debug.Log($"[CharacterWindow] Уже на вкладке '{tabId}', просим закрыть.");
+                return false;
+            }
+
+            // Переключаемся
+            OpenOnTab(target.Value);
+            return true;
         }
     }
 }

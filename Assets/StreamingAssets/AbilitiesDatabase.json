@@ -103,8 +103,8 @@
     "effects": [
       {
         "type": "direct_damage",
-        "min": 7.0,
-        "max": 15.0,
+        "min": 120.0,
+        "max": 150.0,
         "weapon_multiplier": 0.2,
         "scaling_stats": {
           "intellect": 1.0

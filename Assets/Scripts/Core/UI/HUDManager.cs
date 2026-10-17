@@ -38,6 +38,10 @@ namespace ProjectTowerRpg.Core.UI
         [SerializeField] private VisualTreeAsset _dialogueOverlayUxml;
         private DialogueOverlay _dialogueOverlay;
 
+        [Header("Настройки Трекера Квестов")]
+        [SerializeField] private VisualTreeAsset _questTrackerUxml;
+        private QuestTracker _questTracker;
+
         private PanelRenderer _panelRenderer;
         private VisualElement _root;
         private bool _isUiReady = false;
@@ -182,11 +186,21 @@ namespace ProjectTowerRpg.Core.UI
                     _chatLog = null;
                 }
 
+
+
                 if (_dialogueOverlay != null)
                 {
                     if (oldPlayerEntity != Entity.Null)
                         UIRegistry.Unregister(oldPlayerEntity, _dialogueOverlay);
                     _dialogueOverlay = null;
+                }
+
+                if (_questTracker != null)
+                {
+                    Entity oldPlayer = PlayerUtils.GetEntityByTag<PlayerTag>();
+                    if (oldPlayer != Entity.Null)
+                        UIRegistry.Unregister(oldPlayer, _questTracker);
+                    _questTracker = null;
                 }
 
                 globalUiRoot.Remove(_root);
@@ -342,6 +356,22 @@ namespace ProjectTowerRpg.Core.UI
                 }
             }
 
+            // =========================================================================
+            // 🦾 СБОРКА ТРЕКЕРА КВЕСТОВ (правый верхний угол, под фреймом цели)
+            // =========================================================================
+            if (_questTrackerUxml != null && _root != null)
+            {
+                _questTracker = new QuestTracker(_questTrackerUxml);
+                _root.Add(_questTracker);
+
+                Entity playerForTracker = PlayerUtils.GetEntityByTag<PlayerTag>();
+                if (playerForTracker != Entity.Null)
+                {
+                    _questTracker.BindToEntity(playerForTracker);
+                    UIRegistry.Register(playerForTracker, _questTracker);
+                }
+            }
+
             _isUiReady = true;
             Debug.Log("[HUDManager]: Все фреймы шёлково собраны внутри своих слотов после релоада!");
         }
@@ -369,6 +399,11 @@ namespace ProjectTowerRpg.Core.UI
             if (playerEntity != Entity.Null && _dialogueOverlay != null)
             {
                 UIRegistry.Unregister(playerEntity, _dialogueOverlay);
+            }
+
+            if (playerEntity != Entity.Null && _questTracker != null)
+            {
+                UIRegistry.Unregister(playerEntity, _questTracker);
             }
         }     
     }

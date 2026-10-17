@@ -11,6 +11,7 @@ namespace ProjectTowerRpg.Core.UI
     public class UIInputHandler : MonoBehaviour
     {   
         private InputAction _toggleCharacterAction;
+        private InputAction _toggleQuestJournalAction;
         private InputAction _closeWindowAction;
         private EntityManager _entityManager;
         private TooltipVisual _tooltipVisual;
@@ -19,6 +20,7 @@ namespace ProjectTowerRpg.Core.UI
         {
             var actions = UnityEngine.InputSystem.InputSystem.actions;
             _toggleCharacterAction = actions.FindAction("UI/ToggleCharacterWindow");
+            _toggleQuestJournalAction = actions.FindAction("UI/ToggleQuestJournal");
             _closeWindowAction = actions.FindAction("UI/CloseWindow");
 
             _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -65,8 +67,10 @@ namespace ProjectTowerRpg.Core.UI
 
         private void Update()
         {
-            if (_toggleCharacterAction.triggered) UIEvents.TriggerOpenWindow(WindowType.Character);
-            
+            if (_toggleCharacterAction.triggered) 
+                UIEvents.TriggerOpenWindow(WindowType.Character, default, "character");
+            if (_toggleQuestJournalAction.triggered)
+                UIEvents.TriggerOpenWindow(WindowType.Character, default, "quest_journal");
             // ✅ ESC: СНАЧАЛА КОНТЕКСТНОЕ МЕНЮ, ПОТОМ ОКНА, ПОТОМ ГЛАВНОЕ МЕНЮ
             if (_closeWindowAction.triggered)
             {

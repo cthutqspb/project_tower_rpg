@@ -16,15 +16,17 @@ namespace ProjectTowerRpg.Core.Quest
     [Serializable]
     public class QuestObjective
     {
-        public string id;              // ID цели ("resolve_casino")
-        public string text_key;        // ключ локализации текста цели
-        public int required_amount;    // сколько надо сделать
+        public string id;                              // ID цели
+        public string type;                            // "kill" / "talk" / "discover" / "collect" / "use"
+        public string text_key;                        // ключ локализации
+        public int required_amount;                    // сколько надо сделать
+        public Dictionary<string, string> identity;      // свободные пары фильтра
     }
 
     [Serializable]
     public class QuestRewardItem
     {
-        public string item_id;         // "crystal_sword"
+        public string item_id;
         public int amount = 1;
     }
 

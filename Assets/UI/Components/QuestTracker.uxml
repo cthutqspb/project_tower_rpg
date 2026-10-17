@@ -1,0 +1,22 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="project://database/Assets/UI/Components/QuestTracker.uss" />
+
+    <ui:VisualElement class="quest-tracker" name="root" picking-mode="Position">
+
+        <!-- Заголовок + кнопка свернуть -->
+        <ui:VisualElement class="quest-tracker__header" name="header">
+            <ui:Label text="ЗАДАНИЯ" class="quest-tracker__title" />
+            <ui:Button text="–" class="quest-tracker__btn" name="collapse-btn" />
+        </ui:VisualElement>
+
+        <!-- Тело (скролл) -->
+        <ui:ScrollView class="quest-tracker__body" name="body"
+                       mode="Vertical"
+                       show-vertical-scroller="true"
+                       show-horizontal-scroller="false"
+                       elasticity="0.1">
+            <ui:VisualElement class="quest-tracker__quest" name="quest-container" />
+        </ui:ScrollView>
+
+    </ui:VisualElement>
+</ui:UXML>

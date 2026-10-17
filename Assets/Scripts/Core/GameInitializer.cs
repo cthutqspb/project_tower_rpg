@@ -50,6 +50,16 @@ public class GameInitializer : MonoBehaviour
             em.AddBuffer<PresentationEvent>(eventBufferEntity);
 
             Debug.Log("🌐 [GameInitializer]: Синглтон шины PresentationEvent успешно развернут в ECS!");
+
+            // 🌐 ШИНА ГЕЙМПЛЕЙНЫХ СОБЫТИЙ
+            Entity gameEventsEntity = em.CreateEntity();
+            em.AddComponentData(gameEventsEntity, new GameEvent());
+            em.AddBuffer<EntityKilledEvent>(gameEventsEntity);
+            em.AddBuffer<ItemUsedEvent>(gameEventsEntity);
+            em.AddBuffer<DiscoverLocationEvent>(gameEventsEntity);
+            em.AddBuffer<DialogueCompletedEvent>(gameEventsEntity);
+
+            Debug.Log("🌐 [GameInitializer]: Синглтон GameEvent с 4 буферами развернут в ECS!");
         }
 
         // =========================================================================

@@ -94,7 +94,11 @@ namespace ProjectTowerRpg.ECS.Systems
                     Level = markerData.Level,
                     //Position = spawnPosition,
                     Faction = faction,
-                    AggroRadius = dbCfg.ai != null ? dbCfg.ai.base_aggro_radius : 20f
+                    AggroRadius = dbCfg.ai != null ? dbCfg.ai.base_aggro_radius : 20f,
+
+                    Race = dbCfg.identity.race ?? "",
+                    Type = dbCfg.identity.type ?? "",
+                    DefaultRank = dbCfg.identity.default_rank ?? ""
                 });
 
                 em.AddComponentData(unitEntity, LocalTransform.FromPosition(spawnPosition));
@@ -197,10 +201,10 @@ namespace ProjectTowerRpg.ECS.Systems
                     else if (resTypeStr == "rage") rType = ResourceType.Rage;
                     
                     // 🌟 ТЕСТ-ХАК: Если это игрок — по ММО-канону режем ману наполовину при старте кадра
-                    if (isPlayer)
-                    {
-                        currentResource = maxResource * 0.5f;
-                    }
+                    // if (isPlayer)
+                    // {
+                    //     currentResource = maxResource * 0.5f;
+                    // }
                 }
                 else
                 {

@@ -85,12 +85,50 @@
     border-left-color: var(--color-primary);
 }
 
+/* 🆕 Строка заголовка квеста: чекбокс + название */
+.quest-journal__header-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 2px;
+    width: 100%;
+}
+
 .quest-journal__quest-name {
     color: var(--color-text);
     font-size: 13px;
     -unity-font-style: bold;
     white-space: normal;
-    margin-bottom: 2px;
+    flex-grow: 1;
+}
+
+/* ============================================================
+   🆕 ЧЕКБОКС ТРЕКИНГА (Toggle)
+   ============================================================ */
+.quest-journal__track-toggle {
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.quest-journal__track-toggle .unity-toggle__input {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.quest-journal__track-toggle .unity-toggle__checkmark {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-width: 1px;
+    border-color: var(--color-text-dim);
+    border-radius: 2px;
+}
+
+.quest-journal__track-toggle .unity-toggle__checkmark--checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.quest-journal__track-toggle .unity-toggle__label {
+    display: none;
 }
 
 /* Цели в списке */
@@ -98,7 +136,7 @@
     color: var(--color-text-dim);
     font-size: 11px;
     white-space: normal;
-    margin-left: 8px;
+    margin-left: 22px;   /* 🆕 чуть больше отступ, чтобы выровнять под названием (а не под чекбоксом) */
     margin-top: 1px;
 }
 

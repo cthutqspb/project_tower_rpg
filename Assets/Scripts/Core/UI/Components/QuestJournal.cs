@@ -27,9 +27,13 @@ namespace ProjectTowerRpg.Core.UI.Components
         private Toggle _hideCompletedToggle;
 
         private bool _hideCompleted = true;
+
+        // 🆕 Последний выбранный (живёт между экземплярами)
+        private static string _lastSelectedQuestId = null;
+
+        // Текущий выбранный (в этом экземпляре)
         private string _selectedQuestId = null;
 
-        // Кэш буферов из последнего апдейта, чтобы использовать в рендере
         private readonly List<QuestEntrySnapshot> _quests = new();
         private readonly List<QuestObjectiveSnapshot> _objectives = new();
 
@@ -37,6 +41,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         {
             public string QuestId;
             public QuestState State;
+            public bool IsTracked;   // 🆕
         }
 
         private struct QuestObjectiveSnapshot
@@ -83,9 +88,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             ClearDetails();
         }
 
-        // ============================================================
-        // BindToEntity
-        // ============================================================
         public void BindToEntity(Entity unitEntity)
         {
             if (_unitEntity != Entity.Null)
@@ -97,7 +99,10 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             UIRegistry.Register(_unitEntity, this);
 
-            // Мгновенный snapshot из ECS
+            // 🆕 Восстанавливаем последний выбранный
+            if (string.IsNullOrEmpty(_selectedQuestId) && !string.IsNullOrEmpty(_lastSelectedQuestId))
+                _selectedQuestId = _lastSelectedQuestId;
+
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
             if (em.HasBuffer<QuestComponent>(_unitEntity))
@@ -114,9 +119,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             _unitEntity = Entity.Null;
         }
 
-        // ============================================================
-        // Реактивный приём квестов
-        // ============================================================
         public void UpdateFromBuffer(
             DynamicBuffer<QuestComponent> buffer,
             bool isOnlyValidation = false,
@@ -131,17 +133,25 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _quests.Add(new QuestEntrySnapshot
                 {
                     QuestId = buffer[i].QuestId.ToString(),
-                    State = buffer[i].State
+                    State = buffer[i].State,
+                    IsTracked = buffer[i].IsTracked   // 🆕
                 });
+            }
+
+            // 🆕 Если выбранный квест пропал — выбрать первый активный
+            bool currentStillExists = !string.IsNullOrEmpty(_selectedQuestId)
+                && _quests.Exists(q => q.QuestId == _selectedQuestId && q.State != QuestState.TurnedIn);
+
+            if (!currentStillExists)
+            {
+                var firstActive = _quests.Find(q => q.State != QuestState.TurnedIn);
+                _selectedQuestId = firstActive.QuestId;
             }
 
             RebuildQuestList();
             RefreshDetails();
         }
 
-        // ============================================================
-        // Реактивный приём целей
-        // ============================================================
         public void UpdateFromBuffer(
             DynamicBuffer<QuestObjectiveComponent> buffer,
             bool isOnlyValidation = false,
@@ -167,15 +177,11 @@ namespace ProjectTowerRpg.Core.UI.Components
             RefreshDetails();
         }
 
-        // ============================================================
-        // Сборка списка квестов
-        // ============================================================
         private void RebuildQuestList()
         {
             if (_questList == null) return;
             _questList.Clear();
 
-            // Активные
             var active = new List<QuestEntrySnapshot>();
             var completed = new List<QuestEntrySnapshot>();
 
@@ -224,17 +230,36 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (quest.QuestId == _selectedQuestId)
                 btn.AddToClassList("quest-journal__quest-btn--active");
 
-            // Название квеста
             var config = QuestsDatabase.GetQuest(quest.QuestId);
             string title = config != null
                 ? LocalizationManager.Get(config.title_key)
                 : quest.QuestId;
 
+            // 🆕 Строка: чекбокс + название
+            var headerRow = new VisualElement();
+            headerRow.style.flexDirection = FlexDirection.Row;
+            headerRow.style.alignItems = Align.Center;
+            headerRow.AddToClassList("quest-journal__header-row");
+
+            var trackToggle = new Toggle();
+            trackToggle.AddToClassList("quest-journal__track-toggle");
+            trackToggle.value = quest.IsTracked;
+
+            string capturedIdForToggle = quest.QuestId;
+            trackToggle.RegisterValueChangedCallback(evt =>
+            {
+                SendTrackQuest(evt.newValue ? capturedIdForToggle : "");
+                evt.StopPropagation();
+            });
+
+            headerRow.Add(trackToggle);
+
             var titleLabel = new Label(title);
             titleLabel.AddToClassList("quest-journal__quest-name");
-            btn.Add(titleLabel);
+            headerRow.Add(titleLabel);
 
-            // Мини-цели
+            btn.Add(headerRow);
+
             foreach (var obj in _objectives)
             {
                 if (obj.QuestId != quest.QuestId) continue;
@@ -258,6 +283,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             btn.clicked += () =>
             {
                 _selectedQuestId = capturedQuestId;
+                _lastSelectedQuestId = capturedQuestId;   // 🆕 обновить статик при явном клике
                 RebuildQuestList();
                 RefreshDetails();
             };
@@ -273,9 +299,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             return null;
         }
 
-        // ============================================================
-        // Правая панель — детали выбранного квеста
-        // ============================================================
         private void RefreshDetails()
         {
             if (string.IsNullOrEmpty(_selectedQuestId))
@@ -297,7 +320,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (_detailDescription != null)
                 _detailDescription.text = LocalizationManager.Get(config.desc_key);
 
-            // Цели
             if (_detailObjectives != null)
             {
                 _detailObjectives.Clear();
@@ -322,8 +344,21 @@ namespace ProjectTowerRpg.Core.UI.Components
                 }
             }
 
-            // Награда
             BuildRewardBlock(config);
+        }
+
+        private void SendTrackQuest(string questId)
+        {
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+            Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+            if (playerEntity == Entity.Null) return;
+
+            var requestEntity = em.CreateEntity();
+            em.AddComponentData(requestEntity, new QuestTrackRequest
+            {
+                Unit = playerEntity,
+                QuestId = questId
+            });
         }
 
         private void BuildRewardBlock(QuestConfig config)

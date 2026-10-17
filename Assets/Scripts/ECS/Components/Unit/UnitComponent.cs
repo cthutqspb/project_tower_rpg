@@ -12,5 +12,9 @@ namespace ProjectTowerRpg.ECS.Components
         public FixedString64Bytes LootTableId;
         public FixedString32Bytes Faction;
         public float AggroRadius;
+
+        public FixedString32Bytes Race;
+        public FixedString32Bytes Type;
+        public FixedString32Bytes DefaultRank;
     }
 }

@@ -44,7 +44,7 @@
       "stamina": 15
     },
     "parameters": {
-      "base_health": 40,
+      "base_health": 25,
       "base_speed": 2.7,
       "hitbox_radius": 0.72
     },

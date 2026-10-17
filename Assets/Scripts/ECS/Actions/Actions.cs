@@ -13,19 +13,20 @@ namespace ProjectTowerRpg.ECS.Actions
         ItemTransfer = 2,
         ItemDrop = 3,
         ItemUse = 4,
+        ItemCreate = 5,
 
         // 📦 КОНТЕЙНЕРЫ (СУНДУКИ)
-        OpenContainer = 5,
-        ContainerTakeAll = 6,
+        OpenContainer = 10,
+        ContainerTakeAll = 11,
 
         // ⚔️ БОЁВКА
-        Attack = 7,
-        AuraDisable = 8,
+        Attack = 20,
+        AuraDisable = 21,
 
         // 🧙‍♂️ ИГРОК / МИР
-        Interact = 9,
-        MoveTo = 10,
-        ActionBarAssign = 11,
+        Interact = 30,
+        MoveTo = 31,
+        ActionBarAssign = 32,
     }
 
     public static class BaseActions 
@@ -39,6 +40,7 @@ namespace ProjectTowerRpg.ECS.Actions
         public const ActionKind Transfer = ActionKind.ItemTransfer;
         public const ActionKind Drop = ActionKind.ItemDrop;
         public const ActionKind Use = ActionKind.ItemUse;
+        public const ActionKind Create = ActionKind.ItemCreate;
     }
 
     public static class ContainerActions

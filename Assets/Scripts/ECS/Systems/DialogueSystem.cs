@@ -1,9 +1,6 @@
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Mathematics;
-using ProjectTowerRpg.ECS.Actions;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.ECS.Reducers;
 using ProjectTowerRpg.Core.Dialogue;
 using ProjectTowerRpg.Core.Quest;
 using Debug = UnityEngine.Debug;

@@ -369,6 +369,67 @@ namespace ProjectTowerRpg.ECS.Reducers
             Debug.Log($"[ItemActions] Использован предмет {itemId} кастером {casterEntity}");
         }
 
+        public static void Create(
+            EntityCommandBuffer ecb,
+            ref BufferLookup<ItemSlot> slotDataLookup,
+            Entity inventoryEntity,
+            string itemId,
+            int amount,
+            Entity presentationBufferEntity
+        )
+        {
+            if (!slotDataLookup.HasBuffer(inventoryEntity))
+            {
+                Debug.LogWarning($"[ItemReducer.Add] У {inventoryEntity.Index} нет ItemSlot");
+                return;
+            }
+
+            var slots = slotDataLookup[inventoryEntity];
+
+            int freeSlot = -1;
+            for (int i = 0; i < slots.Length; i++)
+            {
+                if (slots[i].IsEmpty) { freeSlot = i; break; }
+            }
+
+            if (freeSlot == -1)
+            {
+                Debug.LogWarning($"[ItemReducer.Add] Нет свободного слота для '{itemId}'");
+                return;
+            }
+
+            // Создаём "душу" предмета через ECB
+            Entity itemEntity = ecb.CreateEntity();
+            ecb.AddComponent(itemEntity, new ItemComponent
+            {
+                Uid = itemId.GetHashCode() + freeSlot,
+                ItemId = itemId,
+                Amount = amount
+            });
+
+            // Заполняем слот (напрямую, не через ECB — это не структурное изменение)
+            var slot = slots[freeSlot];
+            slot.SlotIndex = freeSlot;
+            slot.DataId = itemId;
+            slot.DataType = "item";
+            slot.Amount = amount;
+            slot.ItemEntity = itemEntity;
+            slot.EquipSlot = EquipSlot.NONE;
+            slot.ContainerType = ContainerType.INVENTORY;
+            slots[freeSlot] = slot;
+
+            // Презентация (опционально, но у тебя есть PresentationEventKind.ItemLooted)
+            ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
+            {
+                Kind = PresentationEventKind.ItemLooted,
+                Source = inventoryEntity,
+                Target = itemEntity,
+                Param = itemId
+            });
+
+            Debug.Log($"[ItemReducer.Create] '{itemId}' x{amount} → слот {freeSlot} инвентаря {inventoryEntity.Index}.");
+        }
+
         // ================================================================
         // ПРИМЕНЕНИЕ ЭФФЕКТОВ
         // ================================================================

@@ -16,6 +16,12 @@ namespace ProjectTowerRpg.ECS.Systems
             float dt = SystemAPI.Time.DeltaTime;
             var em = EntityManager;
 
+            if (!SystemAPI.TryGetSingletonEntity<GameEvent>(out var gameEventsEntity))
+            {
+                Debug.LogError("[AuraSystem]: Не найдена шина GameEvent!");
+                return;
+            }
+
             // КЭШИРУЕМ МАССИВ СУЩНОСТЕЙ: Выгребаем только контейнеры аур
             var containerQuery = em.CreateEntityQuery(
                 ComponentType.ReadWrite< AuraSlot >(), 
@@ -73,7 +79,21 @@ namespace ProjectTowerRpg.ECS.Systems
                                 // ПРЯМОЕ СЕРВЕРНОЕ СПИСАНИЕ: Модифицируем HealthComponent на месте!
                                 if (targetUnit != Entity.Null && em.HasComponent<HealthComponent>(targetUnit))
                                 {
+                                    // 🆕 ГВАРД A: цель уже мертва (тег применён)
+                                    if (em.HasComponent<IsDeadTag>(targetUnit))
+                                    {
+                                        auraBuffer[i] = aura;
+                                        continue;
+                                    }
+
                                     var health = em.GetComponentData<HealthComponent>(targetUnit);
+
+                                    // 🆕 ГВАРД B: HP уже 0 (тег ещё не применён в этом кадре)
+                                    if (health.Current <= 0f)
+                                    {
+                                        auraBuffer[i] = aura;
+                                        continue;
+                                    }
                                     
                                     // Списываем урон поджога из здоровья (твое float-поле)
                                     health.Current = math.max(0f, health.Current - finalDotDamage);
@@ -85,10 +105,32 @@ namespace ProjectTowerRpg.ECS.Systems
                                     // мы обязаны немедленно выписать команду на навешивание IsDeadTag через ECB!
                                     if (health.Current <= 0f)
                                     {
-                                        ecb.AddComponent< IsDeadTag >(targetUnit);
-                                        Debug.Log($"🪦 [AuraSystem]: Сущность {targetUnit.Index} скончалась от DoT-эффекта '{auraIdStr}'. Команда накат IsDeadTag отправлена в ECB.");
-                                    }
+                                        ecb.AddComponent<IsDeadTag>(targetUnit);
 
+                                        // 🆕 Событие убийства
+                                        if (em.HasComponent<UnitComponent>(targetUnit))
+                                        {
+                                            var targetUnitComp = em.GetComponentData<UnitComponent>(targetUnit);
+                                            var killBuffer = em.GetBuffer<EntityKilledEvent>(gameEventsEntity);
+                                            killBuffer.Add(new EntityKilledEvent
+                                            {
+                                                Source = aura.CasterEntity,
+                                                Target = targetUnit,
+                                                TargetNameKey = targetUnitComp.NameKey,
+                                                TargetRace = targetUnitComp.Race,
+                                                TargetFaction = targetUnitComp.Faction,
+                                                TargetType = targetUnitComp.Type,
+                                                TargetDefaultRank = targetUnitComp.DefaultRank
+                                            });
+                                        }
+
+                                        // 🆕 Снимаем ауру — цель мертва, дот больше не нужен
+                                        aura.ClearContent();
+                                        auraBuffer[i] = aura;
+                                        continue;
+
+                                        Debug.Log($"🪦 [AuraSystem]: Сущность {targetUnit.Index} скончалась от DoT...");
+                                    }
                                     // 📡 ШЛЮЗ ПРЕЗЕНТАЦИИ: Выстреливаем слепой сигнал Hit в шину визуала!
                                     // При каждом тике пламени над головой скелета будет сочно вспыхивать и дрожать наша багровая руна
                                     var bufferQuery = em.CreateEntityQuery(ComponentType.ReadOnly< PresentationEventBufferTag >());
