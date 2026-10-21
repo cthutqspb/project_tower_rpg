@@ -1,5 +1,4 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <ui:Style src="project://database/Assets/UI/Components/Paperdoll.uss" />
 
     <ui:VisualElement class="paperdoll__grid" name="root">
         

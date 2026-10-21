@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" engine="UnityEngine.UIElements" editor="UnityEngine.UIElements">
-    
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+
     <ui:VisualElement name="root" class="chat-log" picking-mode="Ignore">
         
         <!-- Верхняя панель: Вкладки + Управление -->

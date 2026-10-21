@@ -4,7 +4,6 @@ using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Quest;
-using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Localization;
 using ProjectTowerRpg.Core.UI.Components;
 

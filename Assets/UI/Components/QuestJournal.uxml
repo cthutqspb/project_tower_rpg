@@ -1,6 +1,4 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <ui:Style src="project://database/Assets/UI/Windows/CharacterWindow/QuestJournal.uss" />
-
     <ui:VisualElement class="quest-journal" name="root" picking-mode="Position">
 
         <!-- Toolbar: скрыть завершённые -->
@@ -29,8 +27,11 @@
 
                 <!-- Блок награды -->
                 <ui:VisualElement class="quest-journal__reward-block" name="detail-reward-block">
-                    <ui:Label class="quest-journal__reward-header" name="detail-reward-header" />
-                    <ui:VisualElement class="quest-journal__reward-items" name="detail-reward-items" />
+                    <ui:Label text="ВЫБЕРИТЕ НАГРАДУ:" class="quest-journal__reward-header" name="choice-header" />
+                    <ui:VisualElement class="quest-journal__reward-items" name="rewards-choice" />
+
+                    <ui:Label text="ГАРАНТИРОВАННЫЕ:" class="quest-journal__reward-header" name="guaranteed-header" />
+                    <ui:VisualElement class="quest-journal__reward-items" name="rewards-guaranteed" />
                 </ui:VisualElement>
 
             </ui:ScrollView>

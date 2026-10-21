@@ -1,5 +1,4 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <ui:Style src="project://database/Assets/UI/Windows/QuestEndPopup.uss" />
 
     <ui:VisualElement class="quest-end" name="root" picking-mode="Position">
 

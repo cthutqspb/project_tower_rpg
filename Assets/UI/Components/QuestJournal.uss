@@ -187,7 +187,7 @@
 }
 
 /* ============================================================
-   НАГРАДА
+   БЛОК НАГРАДЫ
    ============================================================ */
 .quest-journal__reward-block {
     flex-direction: column;
@@ -199,14 +199,55 @@
     font-size: 12px;
     -unity-font-style: bold;
     margin-bottom: 6px;
+    margin-top: 6px;
 }
 
 .quest-journal__reward-items {
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
+    margin-bottom: 12px;
 }
 
+/* ============================================================
+   SLOT PREVIEW ВНУТРИ ЖУРНАЛА (как в попапе)
+   ============================================================ */
+.quest-journal__reward-items .slot-preview {
+    flex-direction: row;
+    align-items: center;
+    padding: 4px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+    border-width: 2px;
+    border-color: transparent;
+}
+
+.quest-journal__reward-items .slot-preview .slot {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+}
+
+.quest-journal__reward-items .slot-preview .slot-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 39px;
+    -unity-text-align: middle-center;
+}
+
+.quest-journal__reward-items .slot-preview__name {
+    width: 120px;
+    height: 42px;
+    margin-left: 6px;
+    color: var(--color-text);
+    font-size: 11px;
+    white-space: normal;
+    -unity-text-align: middle-left;
+}
+
+/* ============================================================
+   НЕ-ПРЕДМЕТЫ (Опыт, Валюта, Способность)
+   ============================================================ */
 .quest-journal__reward-item {
     flex-direction: row;
     align-items: center;
@@ -214,13 +255,6 @@
     padding: 4px 6px;
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 3px;
-}
-
-/* 🆕 Звёздочка «выбор» перед иконкой награды */
-.quest-journal__reward-choice-marker {
-    color: var(--color-warning);
-    font-size: 12px;
-    margin-right: 4px;
 }
 
 .quest-journal__reward-icon {
@@ -231,10 +265,4 @@
 .quest-journal__reward-name {
     color: var(--color-text);
     font-size: 12px;
-}
-
-.quest-journal__reward-amount {
-    color: var(--color-text-dim);
-    font-size: 12px;
-    margin-left: 2px;
 }

@@ -23,6 +23,11 @@ namespace ProjectTowerRpg.Core.UI.Components
         private float _gcdProgress = 0f;
         private float _flashProgress = 0f;
         private float _flashAngle = 0f;
+
+        //ограничитель перерисовки аур
+        private float _nextAllowedAuraUpdate = 0f;
+        private string _lastAuraId = "";
+        private int _lastAuraStacks = 0;
         
         // Слот кэширует свои данные только для Drag-and-Drop
         private string _itemId = "";
@@ -273,23 +278,45 @@ namespace ProjectTowerRpg.Core.UI.Components
         /// </summary>
         public void SetAura(string auraId, int index, int stacks = 1, float remaining = 0f, float duration = 0f)
         {
+            // 🆕 ТРОТТЛИНГ: если аура та же и стаки те же — не перестраиваем иконку
+            bool sameAura = _lastAuraId == auraId && _lastAuraStacks == stacks;
+            
+            if (Time.time < _nextAllowedAuraUpdate && sameAura)
+            {
+                // Дёшево обновляем только визуал времени
+                SetCooldown(remaining, duration, false);
+                
+                if (remaining > 0f)
+                {
+                    _durationLabel.RemoveFromClassList("hidden");
+                    _durationLabel.text = remaining > 60f 
+                        ? $"{Mathf.CeilToInt(remaining / 60f)}m" 
+                        : $"{Mathf.CeilToInt(remaining)}s";
+                }
+                else
+                {
+                    _durationLabel.AddToClassList("hidden");
+                }
+                return; // <-- Выходим, не перерисовываем иконку
+            }
+
+            // Раз в 0.1 сек (или при смене ауры) делаем полную перерисовку
+            _nextAllowedAuraUpdate = Time.time + 0.1f;
+            _lastAuraId = auraId;
+            _lastAuraStacks = stacks;
+
             _itemId = auraId;
             _amount = stacks;
             _isActionBarSlot = false;
             SlotIndex = index;
-            
-            // 🦾 СИ-ФИКС №1: УБРАЛИ ПОКАДРОВЫЙ СУИЦИД ClearVisual() ОТСЮДА!
-            // Больше меш интерфейса не аннигилируется внутри тика обновления!
 
-            // 🦾 СИ-ФИКС №2: ТОЧЕЧНЫЙ ГВАРД ПУСТОЙ СТРОКИ
             if (string.IsNullOrEmpty(auraId))
             {
                 this.AddToClassList("hidden");
                 this.pickingMode = PickingMode.Ignore;
                 return;
             }
-            //
-            // Гарантированно снимаем скрытие один раз на входе без гонки кадра
+
             _icon.RemoveFromClassList("hidden");
             string iconCharacter = "";
             
@@ -299,8 +326,6 @@ namespace ProjectTowerRpg.Core.UI.Components
                 this.RemoveFromClassList("hidden");
                 this.pickingMode = PickingMode.Position;
                 iconCharacter = auraConfig.visuals?.icon_char ?? "";
-                Debug.LogWarning($"[Slot Element] СТАВИМ ИКОНКУ АУРЫ {iconCharacter} ");
-                // Класс школы магии сам выставит нужный font-size и 2D-неон из USS!
                 string element = auraConfig.identity?.element ?? "";
                 SetElementClass(element);
             }
@@ -309,7 +334,6 @@ namespace ProjectTowerRpg.Core.UI.Components
                 SetElementClass("default");
             }
             
-            // 🦾 ЖЕСТКАЯ ЗАПИСЬ ГЛИФА: Намертво вбиваем символ в текстовое поле.
             _icon.text = iconCharacter;
 
             if (stacks > 1)

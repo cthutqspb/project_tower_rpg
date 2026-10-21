@@ -38,6 +38,7 @@ namespace ProjectTowerRpg.Core.Quest
         public string id;
         public string title_key;
         public string desc_key;
+        public string giver_name_key;
         public List<QuestObjective> objectives;
         public List<QuestReward> rewards;   // 🆕 один список
     }

@@ -127,7 +127,6 @@ namespace ProjectTowerRpg.ECS.Systems
                         return;
                     }
 
-                    // 🆕 Пишем событие в GameEvent — попап откроется через мост
                     if (SystemAPI.TryGetSingletonEntity<GameEvent>(out var gameEventsEntity))
                     {
                         var buf = em.GetBuffer<QuestReadyToClaimEvent>(gameEventsEntity);

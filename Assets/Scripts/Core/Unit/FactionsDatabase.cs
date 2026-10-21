@@ -15,7 +15,7 @@ namespace ProjectTowerRpg.Core.Units
 
         public static void Load()
         {
-            string path = Path.Combine(Application.streamingAssetsPath, "Units", "FactionsDatabase.json");
+            string path = Path.Combine(Application.streamingAssetsPath, "FactionsDatabase.json");
 
             if (!File.Exists(path))
             {
@@ -78,11 +78,19 @@ namespace ProjectTowerRpg.Core.Units
         }
 
         /// <summary>
-        /// Удобный хелпер — враждебны ли друг другу.
+        /// Враждебны ли друг другу.
         /// </summary>
         public static bool IsHostile(string sourceFaction, string targetFaction)
         {
             return GetRelation(sourceFaction, targetFaction) == FactionRelation.Hostile;
+        }
+
+        /// <summary>
+        /// Дружественны ли друг другу.
+        /// </summary>
+        public static bool IsFriendly(string sourceFaction, string targetFaction)
+        {
+            return GetRelation(sourceFaction, targetFaction) == FactionRelation.Friendly;
         }
     }
 }

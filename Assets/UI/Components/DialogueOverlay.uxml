@@ -1,6 +1,4 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://w3.org" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElementsSchema.xsd" editor-extension-mode="False">
-    <Style src="DialogueOverlay.uss" />
-    
+<ui:UXML xmlns:ui="UnityEngine.UIElements">    
     <ui:VisualElement class="dialogue-overlay" name="root">
         <!-- Тулбар с именем NPC в стиле Osaka -->
         <ui:VisualElement class="dialogue-overlay__toolbar" name="toolbar">

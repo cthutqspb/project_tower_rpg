@@ -17,7 +17,7 @@ namespace ProjectTowerRpg.Core.Dialogue
         {
             if (IsLoaded) return;
 
-            string filePath = Path.Combine(Application.streamingAssetsPath, "Units", "DialoguesDatabase.json");
+            string filePath = Path.Combine(Application.streamingAssetsPath, "DialoguesDatabase.json");
 
             if (!File.Exists(filePath))
             {

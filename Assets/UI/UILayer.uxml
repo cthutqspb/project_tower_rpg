@@ -21,5 +21,6 @@
     <Style src="project://database/Assets/UI/Components/QuestTracker.uss?fileID=7433441132597879392&amp;guid=2fc2ff893f196d1679dbd77760afbe9f&amp;type=3#QuestTracker"/>
     <Style src="project://database/Assets/UI/Components/QuestEndPopup.uss?fileID=7433441132597879392&amp;guid=16914161fb7675aa9b913ff276e0ae76&amp;type=3#QuestEndPopup"/>
     <Style src="project://database/Assets/UI/Components/SlotPreview.uss?fileID=7433441132597879392&amp;guid=b323b95a349330054831b0dfb9788e26&amp;type=3#SlotPreview"/>
+    <Style src="project://database/Assets/UI/Components/NameplateElement.uss?fileID=7433441132597879392&amp;guid=52381e1bd078f03fc835165a7a9255cd&amp;type=3#NameplateElement"/>
     <ui:VisualElement picking-mode="Ignore" name="VisualElement" class="ui-layer"/>
 </ui:UXML>

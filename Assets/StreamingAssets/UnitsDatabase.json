@@ -152,7 +152,7 @@
     },
     "resource": {
       "type": "mana",
-      "current": 0,
+      "current": 130,
       "max": 130
     },
     "visuals": {

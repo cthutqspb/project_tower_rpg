@@ -1,5 +1,6 @@
 {
   "quest_zalina_casino": {
+    "giver_name_key": "unit_banshee_zalina_name",
     "title_key": "quest_zalina_casino_title",
     "desc_key": "quest_zalina_casino_desc",
     "objectives": [

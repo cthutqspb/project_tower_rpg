@@ -1,0 +1,58 @@
+/* ============================================================
+   NAMEPLATE
+   ============================================================ */
+.nameplates-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.nameplate {
+    position: absolute;
+    translate: -50% -100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 4px;
+}
+
+.nameplate__name {
+    color: var(--color-text);
+    font-size: 16px;
+    -unity-font-style: bold;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: rgba(0, 0, 0, 0.8);
+}
+
+/* 🆕 Цвета по Relation (твоя тема) */
+.nameplate__name--hostile  { color: var(--osaka-red); }
+.nameplate__name--neutral  { color: var(--osaka-yellow); }
+.nameplate__name--friendly { color: var(--osaka-green); }
+.nameplate__name--player   { color: var(--color-primary); }
+
+.nameplate__mark {
+    font-size: 22px;
+    -unity-font-style: bold;
+    margin-bottom: 2px;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: rgba(0, 0, 0, 0.8);
+}
+
+.nameplate__mark--quest {
+    color: var(--osaka-yellow);
+    opacity: 0.72;
+}
+
+/* Задел на будущее:
+.nameplate__mark--turn-in {
+    color: var(--osaka-yellow);
+    opacity: 0.9;
+}
+
+.nameplate__mark--gray {
+    color: var(--osaka-text-dim);
+    opacity: 0.6;
+}
+*/

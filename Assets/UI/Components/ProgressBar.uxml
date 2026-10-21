@@ -1,5 +1,4 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <ui:Style src="project://database/Assets/Scripts/Core/UI/Components/ProgressBar.uss" />
     <ui:VisualElement name="root" class="progress-bar">
         <ui:VisualElement name="fill" class="progress-bar__fill" />
     </ui:VisualElement>

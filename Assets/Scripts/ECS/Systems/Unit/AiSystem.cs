@@ -15,9 +15,9 @@ namespace ProjectTowerRpg.ECS.Systems
     {
         private Unity.Mathematics.Random _random;
 
-        private const float SEPARATION_BUBBLE = 0.3f;
-        private const float BLEND_MOVE = 0.5f;
-        private const float BLEND_AVOID = 0.5f;
+        private const float SEPARATION_BUBBLE = 0.2f;
+        private const float BLEND_MOVE = 0.8f;
+        private const float BLEND_AVOID = 0.2f;
         private const float LEASH_MULTIPLIER = 2.5f;
         private const float ATTACK_COOLDOWN_FALLBACK = 1.5f;
         private const float PATROL_SPEED_MULTIPLIER = 0.5f;
@@ -26,9 +26,9 @@ namespace ProjectTowerRpg.ECS.Systems
         private const float PATROL_MIN_DELAY = 1.0f;
         private const float PATROL_MAX_DELAY = 3.0f;
         
-        private const float DIR_SMOOTHING = 0.2f;           // 🆕 сглаживание direction
-        private const float SEPARATION_MIN_STRENGTH = 0.05f; // 🆕 порог силы avoid
-        private const float DIR_ANGLE_THRESHOLD = 0.96f;    // 🆕 cos(15°): если угол меньше — не меняем
+        private const float DIR_SMOOTHING = 0.2f;
+        private const float SEPARATION_MIN_STRENGTH = 0.1f;
+        private const float DIR_ANGLE_THRESHOLD = 0.96f;
 
         private struct AiContext
         {
@@ -227,7 +227,14 @@ namespace ProjectTowerRpg.ECS.Systems
                 ctx.UnitCfg, ctx.Entity, ctx.Em,
                 out string selectedAbilityId, out float selectedAbilityRange);
 
-            if (hasAbility && distanceToTarget <= selectedAbilityRange * 1.1f)
+            // 🆕 ПРАВИЛЬНЫЙ РАСЧЕТ ДИСТАНЦИИ (между краями хитбоксов)
+            float targetRadius = ctx.Em.HasComponent<MovementComponent>(ctx.Combat.CurrentTarget)
+                ? ctx.Em.GetComponentData<MovementComponent>(ctx.Combat.CurrentTarget).HitboxRadius
+                : 0.5f;
+
+            float edgeDistance = distanceToTarget - ctx.HitboxRadius - targetRadius;
+
+            if (hasAbility && edgeDistance <= selectedAbilityRange)
             {
                 ctx.Ai.State = AiState.Attack;
                 ctx.Ai.AttackRange = selectedAbilityRange;
@@ -294,7 +301,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 ROTATION_SPEED * ctx.DeltaTime);
         }
 
-        // 🆕 Сглаживание + проверка на малый угол (устраняет oscillation)
         private static float3 SmoothDirection(float3 oldDir, float3 newDir)
         {
             if (math.lengthsq(oldDir) < 0.0001f)
@@ -302,7 +308,6 @@ namespace ProjectTowerRpg.ECS.Systems
 
             float dot = math.dot(math.normalize(oldDir), math.normalize(newDir));
             
-            // Если угол < 15°, считаем "тем же направлением" — не дёргаем
             if (dot > DIR_ANGLE_THRESHOLD)
                 return oldDir;
 

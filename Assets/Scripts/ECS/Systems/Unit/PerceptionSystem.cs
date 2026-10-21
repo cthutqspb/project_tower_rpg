@@ -12,23 +12,25 @@ namespace ProjectTowerRpg.ECS.Systems
     public partial class PerceptionSystem : SystemBase
     {
         private const float LEASH_MULTIPLIER = 1.5f;
+        private const float TICK_INTERVAL = 0.1f;   // 10 раз в секунду
+
+        private float _nextTickTime;
 
         protected override void OnUpdate()
         {
+            // Троттлинг: не чаще 10 раз в секунду
+            float currentTime = (float)SystemAPI.Time.ElapsedTime;
+            if (currentTime < _nextTickTime) return;
+            _nextTickTime = currentTime + TICK_INTERVAL;
+
             var em = EntityManager;
 
-            // ================================================================
-            // 1. СОБИРАЕМ ВСЕХ ЖИВЫХ ЮНИТОВ
-            // ================================================================
             var aliveUnits = em.CreateEntityQuery(
                 ComponentType.ReadOnly<UnitComponent>(),
                 ComponentType.ReadOnly<LocalTransform>(),
                 ComponentType.Exclude<IsDeadTag>()
             ).ToEntityArray(Allocator.Temp);
 
-            // ================================================================
-            // 2. СОБИРАЕМ ВСЕХ МОБОВ
-            // ================================================================
             var aiControlledUnits = em.CreateEntityQuery(
                 ComponentType.ReadWrite<AiComponent>(),
                 ComponentType.ReadWrite<CombatStateComponent>(),
@@ -37,14 +39,38 @@ namespace ProjectTowerRpg.ECS.Systems
                 ComponentType.Exclude<IsDeadTag>()
             ).ToEntityArray(Allocator.Temp);
 
+            // Найти игрока (для вычисления Relation)
+            Entity playerEntity = Entity.Null;
+            string playerFaction = "neutral_humanoid";
+
+            using (var q = em.CreateEntityQuery(ComponentType.ReadOnly<PlayerTag>(), ComponentType.ReadOnly<UnitComponent>()))
+            {
+                if (!q.IsEmpty)
+                {
+                    playerEntity = q.GetSingletonEntity();
+                    playerFaction = em.GetComponentData<UnitComponent>(playerEntity).Faction.ToString();
+                }
+            }
+
             foreach (var aiControlledUnit in aiControlledUnits)
             {
                 var ai = em.GetComponentData<AiComponent>(aiControlledUnit);
+
+                // 🆕 ИГРОК ОБРАБАТЫВАЕТСЯ ДО ПРОВЕРКИ IsFromFactory
+                var combatState = em.GetComponentData<CombatStateComponent>(aiControlledUnit);
+
+                // Игрок
+                if (aiControlledUnit == playerEntity)
+                {
+                    combatState.Relation = NameplateRelation.Player;
+                    em.SetComponentData(aiControlledUnit, combatState);
+                    continue;
+                }
+
                 if (!ai.IsFromFactory) continue;
 
                 var unit = em.GetComponentData<UnitComponent>(aiControlledUnit);
                 var localTransform = em.GetComponentData<LocalTransform>(aiControlledUnit);
-                var combatState = em.GetComponentData<CombatStateComponent>(aiControlledUnit);
 
                 // ------------------------------------------------------------
                 // ФАЗА А: ЕСТЬ ЦЕЛЬ
@@ -58,7 +84,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         combatState.CurrentTarget = Entity.Null;
                         combatState.IsInCombat = false;
-                        em.SetComponentData(aiControlledUnit, combatState);
                     }
                     else
                     {
@@ -71,57 +96,74 @@ namespace ProjectTowerRpg.ECS.Systems
                         {
                             combatState.CurrentTarget = Entity.Null;
                             combatState.IsInCombat = false;
-                            em.SetComponentData(aiControlledUnit, combatState);
-                        }
-                        else
-                        {
-                            continue;   // цель валидна
                         }
                     }
                 }
 
                 // ------------------------------------------------------------
-                // ФАЗА Б: ПОИСК ЦЕЛИ
+                // ФАЗА Б: ПОИСК ЦЕЛИ (если нет текущей)
                 // ------------------------------------------------------------
-                if (unit.AggroRadius <= 0f) continue;
-
-                float3 currentUnitPosition = localTransform.Position;
-                string currentUnitFaction = unit.Faction.ToString();
-                float radiusSquared = unit.AggroRadius * unit.AggroRadius;
-
-                Entity closestTarget = Entity.Null;
-                float minDistanceSq = float.MaxValue; 
-
-                for (int i = 0; i < aliveUnits.Length; i++)
+                if (combatState.CurrentTarget == Entity.Null && unit.AggroRadius > 0f)
                 {
-                    var otherUnitEntity = aliveUnits[i];
-                    if (otherUnitEntity == aiControlledUnit) continue;
+                    float3 currentUnitPosition = localTransform.Position;
+                    string currentUnitFaction = unit.Faction.ToString();
+                    float radiusSquared = unit.AggroRadius * unit.AggroRadius;
 
-                    var otherUnit = em.GetComponentData<UnitComponent>(otherUnitEntity);
-                    string otherUnitFaction = otherUnit.Faction.ToString();
+                    Entity closestTarget = Entity.Null;
+                    float minDistanceSq = float.MaxValue;
 
-                    if (!FactionsDatabase.IsHostile(currentUnitFaction, otherUnitFaction)) continue;
-
-                    float3 otherUnitPosition = em.GetComponentData<LocalTransform>(otherUnitEntity).Position;
-                    float3 differenceVector = otherUnitPosition - currentUnitPosition;
-                    differenceVector.y = 0f;
-                    float distanceSquared = math.lengthsq(differenceVector);
-
-                    if (distanceSquared > radiusSquared) continue;
-
-                    if (distanceSquared < minDistanceSq)
+                    for (int i = 0; i < aliveUnits.Length; i++)
                     {
-                        minDistanceSq = distanceSquared;
-                        closestTarget = otherUnitEntity;
+                        var otherUnitEntity = aliveUnits[i];
+                        if (otherUnitEntity == aiControlledUnit) continue;
+
+                        var otherUnit = em.GetComponentData<UnitComponent>(otherUnitEntity);
+                        string otherUnitFaction = otherUnit.Faction.ToString();
+
+                        if (!FactionsDatabase.IsHostile(currentUnitFaction, otherUnitFaction)) continue;
+
+                        float3 otherUnitPosition = em.GetComponentData<LocalTransform>(otherUnitEntity).Position;
+                        float3 differenceVector = otherUnitPosition - currentUnitPosition;
+                        differenceVector.y = 0f;
+                        float distanceSquared = math.lengthsq(differenceVector);
+
+                        if (distanceSquared > radiusSquared) continue;
+
+                        if (distanceSquared < minDistanceSq)
+                        {
+                            minDistanceSq = distanceSquared;
+                            closestTarget = otherUnitEntity;
+                        }
+                    }
+
+                    if (closestTarget != Entity.Null)
+                    {
+                        combatState.CurrentTarget = closestTarget;
+                        combatState.IsInCombat = true;
                     }
                 }
 
-                if (closestTarget != Entity.Null)
+                // ------------------------------------------------------------
+                // ФАЗА В: ВЫЧИСЛЕНИЕ RELATION (для UI)
+                // ------------------------------------------------------------
+                if (combatState.IsInCombat && combatState.CurrentTarget == playerEntity)
                 {
-                    combatState.CurrentTarget = closestTarget;
-                    combatState.IsInCombat = true;
-                    em.SetComponentData(aiControlledUnit, combatState);
+                    // Атакует игрока — враждебен
+                    combatState.Relation = NameplateRelation.Hostile;
                 }
+                else
+                {
+                    // По фракции
+                    string unitFaction = unit.Faction.ToString();
+                    if (FactionsDatabase.IsHostile(unitFaction, playerFaction))
+                        combatState.Relation = NameplateRelation.Hostile;
+                    else if (FactionsDatabase.IsFriendly(unitFaction, playerFaction))
+                        combatState.Relation = NameplateRelation.Friendly;
+                    else
+                        combatState.Relation = NameplateRelation.Neutral;
+                }
+
+                em.SetComponentData(aiControlledUnit, combatState);
             }
 
             aliveUnits.Dispose();

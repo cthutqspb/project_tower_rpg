@@ -4,8 +4,8 @@ using UnityEngine.UIElements;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Quest;
-using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Localization;
+using ProjectTowerRpg.Core.UI.Components;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
@@ -22,13 +22,17 @@ namespace ProjectTowerRpg.Core.UI.Components
         private Label _detailDescription;
         private VisualElement _detailObjectives;
         private VisualElement _detailRewardBlock;
-        private Label _detailRewardHeader;
-        private VisualElement _detailRewardItems;
+        
+        private Label _choiceHeader;
+        private Label _guaranteedHeader;
+        private VisualElement _choiceContainer;
+        private VisualElement _guaranteedContainer;
+        
         private Toggle _hideCompletedToggle;
 
         private bool _hideCompleted = true;
 
-        // 🆕 Последний выбранный (живёт между экземплярами)
+        // Последний выбранный (живёт между экземплярами)
         private static string _lastSelectedQuestId = null;
 
         // Текущий выбранный (в этом экземпляре)
@@ -41,7 +45,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         {
             public string QuestId;
             public QuestState State;
-            public bool IsTracked;   // 🆕
+            public bool IsTracked;
         }
 
         private struct QuestObjectiveSnapshot
@@ -71,8 +75,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             _detailDescription = this.Q<Label>("detail-description");
             _detailObjectives = this.Q<VisualElement>("detail-objectives");
             _detailRewardBlock = this.Q<VisualElement>("detail-reward-block");
-            _detailRewardHeader = this.Q<Label>("detail-reward-header");
-            _detailRewardItems = this.Q<VisualElement>("detail-reward-items");
+            
+            _choiceHeader = this.Q<Label>("choice-header");
+            _guaranteedHeader = this.Q<Label>("guaranteed-header");
+            _choiceContainer = this.Q<VisualElement>("rewards-choice");
+            _guaranteedContainer = this.Q<VisualElement>("rewards-guaranteed");
+
             _hideCompletedToggle = this.Q<Toggle>("hide-completed-toggle");
 
             if (_hideCompletedToggle != null)
@@ -99,7 +107,7 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             UIRegistry.Register(_unitEntity, this);
 
-            // 🆕 Восстанавливаем последний выбранный
+            // Восстанавливаем последний выбранный
             if (string.IsNullOrEmpty(_selectedQuestId) && !string.IsNullOrEmpty(_lastSelectedQuestId))
                 _selectedQuestId = _lastSelectedQuestId;
 
@@ -134,11 +142,11 @@ namespace ProjectTowerRpg.Core.UI.Components
                 {
                     QuestId = buffer[i].QuestId.ToString(),
                     State = buffer[i].State,
-                    IsTracked = buffer[i].IsTracked   // 🆕
+                    IsTracked = buffer[i].IsTracked
                 });
             }
 
-            // 🆕 Если выбранный квест пропал — выбрать первый активный
+            // Если выбранный квест пропал — выбрать первый активный
             bool currentStillExists = !string.IsNullOrEmpty(_selectedQuestId)
                 && _quests.Exists(q => q.QuestId == _selectedQuestId && q.State != QuestState.TurnedIn);
 
@@ -235,7 +243,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 ? LocalizationManager.Get(config.title_key)
                 : quest.QuestId;
 
-            // 🆕 Строка: чекбокс + название
+            // Строка: чекбокс + название
             var headerRow = new VisualElement();
             headerRow.style.flexDirection = FlexDirection.Row;
             headerRow.style.alignItems = Align.Center;
@@ -283,7 +291,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             btn.clicked += () =>
             {
                 _selectedQuestId = capturedQuestId;
-                _lastSelectedQuestId = capturedQuestId;   // 🆕 обновить статик при явном клике
+                _lastSelectedQuestId = capturedQuestId;
                 RebuildQuestList();
                 RefreshDetails();
             };
@@ -363,10 +371,9 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         private void BuildRewardBlock(QuestConfig config)
         {
-            if (_detailRewardBlock == null || _detailRewardItems == null) return;
+            if (_detailRewardBlock == null || _choiceContainer == null) return;
 
             bool hasRewards = config.rewards != null && config.rewards.Count > 0;
-
             if (!hasRewards)
             {
                 _detailRewardBlock.style.display = DisplayStyle.None;
@@ -374,77 +381,77 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
 
             _detailRewardBlock.style.display = DisplayStyle.Flex;
-            _detailRewardItems.Clear();
+            _choiceContainer.Clear();
+            _guaranteedContainer.Clear();
 
-            if (_detailRewardHeader != null)
-                _detailRewardHeader.text = LocalizationManager.Get("quest_journal_reward_header");
+            var choiceRewards = new List<QuestReward>();
+            var guaranteedRewards = new List<QuestReward>();
 
-            foreach (var reward in config.rewards)
+            foreach (var r in config.rewards)
             {
-                string displayName;
-                string iconChar;
-
-                switch (reward.kind)
-                {
-                    case "item":
-                    {
-                        var itemConfig = ItemsDatabase.GetItem(reward.id);
-                        displayName = itemConfig != null
-                            ? LocalizationManager.Get(itemConfig.identity.name_key)
-                            : reward.id;
-                        iconChar = itemConfig?.visuals?.icon_char ?? "?";
-                        break;
-                    }
-
-                    case "experience":
-                        displayName = $"Опыт: {reward.amount}";
-                        iconChar = "★";
-                        break;
-
-                    case "currency":
-                        displayName = $"Валюта: {reward.id}";
-                        iconChar = "¤";
-                        break;
-
-                    case "ability":
-                        displayName = $"Способность: {reward.id}";
-                        iconChar = "✦";
-                        break;
-
-                    default:
-                        displayName = reward.id ?? reward.kind;
-                        iconChar = "?";
-                        break;
-                }
-
-                var row = new VisualElement();
-                row.AddToClassList("quest-journal__reward-item");
-
-                // 🆕 Метка «выбор» (жёлтая точка или звёздочка)
-                if (reward.is_choice)
-                {
-                    var marker = new Label("★");
-                    marker.AddToClassList("quest-journal__reward-choice-marker");
-                    row.Add(marker);
-                }
-
-                var icon = new Label(iconChar);
-                icon.AddToClassList("quest-journal__reward-icon");
-                row.Add(icon);
-
-                var name = new Label(displayName);
-                name.AddToClassList("quest-journal__reward-name");
-                row.Add(name);
-
-                if (reward.amount > 1 && reward.kind != "experience")
-                {
-                    var amount = new Label($"x{reward.amount}");
-                    amount.AddToClassList("quest-journal__reward-amount");
-                    row.Add(amount);
-                }
-
-                _detailRewardItems.Add(row);
+                if (r.is_choice) choiceRewards.Add(r);
+                else guaranteedRewards.Add(r);
             }
+
+            // Настройка видимости заголовков
+            _choiceHeader.style.display = choiceRewards.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            _choiceContainer.style.display = choiceRewards.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+
+            _guaranteedHeader.style.display = guaranteedRewards.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            _guaranteedContainer.style.display = guaranteedRewards.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+
+            foreach (var r in choiceRewards)
+                _choiceContainer.Add(CreateRewardElement(r));
+
+            foreach (var r in guaranteedRewards)
+                _guaranteedContainer.Add(CreateRewardElement(r));
+        }
+
+        private VisualElement CreateRewardElement(QuestReward reward)
+        {
+            if (reward.kind == "item")
+            {
+                var preview = new SlotPreviewElement();
+                preview.SetItem(reward.id, reward.amount);
+                return preview;
+            }
+
+            // Не-предметы (опыт, валюта, способность)
+            var row = new VisualElement();
+            row.AddToClassList("quest-journal__reward-item");
+
+            string displayName;
+            string iconChar;
+
+            switch (reward.kind)
+            {
+                case "experience":
+                    displayName = $"Опыт: {reward.amount}";
+                    iconChar = "★";
+                    break;
+                case "currency":
+                    displayName = $"Валюта: {reward.id}";
+                    iconChar = "¤";
+                    break;
+                case "ability":
+                    displayName = $"Способность: {reward.id}";
+                    iconChar = "✦";
+                    break;
+                default:
+                    displayName = reward.id ?? reward.kind;
+                    iconChar = "?";
+                    break;
+            }
+
+            var icon = new Label(iconChar);
+            icon.AddToClassList("quest-journal__reward-icon");
+            row.Add(icon);
+
+            var name = new Label(displayName);
+            name.AddToClassList("quest-journal__reward-name");
+            row.Add(name);
+
+            return row;
         }
 
         private void ClearDetails()

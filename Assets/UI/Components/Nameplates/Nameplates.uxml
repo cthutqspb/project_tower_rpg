@@ -1,0 +1,4 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="nameplates-root" name="root" picking-mode="Ignore"
+                      style="position: absolute; width: 100%; height: 100%;" />
+</ui:UXML>

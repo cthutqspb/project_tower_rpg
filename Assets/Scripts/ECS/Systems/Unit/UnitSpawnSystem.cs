@@ -142,6 +142,12 @@ namespace ProjectTowerRpg.ECS.Systems
                 // Инициализируем пустой runtime-черновик для UnitStatsSystem
                 em.AddComponentData(unitEntity, new UnitCurrentAttributesComponent());
 
+                em.AddComponentData(unitEntity, new NameplateStateComponent
+                {
+                    NameKey = nameKey,
+                    Mark = NameplateMark.None
+                });
+
                 // 🧬 🦾 ЗАПЕКАЕМ СГРУППИРОВАННЫЙ ПАСПОРТ ПРОГРЕССИИ:
                 // Рассчитываем награду опыта на основе твоего базового уровня из маркера
                 int calculatedExperienceReward = markerData.Level * 25; // Твой каноничный ММО-фарм
@@ -200,11 +206,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     else if (resTypeStr == "energy") rType = ResourceType.Energy;
                     else if (resTypeStr == "rage") rType = ResourceType.Rage;
                     
-                    // 🌟 ТЕСТ-ХАК: Если это игрок — по ММО-канону режем ману наполовину при старте кадра
-                    // if (isPlayer)
-                    // {
-                    //     currentResource = maxResource * 0.5f;
-                    // }
                 }
                 else
                 {

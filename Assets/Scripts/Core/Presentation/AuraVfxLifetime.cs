@@ -19,7 +19,7 @@ namespace ProjectTowerRpg.Core.Shared
         private float _floatSpeed = 1.5f;
         private float _floatAmount = 0.15f;
 
-                public void Initialize(TextMeshPro tmpText, Color faceColor, Color glowColor, float duration = 2.0f)
+        public void Initialize(TextMeshPro tmpText, Color faceColor, Color glowColor, float duration = 2.0f)
         {
             _tmpText = tmpText;
             _faceColor = faceColor;

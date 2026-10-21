@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 namespace ProjectTowerRpg.Core.Quest
 {
     public static class QuestsDatabase
-    {
+ {
         private static Dictionary<string, QuestConfig> _database = new();
         private static Dictionary<int, QuestConfig> _hashedDatabase = new();
         
@@ -63,6 +63,17 @@ namespace ProjectTowerRpg.Core.Quest
         public static QuestConfig GetQuest(int questHashId)
         {
             return _hashedDatabase.TryGetValue(questHashId, out var config) ? config : null;
+        }
+        
+        public static List<QuestConfig> GetQuestsByGiver(string giverNameKey)
+        {
+            var result = new List<QuestConfig>();
+            foreach (var pair in _database)
+            {
+                if (pair.Value.giver_name_key == giverNameKey)
+                    result.Add(pair.Value);
+            }
+            return result;
         }
 
         public static void Unload()

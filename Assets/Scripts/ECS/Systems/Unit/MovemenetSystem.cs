@@ -154,23 +154,27 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // =========================================================================
-                // 4. ПРОВЕРКА ПРЕПЯТСТВИЙ ПЕРЕД НАМИ (АНТИ-ПРИЗРАК)
-                // =========================================================================
-                if (math.lengthsq(flatMoveVector) > 0f)
-                {
-                    float3 wallRayStart = new float3(transform.ValueRO.Position.x, transform.ValueRO.Position.y + 0.5f, transform.ValueRO.Position.z);
-                    float3 moveDirection = math.normalize(flatMoveVector);
+// 4. ПРОВЕРКА ПРЕПЯТСТВИЙ ПЕРЕД НАМИ (АНТИ-ПРИЗРАК)
+// =========================================================================
+if (math.lengthsq(flatMoveVector) > 0f)
+{
+    float3 wallRayStart = new float3(transform.ValueRO.Position.x, transform.ValueRO.Position.y + 0.5f, transform.ValueRO.Position.z);
+    float3 moveDirection = math.normalize(flatMoveVector);
 
-                    if (Physics.Raycast(wallRayStart, moveDirection, out RaycastHit wallHit, 0.5f, 
-                        Physics.DefaultRaycastLayers, UnityEngine.QueryTriggerInteraction.Ignore))
-                    {
-                        if (wallHit.collider != null && wallHit.collider.gameObject.name != "Terrain")
-                        {
-                            flatMoveVector = float3.zero;
-                        }
-                    }
-                }
+    // 🆕 МАСКА СТЕН: берем ВСЁ, КРОМЕ слоя Units (6).
+    // Если у тебя слой Units имеет другой номер, поменяй цифру 6.
+    int unitsLayer = 10;
+    int wallLayerMask = ~(1 << unitsLayer); 
 
+    if (Physics.Raycast(wallRayStart, moveDirection, out RaycastHit wallHit, 0.5f, 
+        wallLayerMask, UnityEngine.QueryTriggerInteraction.Ignore))
+    {
+        if (wallHit.collider != null)
+        {
+            flatMoveVector = float3.zero;
+        }
+    }
+}
                 // =========================================================================
                 // 5. СБОРКА ВЕКТОРА И КОЛЛИЖЕН С ЛАНДШАФТОМ
                 // =========================================================================

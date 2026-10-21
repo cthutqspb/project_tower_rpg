@@ -2,22 +2,25 @@ using Unity.Entities;
 
 namespace ProjectTowerRpg.ECS.Components
 {
-    // 🛡️ СТРУКТУРА БОЕВОГО СОСТОЯНИЯ:
-    // По канону DOTS — это строго struct, наследуемая от IComponentData.
-    // Хранит мутабельный паспорт здоровья в плоском Си-массиве ОЗУ.
+    public enum NameplateRelation : byte
+    {
+        Neutral = 0,
+        Hostile = 1,
+        Friendly = 2,
+        Player = 3,
+    }
+
     public struct CombatStateComponent : IComponentData
     {
-        public bool IsInCombat;          // unit.combat.is_in_combat
-        // 🌟 СЕТЕВОЙ ЗАДЕЛ: Персональная цель конкретно ЭТОГО существа
-        // (Игрок хранит тут скелета, а скелет в своей памяти будет хранить игрока!)
+        public bool IsInCombat;
         public Entity CurrentTarget;
+        
+        // 🆕 Цвет для UI (вычисляется в PerceptionSystem)
+        public NameplateRelation Relation;
 
-        // Быстрое свойство-помощник для проверки, есть ли у юнита цель
         public bool HasTarget => CurrentTarget != Entity.Null;
 
-        // // TODO: WoW-Канон магии, агро-матрицы и вендетты на будущее
-        public float GcdDuration;      // cast.gcd_current
+        public float GcdDuration;
         public float GcdRemaining;
     }
 }
-

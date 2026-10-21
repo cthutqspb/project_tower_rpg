@@ -44,7 +44,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 : itemId;
         }
 
-        public void Clear()
+        public void ClearVisual()
         {
             ItemId = null;
             _slot.SetData("", 0, 0);
