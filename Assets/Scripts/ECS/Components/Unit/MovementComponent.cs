@@ -19,7 +19,10 @@ namespace ProjectTowerRpg.ECS.Components
 
         // 🔥 ДАННЫЕ ДЛЯ ФИЗИКИ ПРЫЖКА:
         public bool IsGrounded;          // Стоит ли туша железно на земле
-        public bool JumpRequested;       // Нажал ли игрок Пробел в этом кадре
+        public bool JumpRequested;       // Нажал ли игрок Пробел в этом кадре\
+        public bool CanFly;
+        public float FlyHeight;
+        public bool IsFlying;
     }
 }
 

@@ -8,6 +8,7 @@ namespace ProjectTowerRpg.ECS.Components
         public FixedString64Bytes Uid;       // "player" или "skeleton_123"
         public FixedString64Bytes UnitId;    // "player_mage", "skeleton_warrior",
         public FixedString64Bytes NameKey;
+        public FixedString64Bytes UniqueNameKey;
         public int Level;                    // 1, 5, 10...
         public FixedString64Bytes LootTableId;
         public FixedString32Bytes Faction;

@@ -54,19 +54,12 @@ namespace ProjectTowerRpg.ECS.Systems
                     case ActionKind.ContainerTakeAll:
                         ExecuteContainerTakeAll(cmd.ValueRO, ecb, presentationBufferEntity);
                         break;
-
-                    case ActionKind.Attack:
-                        ExecuteAttack(cmd.ValueRO);
-                        break;
+                    
 
                     case ActionKind.Interact:
                         ExecuteInteract(cmd.ValueRO, ecb);
                         break;
-
-                    case ActionKind.MoveTo:
-                        ExecuteMoveTo(cmd.ValueRO);
-                        break;
-
+                    
                     case ActionKind.ItemTransfer:
                         ExecuteItemTransfer(cmd.ValueRO, ecb, presentationBufferEntity);
                         break;
@@ -200,13 +193,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
             Debug.Log($"💰 [ActionDispatcher]: Экшен 'ВЗЯТЬ ВСЁ' шёлково перелил предметы из мешка {sourceBagEntity.Index} в рюкзак {targetBagEntity.Index}.");
         }
-
-        private void ExecuteAttack(ActionCommand cmd)
-        {
-            Debug.Log($"[ActionDispatcher] Атака {cmd.SourceEntity.Index} -> {cmd.TargetEntity.Index}");
-            // UnitActions.Attack(cmd.SourceEntity, cmd.TargetEntity);
-        }
-
+       
         private void ExecuteInteract(ActionCommand cmd, EntityCommandBuffer ecb)
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -214,13 +201,7 @@ namespace ProjectTowerRpg.ECS.Systems
             // 🦾 СВЕРХЗВУКОВАЯ СИММЕТРИЯ: Вызываем редюсер без лишнего мусора!
             PlayerReducer.Interact(em, ecb, cmd.SourceEntity, cmd.TargetEntity);
         }
-
-        private void ExecuteMoveTo(ActionCommand cmd)
-        {
-            Debug.Log($"[ActionDispatcher] Движение {cmd.SourceEntity.Index} -> {cmd.Position}");
-            // MovementActions.MoveTo(cmd.SourceEntity, cmd.Position);
-        }
-
+        
         private void ExecuteItemTransfer(
             ActionCommand cmd,
             EntityCommandBuffer ecb,

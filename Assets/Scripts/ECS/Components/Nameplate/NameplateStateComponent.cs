@@ -7,7 +7,7 @@ namespace ProjectTowerRpg.ECS.Components
     {
         None = 0,
         Quest = 1,
-        // TurnIn = 2,   // задел
+        TurnIn = 2,   // задел
         // Gray = 3,     // задел
     }
 

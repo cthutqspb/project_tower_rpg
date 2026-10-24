@@ -1,5 +1,4 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <ui:Style src="project://database/Assets/UI/HUD/HUD.uss" />
 
     <ui:VisualElement class="hud" name="root" picking-mode="Ignore">
         

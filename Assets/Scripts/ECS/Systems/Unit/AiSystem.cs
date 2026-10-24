@@ -114,6 +114,22 @@ namespace ProjectTowerRpg.ECS.Systems
                     Random = _random,
                 };
 
+                // 🆕 АВТОМАТИЧЕСКИЙ ВЗЛЁТ ДЛЯ ПТИЦ:
+                // Если юнит умеет летать и хочет двигаться (патруль или погоня) — включаем полёт.
+                // Если стоит на месте (Idle) — сажаем на землю.
+                if (ctx.Move.CanFly)
+                {
+                    if (ctx.Ai.State == AiState.Patrol || ctx.Ai.State == AiState.Chase)
+                    {
+                        ctx.Move.IsFlying = true;
+                    }
+                    else if (ctx.Ai.State == AiState.Idle || ctx.Ai.State == AiState.Attack)
+                    {
+                        // В бою тоже можно летать, но для простоты на земле
+                        ctx.Move.IsFlying = false; 
+                    }
+                }
+
                 switch (ctx.Ai.State)
                 {
                     case AiState.Idle:
@@ -151,7 +167,10 @@ namespace ProjectTowerRpg.ECS.Systems
                 return;
 
             float2 offset = ctx.Random.NextFloat2Direction() * ctx.Random.NextFloat(2f, ctx.Ai.PatrolRadius);
-            ctx.Ai.PatrolPoint = ctx.Ai.StartPoint + new float3(offset.x, 0f, offset.y);
+            // 🆕 Если летаем, точка патруля должна быть на высоте полёта
+            float targetY = ctx.Move.CanFly ? ctx.Move.FlyHeight : ctx.Position.y;
+            ctx.Ai.PatrolPoint = new float3(ctx.Ai.StartPoint.x + offset.x, targetY, ctx.Ai.StartPoint.z + offset.y);
+            
             ctx.Ai.HasPatrolTarget = true;
             ctx.Ai.State = AiState.Patrol;
         }
@@ -166,10 +185,16 @@ namespace ProjectTowerRpg.ECS.Systems
                 return;
             }
 
+            // 🆕 Если летаем, то учитываем высоту (Y)
             float3 toPoint = ctx.Ai.PatrolPoint - ctx.Position;
-            toPoint.y = 0f;
+            if (!ctx.Move.IsFlying) 
+            {
+                toPoint.y = 0f; // На земле идём только по плоскости
+            }
 
-            if (math.length(toPoint) < PATROL_REACHED_DISTANCE)
+            // Проверка достижения цели. Для летающих проверяем в 3D, для пеших — в 2D
+            float distanceSq = ctx.Move.IsFlying ? math.lengthsq(toPoint) : math.lengthsq(toPoint.xz);
+            if (distanceSq < PATROL_REACHED_DISTANCE * PATROL_REACHED_DISTANCE)
             {
                 ctx.Move.Direction = float3.zero;
                 ctx.Ai.HasPatrolTarget = false;
@@ -181,12 +206,18 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             float3 direction = math.normalize(toPoint);
+            
+            // 🆕 Разделение (Separation) для летающих лучше считать тоже в 3D, 
+            // но для простоты оставим как есть, чтобы вороны не расталкивали друг друга по вертикали
             direction = ApplySeparation(ref ctx, direction);
+            
+            // Сглаживание направления. Для летающих лучше делать более плавные повороты
             direction = SmoothDirection(ctx.Move.Direction, direction);
 
             ctx.Move.Direction = direction;
             ctx.Move.CurrentSpeed = ctx.UnitCfg.parameters.base_speed * PATROL_SPEED_MULTIPLIER;
 
+            // 🆕 Поворот в сторону полёта
             RotateTowards(ref ctx, direction);
         }
 
@@ -200,7 +231,9 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             float3 toTarget = ctx.Em.GetComponentData<LocalTransform>(ctx.Combat.CurrentTarget).Position - ctx.Position;
-            toTarget.y = 0f;
+            // 🆕 Если летаем, учитываем высоту цели
+            if (!ctx.Move.IsFlying) toTarget.y = 0f;
+            
             float distanceToTarget = math.length(toTarget);
 
             float leashDistance = ctx.Unit.AggroRadius * LEASH_MULTIPLIER;
@@ -227,7 +260,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 ctx.UnitCfg, ctx.Entity, ctx.Em,
                 out string selectedAbilityId, out float selectedAbilityRange);
 
-            // 🆕 ПРАВИЛЬНЫЙ РАСЧЕТ ДИСТАНЦИИ (между краями хитбоксов)
             float targetRadius = ctx.Em.HasComponent<MovementComponent>(ctx.Combat.CurrentTarget)
                 ? ctx.Em.GetComponentData<MovementComponent>(ctx.Combat.CurrentTarget).HitboxRadius
                 : 0.5f;
@@ -242,6 +274,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 ctx.Ai.AttackTimer = ATTACK_COOLDOWN_FALLBACK;
                 ctx.Move.Direction = float3.zero;
 
+                // 🆕 Чтобы атаковать с воздуха, нужно лицом к цели
                 FaceTarget(ref ctx, toTarget);
 
                 Entity requestEntity = ctx.Ecb.CreateEntity();
@@ -273,6 +306,7 @@ namespace ProjectTowerRpg.ECS.Systems
             ctx.Ai.AttackTimer = 0f;
             ctx.Ai.HasPatrolTarget = false;
             ctx.Move.Direction = float3.zero;
+            // 🆕 При выходе из боя птица снова может летать, но мы сбросим в Idle
         }
 
         private void FaceTarget(ref AiContext ctx, float3 toTarget)
@@ -394,7 +428,11 @@ namespace ProjectTowerRpg.ECS.Systems
                 float otherHitbox = ctx.Em.GetComponentData<MovementComponent>(otherEntity).HitboxRadius;
 
                 float3 diff = ctx.Position - otherPos;
-                diff.y = 0f;
+                
+                // 🆕 Для летающих разделение можно считать в 3D, но чтобы вороны не 
+                // выстраивались в воздушную пробку, оставим по горизонтали
+                if (!ctx.Move.IsFlying) diff.y = 0f; 
+
                 float distSq = math.lengthsq(diff);
                 float minAllowed = ctx.HitboxRadius + otherHitbox + SEPARATION_BUBBLE;
 

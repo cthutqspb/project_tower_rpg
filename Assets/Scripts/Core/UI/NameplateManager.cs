@@ -101,6 +101,12 @@ namespace ProjectTowerRpg.Core.UI
             var uiPanel = _globalUiRoot.panel;
             if (uiPanel == null) return;
 
+            // 🆕 Игрок и его текущая цель — один раз за кадр
+            Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+            Entity playerTarget = Entity.Null;
+            if (playerEntity != Entity.Null && _em.HasComponent<CombatStateComponent>(playerEntity))
+                playerTarget = _em.GetComponentData<CombatStateComponent>(playerEntity).CurrentTarget;
+
             // 1. Скрываем тех, кто умер, пропал, за камерой или выключен настройками
             var entitiesToRelease = new List<Entity>();
             foreach (var pair in _active)
@@ -126,6 +132,8 @@ namespace ProjectTowerRpg.Core.UI
                 var widget = GetWidget(entity);
                 if (widget == null) continue;
 
+                widget.BoundEntity = entity;
+
                 Vector2 panelPos = RuntimePanelUtils.CameraTransformWorldToPanel(uiPanel, worldPos, camera);
                 widget.SetPosition(panelPos.x, panelPos.y);
 
@@ -139,6 +147,9 @@ namespace ProjectTowerRpg.Core.UI
 
                 var combat = _em.GetComponentData<CombatStateComponent>(entity);
                 widget.SetRelation(combat.Relation);
+
+                // 🆕 Подсветка текущей цели
+                widget.SetTargeted(entity == playerTarget);
             }
             entities.Dispose();
         }

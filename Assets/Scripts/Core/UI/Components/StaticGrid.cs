@@ -133,6 +133,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (world == null) return;
             
             var em = world.EntityManager;
+
+            if (em.HasBuffer<ActionBarSlot>(targetEntity))
+            {
+                var barSlots = em.GetBuffer<ActionBarSlot>(targetEntity);
+                UpdateFromBuffer(barSlots, false); // <-- isOnlyValidation = false
+            }
             if (em.HasBuffer<ItemSlot>(targetEntity))
             {
                 var slots = em.GetBuffer<ItemSlot>(targetEntity);

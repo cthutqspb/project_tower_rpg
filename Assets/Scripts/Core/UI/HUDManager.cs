@@ -78,28 +78,68 @@ namespace ProjectTowerRpg.Core.UI
             }
 
             // =========================================================================
+            // 🦾 ИДЕМПОТЕНТНЫЙ БИНД ЭКШЕН-БАРОВ (Без флагов, работает при респавне/релоаде)
+            // =========================================================================
+            if (_isUiReady && _actionBars != null)
+            {
+                for (int i = 0; i < _actionBars.Count; i++)
+                {
+                    var grid = _actionBars[i].SlotsGrid;
+                    // Биндим только если сетка создана и ещё не привязана к этому игроку
+                    if (grid != null && grid.BoundEntity != playerEntity)
+                    {
+                        grid.BindToEntity(playerEntity);
+                        Debug.Log($"[HUDManager]: Экшен-бар {i} забинжен на игрока {playerEntity.Index}");
+                    }
+                }
+            }
+
+            // =========================================================================
+            // 🦾 ИДЕМПОТЕНТНЫЙ БИНД ДИАЛОГОВОГО ОВЕРЛЕЯ
+            // =========================================================================
+            if (_isUiReady && _dialogueOverlay != null)
+            {
+                // Проверяем, привязан ли оверлей к игроку
+                if (_dialogueOverlay.BoundEntity != playerEntity)
+                {
+                    _dialogueOverlay.BindToEntity(playerEntity);
+                    UIRegistry.Register(playerEntity, _dialogueOverlay);
+                    Debug.Log($"[HUDManager]: Диалоговый оверлей забинжен на игрока {playerEntity.Index}");
+                }
+            }
+
+            // =========================================================================
+            // 🦾 ИДЕМПОТЕНТНЫЙ БИНД ТРЕКЕРА КВЕСТОВ
+            // =========================================================================
+            if (_isUiReady && _questTracker != null)
+            {
+                // Проверяем, привязан ли трекер к игроку (нужно свойство BoundEntity у QuestTracker)
+                if (_questTracker.BoundEntity != playerEntity)
+                {
+                    _questTracker.BindToEntity(playerEntity);
+                    UIRegistry.Register(playerEntity, _questTracker);
+                    Debug.Log($"[HUDManager]: Трекер квестов забинжен на игрока {playerEntity.Index}");
+                }
+            }
+
+            // =========================================================================
             // 🦾 ДИНАМИЧЕСКИЙ СИ-МОСТ КАСTБАРA (Wow-Канон Майнд-контроля):
-            // Перевешиваем регистрацию кастбара строго на ту сущность, которой управляем!
             // =========================================================================
             if (_isUiReady)
             {
-                // Находим в ОЗУ чанков, кем пальцы игрока управляют прямо сейчас
                 Entity currentControlled = PlayerUtils.GetEntityByTag<ControlledByPlayerTag>();
 
                 if (currentControlled != _lastControlledEntity)
                 {
-                    // Если раньше мы чем-то управляли — снимаем старый Си-адрес с учета в UIPullSystem
                     if (_lastControlledEntity != Entity.Null && _castBar != null)
                     {
                         UIRegistry.Unregister(_lastControlledEntity, _castBar);
                     }
 
-                    // Накатываем регистрацию кастбара на НОВУЮ управляемую тушу!
                     if (currentControlled != Entity.Null && _castBar != null)
                     {
                         UIRegistry.Register(currentControlled, _castBar);
                         
-                        // Сочно пушим начальный стейт каста, если существо уже что-то читало в этот кадр
                         if (em.HasComponent<CastComponent>(currentControlled))
                         {
                             var castComp = em.GetComponentData<CastComponent>(currentControlled);
@@ -174,7 +214,6 @@ namespace ProjectTowerRpg.Core.UI
                     UIRegistry.Unregister(oldPlayerEntity, _playerFrame);
                 }
 
-                // Выписываем фрейм цели из реестра, если он был к кому-то привязан
                 if (_lastTargetEntity != Entity.Null)
                 {
                     UIRegistry.Unregister(_lastTargetEntity, _targetFrame);
@@ -185,8 +224,6 @@ namespace ProjectTowerRpg.Core.UI
                     _chatLog.Dispose();
                     _chatLog = null;
                 }
-
-
 
                 if (_dialogueOverlay != null)
                 {
@@ -211,11 +248,6 @@ namespace ProjectTowerRpg.Core.UI
             // 1. Клонируем плоский скелет HUD
             _root = _hudUxml.CloneTree();
             _root.pickingMode = PickingMode.Ignore;
-            // =========================================================================
-            // 🦾 ЖЕЛЕЗОБЕТОННЫЙ РАСТЯГ ОБЕРТКИ (Фронтенд-канон UI Toolkit):
-            // Нагло заставляем внешнюю невидимую коробку занять 100% экрана,
-            // чтобы внутренний .hud и твои проценты панелей считались от реального разрешения!
-            // =========================================================================
             _root.style.position = Position.Absolute;
             _root.style.width = Length.Percent(100);
             _root.style.height = Length.Percent(100);
@@ -232,14 +264,12 @@ namespace ProjectTowerRpg.Core.UI
             Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
             if (playerEntity != Entity.Null)
             {
-                // Биндим игрока и сразу заливаем в его фрейм актуальный стейт из ECS
                 _playerFrame.BindToEntity(playerEntity);
                 PushInitialState(playerEntity, _playerFrame);
                 _playerFrame.SetVisible(true);                
                 
                 _isPlayerBound = true;
 
-                // Проверяем, была ли у игрока активная цель до релоада панелей
                 var em = World.DefaultGameObjectInjectionWorld.EntityManager;
                 if (em.HasComponent<CombatStateComponent>(playerEntity))
                 {
@@ -247,7 +277,6 @@ namespace ProjectTowerRpg.Core.UI
 
                     if (currentTarget != Entity.Null)
                     {
-                        // Если цель была — мгновенно восстанавливаем её линк в UIRegistry и рендерим
                         _targetFrame.BindToEntity(currentTarget);
                         PushInitialState(currentTarget, _targetFrame);
                         _targetFrame.SetVisible(true);                        
@@ -263,75 +292,18 @@ namespace ProjectTowerRpg.Core.UI
             }
 
             // =========================================================================
-            // 🦾 СБОРКА И БИНД ЭКШЕН-БАРОВ НА СУЩНОСТЬ ИГРОКА
+            // 🦾 СБОРКА ЭКШЕН-БАРОВ (БЕЗ БИНДИНГА — БИНДИНГ ТЕПЕРЬ В UPDATE)
             // =========================================================================
             if (_actionBarUxml != null && _actionBars != null)
             {
-                // 1. Создаем геометрию панелей
                 for (int i = 0; i < _actionBars.Count; i++)
                 {
                     _actionBars[i].BuildPanel(_root, _actionBarUxml, i);
                 }
-
-                // 2. 🦾 НАПРЯМУЮ БИНДИМ НА СУЩНОСТЬ САМОГО ИГРОКА:
-                if (playerEntity != Entity.Null)
-                {
-                    for (int i = 0; i < _actionBars.Count; i++)
-                    {
-                        // Сетки панелей скачают буфер ActionBarSlot прямо из башки игрока!
-                        _actionBars[i].SlotsGrid.BindToEntity(playerEntity);
-                    }
-                    Debug.Log("[HUDManager]: Все экшен-бары шёлково привязаны к буферу ActionBarSlot Игрока!");
-                }
+                Debug.Log("[HUDManager]: Экшен-бары собраны. Ожидаем спавна игрока для биндинга в Update().");
             }
 
-            // 🦾 КАНOНИЧНАЯ СБOРКА КАСTБАРA ИГРОКА По центру экрана:
-            if (_progressBarUxml != null && _root != null)
-            {
-                // 1. Клонируем универсальный дефолтный ProgressBar в ОЗУ экрана!
-                var castBarVisual = _progressBarUxml.CloneTree();
-                
-                // Навешиваем на него имя ноды для отладки в UI Builder
-                castBarVisual.name = "CastBar"; 
-
-                // Позиционируем кастбар строго по центру экрана чуть ниже персонажа (WoW-стандарт)
-                castBarVisual.style.position = Position.Absolute;
-                castBarVisual.style.left = Length.Percent(42f); // Центрируем по горизонтали
-                castBarVisual.style.top = Length.Percent(70f);  // Сдвигаем на 70% вниз экрана
-
-                // 2. Обертываем склонированную ноду в наш реактивный CastBar
-                _castBar = new CastBar(castBarVisual);
-
-                // 3. Физически вживляем ноду в корень HUD, чтобы она появилась на мониторе!
-                _root.Add(castBarVisual);
-                
-                _isUiReady = true;
-            }
-
-            // =========================================================================
-            // 🦾 КАНOНИЧНАЯ СБОРКА ЧАТ-ЛОГА (Чистый USS-дизайн):
-            // =========================================================================
-            if (_chatLogUxml != null && _root != null)
-            {
-                // 1. Клонируем вёрстку чата напрямую из ассета инспектора
-                var chatRoot = _chatLogUxml.CloneTree();
-                chatRoot.name = "chat-log";
-
-                // 2. 🦾 НАКАРМЛИВАЕМ USS-КЛАСС ОБЁРТКЕ:
-                // Передаем TemplateContainer наш класс .chat-log-wrapper из стилей.
-                // Yoga Layout сам считает absolute, left и bottom из файла ChatLog.uss!
-                chatRoot.AddToClassList("hud__chat-log");
-
-                // 3. Обертываем ноду в наш реактивный класс логики
-                _chatLog = new ChatLog(chatRoot);
-
-                // 4. Физически внедряем чат в общий корень HUD!
-                _root.Add(chatRoot);
-            }
-
-            // =========================================================================
-            // 🦾 КАНOНИЧНАЯ СБOРКА ДИАЛОГОВОГО ОВЕРЛЕЯ (Копейка в копейку как Чат-Лог!):
-            // =========================================================================
+            // 🦾 КАНOНИЧНАЯ СБOРКА ДИАЛОГОВОГО ОВЕРЛЕЯ (ТОЛЬКО СОЗДАНИЕ, БЕЗ БИНДИНГА)
             if (_dialogueOverlayUxml != null && _root != null)
             {
                 var dialogueRoot = _dialogueOverlayUxml.CloneTree();
@@ -344,32 +316,37 @@ namespace ProjectTowerRpg.Core.UI
                     _dialogueOverlay = gameObject.AddComponent<DialogueOverlay>();
 
                 _dialogueOverlay.Initialize(dialogueRoot);
-
-                _root.Add(dialogueRoot);
-
-                // 🦾 РЕГИСТРАЦИЯ НА ИГРОКЕ — оверлей теперь реактивный ресивер
-                Entity playerForDialogue = PlayerUtils.GetEntityByTag<PlayerTag>();
-                if (playerForDialogue != Entity.Null)
-                {
-                    _dialogueOverlay.BindToEntity(playerForDialogue);
-                    UIRegistry.Register(playerForDialogue, _dialogueOverlay);
-                }
+                _root.Add(dialogueRoot);                
             }
 
-            // =========================================================================
-            // 🦾 СБОРКА ТРЕКЕРА КВЕСТОВ (правый верхний угол, под фреймом цели)
-            // =========================================================================
+            // 🦾 КАНOНИЧНАЯ СБOРКА КАСTБАРA ИГРОКА По центру экрана:
+            if (_progressBarUxml != null && _root != null)
+            {
+                var castBarVisual = _progressBarUxml.CloneTree();
+                castBarVisual.name = "CastBar"; 
+                castBarVisual.style.position = Position.Absolute;
+                castBarVisual.style.left = Length.Percent(42f);
+                castBarVisual.style.top = Length.Percent(70f);
+
+                _castBar = new CastBar(castBarVisual);
+                _root.Add(castBarVisual);
+            }
+
+            // 🦾 КАНOНИЧНАЯ СБОРКА ЧАТ-ЛОГА:
+            if (_chatLogUxml != null && _root != null)
+            {
+                var chatRoot = _chatLogUxml.CloneTree();
+                chatRoot.name = "chat-log";
+                chatRoot.AddToClassList("hud__chat-log");
+                _chatLog = new ChatLog(chatRoot);
+                _root.Add(chatRoot);
+            }
+
+            // 🦾 СБОРКА ТРЕКЕРА КВЕСТОВ:
             if (_questTrackerUxml != null && _root != null)
             {
                 _questTracker = new QuestTracker(_questTrackerUxml);
-                _root.Add(_questTracker);
-
-                Entity playerForTracker = PlayerUtils.GetEntityByTag<PlayerTag>();
-                if (playerForTracker != Entity.Null)
-                {
-                    _questTracker.BindToEntity(playerForTracker);
-                    UIRegistry.Register(playerForTracker, _questTracker);
-                }
+                _root.Add(_questTracker);            
             }
 
             _isUiReady = true;
@@ -408,4 +385,3 @@ namespace ProjectTowerRpg.Core.UI
         }     
     }
 }
-

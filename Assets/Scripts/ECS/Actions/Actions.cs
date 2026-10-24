@@ -20,12 +20,10 @@ namespace ProjectTowerRpg.ECS.Actions
         ContainerTakeAll = 11,
 
         // ⚔️ БОЁВКА
-        Attack = 20,
         AuraDisable = 21,
 
         // 🧙‍♂️ ИГРОК / МИР
         Interact = 30,
-        MoveTo = 31,
         ActionBarAssign = 32,
     }
 
@@ -51,14 +49,12 @@ namespace ProjectTowerRpg.ECS.Actions
 
     public static class CombatActions
     {
-        public const ActionKind Attack = ActionKind.Attack;
         public const ActionKind AuraDisable = ActionKind.AuraDisable;
     }
 
     public static class PlayerActions
     {
         public const ActionKind Interact = ActionKind.Interact;
-        public const ActionKind MoveTo = ActionKind.MoveTo;
         public const ActionKind ActionBarAssign = ActionKind.ActionBarAssign;     
     }
 }

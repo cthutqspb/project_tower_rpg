@@ -40,6 +40,8 @@ namespace ProjectTowerRpg.Core.Units
         public int base_health;
         public float base_speed;
         public float hitbox_radius;
+        public bool can_fly;           
+        public float fly_height;
     }
 
     [Serializable]

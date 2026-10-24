@@ -231,6 +231,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             var abilityConfig = AbilitiesDatabase.GetAbility(itemId);
             if (abilityConfig != null)
             {
+                Debug.Log($"ABILITY: {abilityConfig.identity?.element}");
                 SetElementClass(abilityConfig.identity?.element ?? "");                               
                 iconCharacter = abilityConfig.visuals?.icon_char ?? "";
             }

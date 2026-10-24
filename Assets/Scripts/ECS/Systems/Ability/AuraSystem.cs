@@ -126,10 +126,10 @@ namespace ProjectTowerRpg.ECS.Systems
 
                                         // 🆕 Снимаем ауру — цель мертва, дот больше не нужен
                                         aura.ClearContent();
-                                        auraBuffer[i] = aura;
-                                        continue;
+                                        auraBuffer[i] = aura;                                       
 
                                         Debug.Log($"🪦 [AuraSystem]: Сущность {targetUnit.Index} скончалась от DoT...");
+                                        continue;
                                     }
                                     // 📡 ШЛЮЗ ПРЕЗЕНТАЦИИ: Выстреливаем слепой сигнал Hit в шину визуала!
                                     // При каждом тике пламени над головой скелета будет сочно вспыхивать и дрожать наша багровая руна

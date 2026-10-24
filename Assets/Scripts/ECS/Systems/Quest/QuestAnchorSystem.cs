@@ -89,7 +89,8 @@ namespace ProjectTowerRpg.ECS.Systems
             {
                 var anchorEntity = anchors[i];
                 var anchorQuests = em.GetBuffer<QuestAnchor>(anchorEntity);
-                bool showQuest = false;
+
+                NameplateMark mark = NameplateMark.None;
 
                 for (int a = 0; a < anchorQuests.Length; a++)
                 {
@@ -105,16 +106,20 @@ namespace ProjectTowerRpg.ECS.Systems
                         }
                     }
 
-                    // Показываем "!", если квест можно взять (Locked) или сдать (Completed)
-                    if (state == QuestState.Locked || state == QuestState.Completed)
+                    if (state == QuestState.Locked)
                     {
-                        showQuest = true;
+                        mark = NameplateMark.Quest;   // ! — можно взять
                         break;
+                    }
+                    else if (state == QuestState.Completed)
+                    {
+                        mark = NameplateMark.TurnIn;  // ? — можно сдать
+                        // не break — если есть ещё Locked, приоритет у него
                     }
                 }
 
                 var nameplate = em.GetComponentData<NameplateStateComponent>(anchorEntity);
-                nameplate.Mark = showQuest ? NameplateMark.Quest : NameplateMark.None;
+                nameplate.Mark = mark;
                 em.SetComponentData(anchorEntity, nameplate);
             }
             anchors.Dispose();

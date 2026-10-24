@@ -5,9 +5,13 @@ using ProjectTowerRpg.Core.Utils;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Actions
-{
+{   
     public static class ActionResolver
     {
+        private const float INTERACTION_RANGE = 2.7f;
+        private const float LOOT_RANGE = 1.27f;
+
+
         public static ActionCommand Resolve(Entity actor, Entity target, EntityManager em)
         {
             // 1. Если нет цели или она стёрта — возвращаем пустую команду
@@ -26,12 +30,9 @@ namespace ProjectTowerRpg.ECS.Actions
                 if (em.HasComponent<IsDeadTag>(target))
                 {
                     // К трупу нужно сначала честно подойти, как к сундуку!
-                    if (distance <= 1.27f)
+                    if (distance <= LOOT_RANGE)
                         // В упор — шёлково выплёвываем команду открытия контейнера!
                         return new ActionCommand { Action = ContainerActions.Open, TargetEntity = target };
-                    else
-                        // Далеко — отдаём приказ «Беги к координатам тела»!
-                        return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
                 }
 
                 // ================================================================
@@ -45,30 +46,10 @@ namespace ProjectTowerRpg.ECS.Actions
                     // Если профиль пассивный или нейтральный — включаем логику разговора/торговли!
                     if (aiComponent.Profile == AiProfileKind.NeutralPassive || aiComponent.Profile == AiProfileKind.Passive)
                     {
-                        if (distance <= 2.5f) // WoW-дистанция честного разговора в 3D
+                        if (distance <= INTERACTION_RANGE) // WoW-дистанция честного разговора в 3D
                             // В упор — шёлково отдаём приказ на взаимодействие!
                             return new ActionCommand { Action = PlayerActions.Interact, TargetEntity = target };
-                        else
-                            // Далеко — заставляем ноги персонажа подбежать к NPC
-                            return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
                     }
-
-                    // 🦾 2. КЕЙС АГРЕССИВНОГО МОНСТРА (Обычные скелеты башни):
-                    // Если это враг с AggressivePatrol профилем — шёлково включаем боевой контур
-                    if (aiComponent.Profile == AiProfileKind.AggressivePatrol)
-                    {
-                        if (distance <= 1.5f) // TODO: брать дистанцию атаки из оружия
-                            return new ActionCommand { Action = CombatActions.Attack, TargetEntity = target };
-                        else
-                            return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
-                    }
-                }
-
-                // 👤 ИГРОК (PvP-фоллбэк для сущностей без AiComponent)
-                if (em.HasComponent<PlayerTag>(target))
-                {
-                    // TODO: проверка на PvP флаг
-                    return new ActionCommand { Action = CombatActions.Attack, TargetEntity = target };
                 }
             }
 
@@ -84,17 +65,13 @@ namespace ProjectTowerRpg.ECS.Actions
                 // 📦 КОНТЕЙНЕР (сундук, матрешка) — проверяем по конфигу из БД
                 if (itemConfig != null && itemConfig.identity.type == "container")
                 {
-                    if (distance <= 1.27f)
+                    if (distance <= LOOT_RANGE)
                         return new ActionCommand { Action = ContainerActions.Open, TargetEntity = target };
-                    else
-                        return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
                 }
 
                 // 💎 ОБЫЧНЫЙ ПРЕДМЕТ (лут с земли)
-                if (distance <= 1.27f)
+                if (distance <= LOOT_RANGE)
                     return new ActionCommand { Action = ItemActions.Loot, TargetEntity = target };
-                else
-                    return new ActionCommand { Action = PlayerActions.MoveTo, TargetEntity = target, Position = PositionUtils.GetPosition(target, em) };
             }
 
             // 5. Проверяем, является ли цель объектом (Object)

@@ -1,5 +1,12 @@
 {
   "dependencies": {
+    "com.cqf.urpvolumetricfog": {
+      "version": "https://github.com/CristianQiu/Unity-URP-Volumetric-Light.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "354ebc5b6ed3c2c40dc9797c813b56d5da213c4e"
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.16",
       "depth": 0,
@@ -53,7 +60,6 @@
         "com.unity.scriptablebuildpipeline": "1.23.1",
         "com.unity.test-framework.performance": "3.2.0",
         "com.unity.modules.assetbundle": "1.0.0",
-        "com.unity.modules.audio": "1.0.0",
         "com.unity.modules.physics": "1.0.0",
         "com.unity.modules.uielements": "1.0.0",
         "com.unity.modules.unityanalytics": "1.0.0",
@@ -107,7 +113,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.inputsystem": {
-      "version": "6.7.0",
+      "version": "7.0.0",
       "depth": 0,
       "source": "builtin",
       "dependencies": {
@@ -306,7 +312,7 @@
       }
     },
     "com.unity.test-framework.performance": {
-      "version": "6.7.0",
+      "version": "7.0.0",
       "depth": 2,
       "source": "builtin",
       "dependencies": {

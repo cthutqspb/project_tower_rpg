@@ -35,7 +35,7 @@ ModelImporter:
   meshes:
     lODScreenPercentages: []
     globalScale: 1
-    meshCompression: 0
+    meshCompression: 3
     addColliders: 0
     useSRGBMaterialColor: 1
     sortHierarchyByName: 1
@@ -59,7 +59,7 @@ ModelImporter:
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
     optimizeBones: 1
-    generateMeshLods: 0
+    generateMeshLods: 1
     meshLodGenerationFlags: 0
     maximumMeshLod: -1
     importUVs: -1
@@ -88,8 +88,816 @@ ModelImporter:
   importAnimation: 1
   humanDescription:
     serializedVersion: 3
-    human: []
-    skeleton: []
+    human:
+    - boneName: SK_Pelvis
+      humanName: Hips
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Femur
+      humanName: LeftUpperLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Femur.001
+      humanName: RightUpperLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Tibia
+      humanName: LeftLowerLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Tibia.001
+      humanName: RightLowerLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Tarsal
+      humanName: LeftFoot
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Tarsal.001
+      humanName: RightFoot
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Spine
+      humanName: Spine
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Cranium
+      humanName: Head
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Clavicle
+      humanName: LeftShoulder
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Clavicle.001
+      humanName: RightShoulder
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Humerus.001
+      humanName: LeftUpperArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Humerus.002
+      humanName: RightUpperArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Radius
+      humanName: LeftLowerArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Ulna.001
+      humanName: RightLowerArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Carpals
+      humanName: LeftHand
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Carpals.001
+      humanName: RightHand
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Metatarsal
+      humanName: LeftToes
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Metatarsal.005
+      humanName: RightToes
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Upper_canines.003
+      humanName: LeftEye
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Upper_incisors01.003
+      humanName: RightEye
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Upper_incisors02.003
+      humanName: Jaw
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Metacarpal.001
+      humanName: Left Index Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.001
+      humanName: Left Index Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.006
+      humanName: Left Index Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Metacarpal.002
+      humanName: Left Middle Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.002
+      humanName: Left Middle Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.007
+      humanName: Left Middle Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Metacarpal.003
+      humanName: Left Ring Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.003
+      humanName: Left Ring Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.008
+      humanName: Left Ring Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Metacarpal.004
+      humanName: Left Little Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.004
+      humanName: Left Little Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.009
+      humanName: Left Little Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Metacarpal.009
+      humanName: Right Index Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.025
+      humanName: Right Index Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.018
+      humanName: Right Index Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Metacarpal.008
+      humanName: Right Middle Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.015
+      humanName: Right Middle Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.027
+      humanName: Right Middle Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Metacarpal.006
+      humanName: Right Ring Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.023
+      humanName: Right Ring Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.026
+      humanName: Right Ring Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Metacarpal.005
+      humanName: Right Little Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.016
+      humanName: Right Little Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: SK_Phalange.022
+      humanName: Right Little Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    skeleton:
+    - name: skeleton(Clone)
+      parentName: 
+      position: {x: -0, y: 1.1662, z: 0.0886291}
+      rotation: {x: 0.000000021855694, y: 0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Pelvis
+      parentName: skeleton(Clone)
+      position: {x: 0.000005934851, y: 0.000000003874102, z: 0.000000022351742}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Femur
+      parentName: SK_Pelvis
+      position: {x: -0.10634104, y: -0.1332767, z: -0.00037001818}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.9999997, y: 0.9999997, z: 1}
+    - name: SK_Patella
+      parentName: SK_Femur
+      position: {x: -0.0022765547, y: -0.5002583, z: 0.03992331}
+      rotation: {x: 1.8786638e-15, y: 0, z: -0, w: 1}
+      scale: {x: 0.9455426, y: 0.94554245, z: 0.94554293}
+    - name: SK_Tibia
+      parentName: SK_Femur
+      position: {x: 0.017202705, y: -0.49840015, z: -0.0019412041}
+      rotation: {x: 8.881787e-16, y: 0, z: -0, w: 1}
+      scale: {x: 0.9999999, y: 0.9999997, z: 1}
+    - name: SK_Tarsal
+      parentName: SK_Tibia
+      position: {x: -0.02496995, y: -0.5062265, z: 0.036441438}
+      rotation: {x: -8.392962e-16, y: -0.32717678, z: 0.000000014301351, w: 0.94496316}
+      scale: {x: 1.0000001, y: 1.0000001, z: 1.0000002}
+    - name: SK_Metatarsal
+      parentName: SK_Tarsal
+      position: {x: 0.022145018, y: 0.00994683, z: 0.016954772}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 0.99999976}
+    - name: SK_Metatarsal.001
+      parentName: SK_Tarsal
+      position: {x: 0.0041346923, y: 0.025394572, z: 0.008136742}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.99999994, y: 0.9999999, z: 0.99999976}
+    - name: SK_Metatarsal.002
+      parentName: SK_Tarsal
+      position: {x: -0.008947633, y: 0.02010859, z: 0.0035879537}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.9999999, y: 0.99999994, z: 0.9999997}
+    - name: SK_Metatarsal.003
+      parentName: SK_Tarsal
+      position: {x: -0.020407334, y: 0.009054427, z: -0.0076158047}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.99999994, y: 1, z: 0.9999997}
+    - name: SK_Metatarsal.004
+      parentName: SK_Tarsal
+      position: {x: -0.032274723, y: -0.0038343698, z: -0.020590656}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 0.99999976}
+    - name: SK_Femur.001
+      parentName: SK_Pelvis
+      position: {x: 0.10632906, y: -0.13327658, z: -0.00037001818}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.9999997, y: 0.9999997, z: 1}
+    - name: SK_Patella.001
+      parentName: SK_Femur.001
+      position: {x: 0.0022770092, y: -0.50025845, z: 0.03992319}
+      rotation: {x: 1.878664e-15, y: 0, z: -0, w: 1}
+      scale: {x: 0.9455426, y: 0.94554234, z: 0.94554293}
+    - name: SK_Tibia.001
+      parentName: SK_Femur.001
+      position: {x: -0.017203018, y: -0.49840027, z: -0.0019412041}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.9999999, y: 0.99999964, z: 1}
+    - name: SK_Tarsal.001
+      parentName: SK_Tibia.001
+      position: {x: 0.024970002, y: -0.5062266, z: 0.036441445}
+      rotation: {x: -1.7763568e-15, y: 0.32717675, z: -0.000000014301349, w: 0.94496316}
+      scale: {x: 1, y: 1, z: 1.0000002}
+    - name: SK_Metatarsal.005
+      parentName: SK_Tarsal.001
+      position: {x: -0.022145003, y: 0.009946947, z: 0.016954772}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.9999999, y: 0.9999999, z: 0.99999976}
+    - name: SK_Metatarsal.006
+      parentName: SK_Tarsal.001
+      position: {x: -0.004134007, y: 0.025394809, z: 0.008136742}
+      rotation: {x: 8.881786e-16, y: 0, z: -0, w: 1}
+      scale: {x: 0.9999997, y: 0.99999976, z: 0.99999976}
+    - name: SK_Metatarsal.007
+      parentName: SK_Tarsal.001
+      position: {x: 0.008948006, y: 0.020108826, z: 0.0035879537}
+      rotation: {x: 8.881786e-16, y: 0, z: -0, w: 1}
+      scale: {x: 0.99999964, y: 0.9999998, z: 0.9999997}
+    - name: SK_Metatarsal.008
+      parentName: SK_Tarsal.001
+      position: {x: 0.020408012, y: 0.009054664, z: -0.0076158047}
+      rotation: {x: 8.881785e-16, y: 0, z: -0, w: 1}
+      scale: {x: 0.9999998, y: 0.99999994, z: 0.9999996}
+    - name: SK_Metatarsal.009
+      parentName: SK_Tarsal.001
+      position: {x: 0.03227497, y: -0.0038342525, z: -0.020590656}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.9999999, y: 0.9999999, z: 0.99999976}
+    - name: SK_Spine
+      parentName: SK_Pelvis
+      position: {x: -0.000005934851, y: 0.0021637715, z: -0.004402995}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Cranium
+      parentName: SK_Spine
+      position: {x: 0.002546642, y: 0.7897879, z: 0.038345344}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Mandible
+      parentName: SK_Cranium
+      position: {x: 0.00000005401671, y: 0.0000000053577702, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 0.99999994}
+    - name: Lower_canines.003
+      parentName: SK_Mandible
+      position: {x: -0.014590637, y: -0.09793293, z: 0.08603145}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 0.99999994, z: 1}
+    - name: Lower_incisors01.003
+      parentName: SK_Mandible
+      position: {x: -0.0022870293, y: -0.10062336, z: 0.08821882}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.9999997, y: 0.9999998, z: 1.0000002}
+    - name: Lower_incisors02.003
+      parentName: SK_Mandible
+      position: {x: -0.0070719253, y: -0.099213235, z: 0.08759965}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1.0000002, z: 0.99999994}
+    - name: Lower_molars01.003
+      parentName: SK_Mandible
+      position: {x: -0.02865562, y: -0.086920254, z: 0.06755854}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Lower_molars02.003
+      parentName: SK_Mandible
+      position: {x: -0.032748543, y: -0.08607184, z: 0.05613208}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.99999976, y: 1.0000001, z: 1.0000001}
+    - name: Lower_molars03.003
+      parentName: SK_Mandible
+      position: {x: -0.035373263, y: -0.08201944, z: 0.046560287}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1.0000001}
+    - name: Lower_premolars01.003
+      parentName: SK_Mandible
+      position: {x: -0.01922393, y: -0.08788716, z: 0.08427121}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1.0000002, z: 1.0000002}
+    - name: Lower_premolars02.003
+      parentName: SK_Mandible
+      position: {x: -0.024711257, y: -0.08856129, z: 0.076830044}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1.0000001, z: 1.0000001}
+    - name: Upper_canines.003
+      parentName: SK_Cranium
+      position: {x: -0.020710066, y: -0.06539487, z: 0.09111154}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Upper_incisors01.003
+      parentName: SK_Cranium
+      position: {x: -0.0043679685, y: -0.06405448, z: 0.09720254}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Upper_incisors02.003
+      parentName: SK_Cranium
+      position: {x: -0.013735367, y: -0.06460642, z: 0.09518814}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Upper_molars01.003
+      parentName: SK_Cranium
+      position: {x: -0.034023166, y: -0.06455862, z: 0.06555903}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Upper_molars02.003
+      parentName: SK_Cranium
+      position: {x: -0.03600643, y: -0.062770836, z: 0.055468082}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Upper_molars03.003
+      parentName: SK_Cranium
+      position: {x: -0.036290016, y: -0.062880985, z: 0.04498744}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Upper_premolars01.003
+      parentName: SK_Cranium
+      position: {x: -0.02584734, y: -0.06796884, z: 0.083559275}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Upper_premolars02.003
+      parentName: SK_Cranium
+      position: {x: -0.02976403, y: -0.06503438, z: 0.07436335}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_RibCage
+      parentName: SK_Spine
+      position: {x: -0, y: 0.0000000036816408, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Clavicle
+      parentName: SK_RibCage
+      position: {x: -0.014930785, y: 0.5582464, z: 0.08502638}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Humerus.001
+      parentName: SK_Clavicle
+      position: {x: -0.18827099, y: -0.022161596, z: 0.010103703}
+      rotation: {x: -0, y: 0.04863951, z: -0.63809615, w: 0.76841885}
+      scale: {x: 1, y: 0.9999998, z: 1}
+    - name: SK_Radius
+      parentName: SK_Humerus.001
+      position: {x: -0.063167974, y: -0.37834668, z: -0.028839841}
+      rotation: {x: 0.014502617, y: -0.0003300384, z: -0.030773878, w: 0.9994211}
+      scale: {x: 1, y: 1.0000002, z: 1}
+    - name: SK_Carpals
+      parentName: SK_Radius
+      position: {x: -0.015259117, y: -0.3153652, z: -0.003808856}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Metacarpal
+      parentName: SK_Carpals
+      position: {x: 0.035740703, y: -0.026176505, z: 0.027953506}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Phalange
+      parentName: SK_Metacarpal
+      position: {x: 0.020092145, y: -0.04390674, z: 0.0099931955}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Phalange.005
+      parentName: SK_Phalange
+      position: {x: 0.010565758, y: -0.028585188, z: 0.0013780594}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Metacarpal.001
+      parentName: SK_Carpals
+      position: {x: 0.010789365, y: -0.04545366, z: 0.02516663}
+      rotation: {x: -0.026660267, y: -0.01220977, z: -0.06523367, w: 0.99743915}
+      scale: {x: 0.9999999, y: 0.99999994, z: 1}
+    - name: SK_Phalange.001
+      parentName: SK_Metacarpal.001
+      position: {x: 0.009506315, y: -0.06816893, z: 0.008874044}
+      rotation: {x: -0.15383166, y: -0.014634733, z: 0.05236867, w: 0.98659986}
+      scale: {x: 0.9999999, y: 1.0000002, z: 1}
+    - name: SK_Phalange.006
+      parentName: SK_Phalange.001
+      position: {x: 0.0003989339, y: -0.04071205, z: -0.010205388}
+      rotation: {x: -0.17626299, y: -0.019696651, z: 0.07168369, w: 0.9815319}
+      scale: {x: 1.0000001, y: 0.9999999, z: 1}
+    - name: SK_Phalange.010
+      parentName: SK_Phalange.006
+      position: {x: -0.003348291, y: -0.016255908, z: -0.012700066}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.99999976, y: 0.99999976, z: 1}
+    - name: SK_Metacarpal.002
+      parentName: SK_Carpals
+      position: {x: -0.008765131, y: -0.058998637, z: 0.014624953}
+      rotation: {x: -0.052827045, y: 0.0028048528, z: -0.02034533, w: 0.9983925}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Phalange.002
+      parentName: SK_Metacarpal.002
+      position: {x: -0.0028652847, y: -0.06065952, z: -0.0009225607}
+      rotation: {x: -0.049976785, y: 0.0026694136, z: -0.020299975, w: 0.99854046}
+      scale: {x: 1, y: 0.99999994, z: 0.99999976}
+    - name: SK_Phalange.007
+      parentName: SK_Phalange.002
+      position: {x: 0.0011380017, y: -0.048160605, z: -0.009134531}
+      rotation: {x: -0.078844145, y: 0.00026760434, z: -0.011232374, w: 0.9968237}
+      scale: {x: 1.0000001, y: 1.0000002, z: 0.9999999}
+    - name: SK_Phalange.011
+      parentName: SK_Phalange.007
+      position: {x: 0.0012775958, y: -0.021190936, z: -0.009473443}
+      rotation: {x: 1.7763573e-15, y: 0, z: -0, w: 1}
+      scale: {x: 0.9999999, y: 0.99999976, z: 0.9999999}
+    - name: SK_Metacarpal.003
+      parentName: SK_Carpals
+      position: {x: -0.025902063, y: -0.0407316, z: -0.0035825968}
+      rotation: {x: -0.044825427, y: 0.009532922, z: 0.011591976, w: 0.9988821}
+      scale: {x: 1, y: 1, z: 0.99999994}
+    - name: SK_Phalange.003
+      parentName: SK_Metacarpal.003
+      position: {x: -0.012926012, y: -0.060188405, z: -0.00048673153}
+      rotation: {x: -0.025606511, y: 0.0061723613, z: -0.083237246, w: 0.9961816}
+      scale: {x: 0.99999994, y: 1, z: 1}
+    - name: SK_Phalange.008
+      parentName: SK_Phalange.003
+      position: {x: 0.0011928976, y: -0.04418283, z: -0.0036432743}
+      rotation: {x: -0.0651075, y: -0.0009551187, z: -0.009733241, w: 0.99783033}
+      scale: {x: 0.9999999, y: 1, z: 0.9999998}
+    - name: SK_Phalange.012
+      parentName: SK_Phalange.008
+      position: {x: 0.0013492703, y: -0.02282917, z: -0.0067857355}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.99999994, y: 0.99999994, z: 1.0000001}
+    - name: SK_Metacarpal.004
+      parentName: SK_Carpals
+      position: {x: -0.019929916, y: -0.010298723, z: -0.023763292}
+      rotation: {x: -0.05682181, y: 0.028629083, z: 0.0814382, w: 0.9946454}
+      scale: {x: 1, y: 1, z: 0.9999999}
+    - name: SK_Phalange.004
+      parentName: SK_Metacarpal.004
+      position: {x: -0.030341357, y: -0.0644372, z: 0.0014823675}
+      rotation: {x: -0.006664913, y: -0.0004267078, z: -0.15496904, w: 0.9878968}
+      scale: {x: 0.9999998, y: 0.99999994, z: 1}
+    - name: SK_Phalange.009
+      parentName: SK_Phalange.004
+      position: {x: -0.002227813, y: -0.036599394, z: 0.00019657612}
+      rotation: {x: -0.072235644, y: 0.0039878353, z: -0.076188065, w: 0.9944655}
+      scale: {x: 0.9999999, y: 0.9999998, z: 1}
+    - name: SK_Phalange.013
+      parentName: SK_Phalange.009
+      position: {x: 0.0025167167, y: -0.01697188, z: -0.0032745674}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: SK_Scapula
+      parentName: SK_Clavicle
+      position: {x: 0.014930767, y: -0.55586374, z: -0.08502637}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.99999994, y: 0.99999994, z: 1}
+    - name: SK_Clavicle.001
+      parentName: SK_RibCage
+      position: {x: 0.014931001, y: 0.5582464, z: 0.08502638}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Humerus.002
+      parentName: SK_Clavicle.001
+      position: {x: 0.18827105, y: -0.022161596, z: 0.010103703}
+      rotation: {x: -0, y: -0.069822535, z: 0.6560025, w: 0.7515222}
+      scale: {x: 1, y: 0.99999976, z: 1}
+    - name: SK_Ulna.001
+      parentName: SK_Humerus.002
+      position: {x: 0.04469198, y: -0.38326585, z: -0.04079342}
+      rotation: {x: 0.025708344, y: 0.0029092578, z: 0.0044072564, w: 0.99965554}
+      scale: {x: 1.0000001, y: 1.0000001, z: 1}
+    - name: SK_Carpals.001
+      parentName: SK_Ulna.001
+      position: {x: 0.033735037, y: -0.31044602, z: 0.008144736}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.9999999, y: 1, z: 1}
+    - name: SK_Metacarpal.005
+      parentName: SK_Carpals.001
+      position: {x: 0.019929826, y: -0.010298962, z: -0.023763292}
+      rotation: {x: -0.05682136, y: -0.028628407, z: -0.081435524, w: 0.9946457}
+      scale: {x: 1, y: 1, z: 0.9999999}
+    - name: SK_Phalange.016
+      parentName: SK_Metacarpal.005
+      position: {x: 0.030341059, y: -0.06443714, z: 0.0014823601}
+      rotation: {x: -0.006663675, y: 0.00042717336, z: 0.1549605, w: 0.9878981}
+      scale: {x: 0.99999994, y: 1.0000001, z: 1.0000001}
+    - name: SK_Phalange.022
+      parentName: SK_Phalange.016
+      position: {x: 0.0022280812, y: -0.036599454, z: 0.00019668788}
+      rotation: {x: -0.07224343, y: -0.003988537, z: 0.07620241, w: 0.9944638}
+      scale: {x: 1, y: 0.9999999, z: 0.9999999}
+    - name: SK_Phalange.019
+      parentName: SK_Phalange.022
+      position: {x: -0.002517134, y: -0.016971583, z: -0.0032746792}
+      rotation: {x: -1.7763568e-15, y: 0, z: -0, w: 1}
+      scale: {x: 0.9999999, y: 0.99999994, z: 1}
+    - name: SK_Metacarpal.006
+      parentName: SK_Carpals.001
+      position: {x: 0.025901914, y: -0.0407319, z: -0.0035824776}
+      rotation: {x: -0.044826843, y: -0.009533375, z: -0.01159283, w: 0.99888206}
+      scale: {x: 0.99999994, y: 1.0000001, z: 0.99999994}
+    - name: SK_Phalange.023
+      parentName: SK_Metacarpal.006
+      position: {x: 0.012926102, y: -0.060188405, z: -0.00048685074}
+      rotation: {x: -0.025607307, y: -0.006172806, z: 0.08324166, w: 0.9961812}
+      scale: {x: 0.9999998, y: 1, z: 0.9999998}
+    - name: SK_Phalange.026
+      parentName: SK_Phalange.023
+      position: {x: -0.0011931956, y: -0.04418253, z: -0.0036433935}
+      rotation: {x: -0.06510187, y: 0.0009561613, z: 0.009724187, w: 0.99783087}
+      scale: {x: 1, y: 0.99999994, z: 1}
+    - name: SK_Phalange.020
+      parentName: SK_Phalange.026
+      position: {x: -0.0013488233, y: -0.022829229, z: -0.0067856163}
+      rotation: {x: -1.7763573e-15, y: 0, z: -0, w: 1}
+      scale: {x: 0.99999994, y: 0.9999998, z: 0.99999994}
+    - name: SK_Metacarpal.007
+      parentName: SK_Carpals.001
+      position: {x: -0.03574103, y: -0.026176803, z: 0.027953625}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: SK_Phalange.017
+      parentName: SK_Metacarpal.007
+      position: {x: -0.020092025, y: -0.04390668, z: 0.0099931955}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Phalange.024
+      parentName: SK_Phalange.017
+      position: {x: -0.010565996, y: -0.028585188, z: 0.0013779402}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: SK_Metacarpal.008
+      parentName: SK_Carpals.001
+      position: {x: 0.008764982, y: -0.058998995, z: 0.0146250725}
+      rotation: {x: -0.052828908, y: -0.0028046244, z: 0.020347571, w: 0.99839234}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: SK_Phalange.015
+      parentName: SK_Metacarpal.008
+      position: {x: 0.0028650463, y: -0.0606594, z: -0.0009226799}
+      rotation: {x: -0.04997562, y: -0.0026692485, z: 0.02030045, w: 0.9985405}
+      scale: {x: 0.9999999, y: 0.9999999, z: 0.99999976}
+    - name: SK_Phalange.027
+      parentName: SK_Phalange.015
+      position: {x: -0.0011382103, y: -0.048160546, z: -0.009134516}
+      rotation: {x: -0.07884386, y: -0.00026343975, z: 0.011214894, w: 0.9968239}
+      scale: {x: 1.0000002, y: 1.0000002, z: 0.9999999}
+    - name: SK_Phalange.021
+      parentName: SK_Phalange.027
+      position: {x: -0.0012767911, y: -0.021190817, z: -0.009473443}
+      rotation: {x: 1.7763573e-15, y: 0, z: -0, w: 1}
+      scale: {x: 0.9999999, y: 0.9999997, z: 0.9999998}
+    - name: SK_Metacarpal.009
+      parentName: SK_Carpals.001
+      position: {x: -0.010789096, y: -0.04545396, z: 0.02516675}
+      rotation: {x: -0.026662523, y: 0.012210818, z: 0.06523918, w: 0.9974387}
+      scale: {x: 0.9999998, y: 1, z: 1}
+    - name: SK_Phalange.025
+      parentName: SK_Metacarpal.009
+      position: {x: -0.009506941, y: -0.06816893, z: 0.008873805}
+      rotation: {x: -0.15383089, y: 0.01463598, z: -0.05237315, w: 0.98659974}
+      scale: {x: 0.99999994, y: 1.0000002, z: 1}
+    - name: SK_Phalange.018
+      parentName: SK_Phalange.025
+      position: {x: -0.0003989935, y: -0.04071217, z: -0.010205522}
+      rotation: {x: -0.17625767, y: 0.019699972, z: -0.071696125, w: 0.9815319}
+      scale: {x: 1.0000002, y: 0.99999994, z: 1}
+    - name: SK_Phalange.014
+      parentName: SK_Phalange.018
+      position: {x: 0.0033489466, y: -0.016255967, z: -0.012699828}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.9999997, y: 0.9999997, z: 1}
+    - name: SK_Scapula.001
+      parentName: SK_Clavicle.001
+      position: {x: -0.014931018, y: -0.55586374, z: -0.08502637}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.99999994, y: 0.99999994, z: 1}
     armTwist: 0.5
     foreArmTwist: 0.5
     upperLegTwist: 0.5
@@ -114,3 +922,9 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+  script: {fileID: 21018, guid: 0000000000000000e000000000000000, type: 0}
+  blockCollection:
+    blocks: []
+  references:
+    version: 2
+    RefIds: []

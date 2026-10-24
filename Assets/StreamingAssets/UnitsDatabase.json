@@ -62,7 +62,7 @@
     },
     "ai": {
       "profile": "aggressive_patrol",
-      "base_aggro_radius": 45.0,
+      "base_aggro_radius": 25.0,
       "is_ranged": false,
       "flee_range": 0.0,
       "tag_weights": {
@@ -172,6 +172,60 @@
       }
     },
     "abilities": ["melee_attack", "frostbolt", "lightning_bolt"]
+  },
+
+  "crow": {
+    "identity": {
+      "name_key": "crow_name",
+      "race": "bird",
+      "faction": "neutral_bird",
+      "type": "bird",
+      "default_rank": "uncommon",
+      "unit_class": ["rogue"],
+      "loot_table_id": "empty"
+    },
+    "interactable": {
+        "dialog_table_id": "none"
+    },
+    "attributes": {
+      "strength": 4,
+      "agility": 15,
+      "intellect": 22,
+      "stamina": 7
+    },
+    "parameters": {
+      "base_health": 32,
+      "base_speed": 5.4,
+      "hitbox_radius": 0.36,
+      "can_fly": true,
+      "fly_height": "1.5"
+    },
+    "progression": {
+      "health_growth": 1.12,
+      "damage_growth": 1.07
+    },
+    "resource": {
+      "type": "mana",
+      "current": 27,
+      "max": 27
+    },
+    "visuals": {
+      "animation": "skeleton_mage",
+      "texture": "project_utumno"
+    },
+    "ai": {
+      "profile": "aggressive_patrol",
+      "base_aggro_radius": 45.0,
+      "is_ranged": true,
+      "flee_range": 2.7,
+      "tag_weights": {
+        "damage": 1.5,
+        "control": 1.0,
+        "melee_attack": 0.5,
+        "ranged_attack": 1.0
+      }
+    },
+    "abilities": ["melee_attack"]
   }
 }
 

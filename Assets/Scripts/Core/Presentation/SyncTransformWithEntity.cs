@@ -29,6 +29,14 @@ public class SyncTransformWithEntity : MonoBehaviour
     private Animator _animator; 
     private Collider _hitbox;
     private Collider _clickbox;
+
+    // 🆕 Кэш параметров Animator (чтобы не спамить ошибками в консоль)
+    private bool _hasVelocityX;
+    private bool _hasVelocityZ;
+    private bool _hasVelocityY;
+    private bool _hasIsGrounded;
+    private bool _hasIsFlying;
+    private bool _hasIsDead;
     
     public Entity BoundEntity => _boundEntity;
 
@@ -49,6 +57,9 @@ public class SyncTransformWithEntity : MonoBehaviour
                     if (c.isTrigger) _clickbox = c;
                     else _hitbox = c;
                 }
+                
+                // 🆕 Кэшируем параметры аниматора один раз при спавне
+                CacheAnimatorParameters();
                 break;
 
             case ViewType.Projectile:
@@ -56,6 +67,32 @@ public class SyncTransformWithEntity : MonoBehaviour
             case ViewType.Object:
                 // Снарядам, луту и дверям физические хитбоксы юнитов и аниматоры не нужны
                 break;
+        }
+    }
+
+    // 🆕 Сканируем Animator и запоминаем, какие параметры у него реально есть
+    private void CacheAnimatorParameters()
+    {
+        _hasVelocityX = false;
+        _hasVelocityZ = false;
+        _hasVelocityY = false;
+        _hasIsGrounded = false;
+        _hasIsFlying = false;
+        _hasIsDead = false;
+
+        if (_animator == null) return;
+
+        foreach (var param in _animator.parameters)
+        {
+            switch (param.name)
+            {
+                case "VelocityX": _hasVelocityX = true; break;
+                case "VelocityZ": _hasVelocityZ = true; break;
+                case "VelocityY": _hasVelocityY = true; break;
+                case "IsGrounded": _hasIsGrounded = true; break;
+                case "IsFlying": _hasIsFlying = true; break;
+                case "IsDead": _hasIsDead = true; break;
+            }
         }
     }
 
@@ -92,12 +129,16 @@ public class SyncTransformWithEntity : MonoBehaviour
     // 💀 ИЗОЛИРОВАННАЯ ЛОГИКА ЮНИТОВ (Анимации, Хитбоксы, Blend Tree)
     private void UpdateUnitVisuals(LocalTransform localTransform)
     {
+        // 🪦 ОБРАБОТКА СМЕРТИ
         if (_animator != null && _entityManager.HasComponent<IsDeadTag>(_boundEntity))
         {
-            _animator.SetFloat("VelocityX", 0f);
-            _animator.SetFloat("VelocityZ", 0f);
-            _animator.SetFloat("VelocityY", 0f);
-            _animator.SetBool("IsDead", true);
+            // 🆕 Используем кэш вместо прямого вызова
+            if (_hasVelocityX) _animator.SetFloat("VelocityX", 0f);
+            if (_hasVelocityZ) _animator.SetFloat("VelocityZ", 0f);
+            if (_hasVelocityY) _animator.SetFloat("VelocityY", 0f);
+            if (_hasIsDead) _animator.SetBool("IsDead", true);
+            if (_hasIsGrounded) _animator.SetBool("IsGrounded", true);
+            if (_hasIsFlying) _animator.SetBool("IsFlying", false); // На всякий случай сбрасываем полет
 
             // 1. Физический хитбокс стен выключаем наглухо, чтобы тян могла бегать сквозь кости!
             if (_hitbox != null && _hitbox.enabled) _hitbox.enabled = false;
@@ -123,7 +164,7 @@ public class SyncTransformWithEntity : MonoBehaviour
         // =========================================================================
         // 🦾 ОБРАТНЫЙ СБРОС ПРИ ВОСКРЕШЕНИИ / СПАВНЕ (Возвращаем исходный ААА-рост):
         // =========================================================================
-        if (_animator != null) _animator.SetBool("IsDead", false);
+        if (_animator != null && _hasIsDead) _animator.SetBool("IsDead", false);
         
         if (_hitbox != null && !_hitbox.enabled) _hitbox.enabled = true;
         
@@ -148,6 +189,8 @@ public class SyncTransformWithEntity : MonoBehaviour
             if (_animator != null)
             {
                 bool isMoving = math.lengthsq(moveData.Direction) > 0.001f;
+                float localDirX = 0f;
+                float localDirZ = 0f;
 
                 if (isMoving)
                 {
@@ -159,26 +202,33 @@ public class SyncTransformWithEntity : MonoBehaviour
                         float3 cameraRight = new float3(cameraForward.z, 0f, -cameraForward.x);
                         float3 worldMoveVector = (cameraForward * moveData.Direction.z) + (cameraRight * moveData.Direction.x);
                         float3 localDir = math.mul(math.inverse(localTransform.Rotation), worldMoveVector);
-
-                        _animator.SetFloat("VelocityX", localDir.x);
-                        _animator.SetFloat("VelocityZ", localDir.z);
+                        
+                        localDirX = localDir.x;
+                        localDirZ = localDir.z;
                     }
                     else
                     {
                         // 💀 МОНСТРЫ И NPC
                         float3 localDir = math.mul(math.inverse(localTransform.Rotation), moveData.Direction);
-                        _animator.SetFloat("VelocityX", localDir.x);
-                        _animator.SetFloat("VelocityZ", localDir.z);
+                        
+                        localDirX = localDir.x;
+                        localDirZ = localDir.z;
                     }
                 }
-                else
-                {
-                    _animator.SetFloat("VelocityX", 0f);
-                    _animator.SetFloat("VelocityZ", 0f);
-                }
 
-                _animator.SetFloat("VelocityY", moveData.Direction.y);
-                _animator.SetBool("IsGrounded", moveData.IsGrounded);
+                // 🆕 Передаем только то, что есть в Animator
+                if (_hasVelocityX) _animator.SetFloat("VelocityX", localDirX);
+                if (_hasVelocityZ) _animator.SetFloat("VelocityZ", localDirZ);
+                if (_hasVelocityY) _animator.SetFloat("VelocityY", moveData.Direction.y);
+                if (_hasIsGrounded) _animator.SetBool("IsGrounded", moveData.IsGrounded);
+                
+                // 🦅 ЛОГИКА ДЛЯ ПТИЦ (и любых летающих/ходящих юнитов)
+                // Если у Animator есть параметр IsFlying, мы его обновляем, 
+                // независимо от того, умеет юнит летать или нет (просто передаст false)
+                if (_hasIsFlying) 
+                {
+                    _animator.SetBool("IsFlying", moveData.IsFlying);
+                }
             }
         }
     }
@@ -213,7 +263,7 @@ public class SyncTransformWithEntity : MonoBehaviour
         }
     }
 
-        /// <summary>
+    /// <summary>
     /// 🦾 МГНОВЕННЫЙ БУРСТ БЕЗ GUI: Теперь префаб привязывается к костям рук, убирая лаги в прыжке!
     /// </summary>
     public void PlayInstantCastVfx(ProjectTowerRpg.Core.Colors.ColorUtils.ElementColors colors)
@@ -279,4 +329,3 @@ public class SyncTransformWithEntity : MonoBehaviour
         }
     }
 }
-

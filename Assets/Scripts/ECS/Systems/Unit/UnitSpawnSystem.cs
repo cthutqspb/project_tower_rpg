@@ -60,6 +60,8 @@ namespace ProjectTowerRpg.ECS.Systems
 
                 float baseSpeed = dbCfg.parameters.base_speed;
                 float hitboxRadius = dbCfg.parameters.hitbox_radius;
+                bool canFly = dbCfg.parameters.can_fly;
+                float flyHeight = dbCfg.parameters.fly_height;
                                 
                 AiProfileKind profileKind = AiProfileKind.AggressivePatrol; // Дефолт для монстров
                 if (isPlayer)
@@ -91,6 +93,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     Uid = isPlayer ? "player" : generatedUid,
                     UnitId = markerData.UnitId, // Передаем FixedString
                     NameKey = isPlayer ? "player" : nameKey,
+                    UniqueNameKey = markerData.UniqueNameKey,
                     Level = markerData.Level,
                     //Position = spawnPosition,
                     Faction = faction,
@@ -110,7 +113,10 @@ namespace ProjectTowerRpg.ECS.Systems
                     BaseSpeed = baseSpeed,
                     Direction = float3.zero,
                     IsGrounded = true,
-                    JumpRequested = false
+                    JumpRequested = false,
+                    CanFly = canFly,
+                    FlyHeight = flyHeight,
+                    IsFlying = false
                 });
 
                 // Избавились от дублирования ХП и скорости! Оставили только чистый боевой стейт

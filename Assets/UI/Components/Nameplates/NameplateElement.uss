@@ -26,6 +26,12 @@
     -unity-text-outline-color: rgba(0, 0, 0, 0.8);
 }
 
+.nameplate__name--targeted {
+    color: var(--color-text);
+    font-size: 18px;
+    text-shadow: 0 0 4px var(--color-text);
+}
+
 /* 🆕 Цвета по Relation (твоя тема) */
 .nameplate__name--hostile  { color: var(--osaka-red); }
 .nameplate__name--neutral  { color: var(--osaka-yellow); }
@@ -45,12 +51,12 @@
     opacity: 0.72;
 }
 
-/* Задел на будущее:
 .nameplate__mark--turn-in {
     color: var(--osaka-yellow);
     opacity: 0.9;
 }
 
+/* Задел на будущее:
 .nameplate__mark--gray {
     color: var(--osaka-text-dim);
     opacity: 0.6;
