@@ -10,6 +10,7 @@ namespace ProjectTowerRpg.ECS.Components
         public float HitboxRadius; 
         // 🦾 НАШИ ПОДГОТОВЛЕННЫЕ ДАННЫЕ ДЛЯ СКОРОСТИ:
         public float BaseSpeed;          // Статический фундамент из JSON (запекается фабрикой)
+        public float CombatSpeed;
         public float CurrentSpeed;       // Живая скорость с учетом шмоток/эффектов (считается системой стат)
 
         public float3 Direction;         // Текущий вектор направления (куда бежим)

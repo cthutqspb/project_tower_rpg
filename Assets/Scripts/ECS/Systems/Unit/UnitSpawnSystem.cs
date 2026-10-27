@@ -59,6 +59,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     : dbCfg.identity.name_key;
 
                 float baseSpeed = dbCfg.parameters.base_speed;
+                float combatSpeed = dbCfg.parameters.combat_speed;
                 float hitboxRadius = dbCfg.parameters.hitbox_radius;
                 bool canFly = dbCfg.parameters.can_fly;
                 float flyHeight = dbCfg.parameters.fly_height;
@@ -111,6 +112,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     HitboxRadius = hitboxRadius,
                     CurrentSpeed = baseSpeed,
                     BaseSpeed = baseSpeed,
+                    CombatSpeed = combatSpeed,
                     Direction = float3.zero,
                     IsGrounded = true,
                     JumpRequested = false,

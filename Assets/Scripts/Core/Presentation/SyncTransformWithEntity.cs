@@ -31,6 +31,7 @@ public class SyncTransformWithEntity : MonoBehaviour
     private Collider _clickbox;
 
     // 🆕 Кэш параметров Animator (чтобы не спамить ошибками в консоль)
+    private bool _hasSpeed;
     private bool _hasVelocityX;
     private bool _hasVelocityZ;
     private bool _hasVelocityY;
@@ -86,6 +87,7 @@ public class SyncTransformWithEntity : MonoBehaviour
         {
             switch (param.name)
             {
+                case "Speed": _hasSpeed = true; break;
                 case "VelocityX": _hasVelocityX = true; break;
                 case "VelocityZ": _hasVelocityZ = true; break;
                 case "VelocityY": _hasVelocityY = true; break;
@@ -191,6 +193,7 @@ public class SyncTransformWithEntity : MonoBehaviour
                 bool isMoving = math.lengthsq(moveData.Direction) > 0.001f;
                 float localDirX = 0f;
                 float localDirZ = 0f;
+                float normalizedSpeed = 0f; // По умолчанию 0 (Idle)
 
                 if (isMoving)
                 {
@@ -205,6 +208,9 @@ public class SyncTransformWithEntity : MonoBehaviour
                         
                         localDirX = localDir.x;
                         localDirZ = localDir.z;
+                        
+                        // Игрок всегда бежит на максимальной скорости
+                        normalizedSpeed = 1.0f;
                     }
                     else
                     {
@@ -213,6 +219,18 @@ public class SyncTransformWithEntity : MonoBehaviour
                         
                         localDirX = localDir.x;
                         localDirZ = localDir.z;
+
+                        // 🆕 УМНЫЙ РАСЧЕТ СКОРОСТИ
+                        // Если разница между текущей и боевой скоростью маленькая — это бег (1.0), иначе ходьба (~0.6)
+                        if (moveData.CombatSpeed > 0.001f)
+                        {
+                            float diff = math.abs(moveData.CurrentSpeed - moveData.CombatSpeed);
+                            
+                            if (diff < 0.5f) 
+                                normalizedSpeed = 1.0f; // Бег
+                            else
+                                normalizedSpeed = 0.6f; // Ходьба
+                        }
                     }
                 }
 
@@ -222,9 +240,13 @@ public class SyncTransformWithEntity : MonoBehaviour
                 if (_hasVelocityY) _animator.SetFloat("VelocityY", moveData.Direction.y);
                 if (_hasIsGrounded) _animator.SetBool("IsGrounded", moveData.IsGrounded);
                 
-                // 🦅 ЛОГИКА ДЛЯ ПТИЦ (и любых летающих/ходящих юнитов)
-                // Если у Animator есть параметр IsFlying, мы его обновляем, 
-                // независимо от того, умеет юнит летать или нет (просто передаст false)
+                // 🆕 Передаем нормализованную скорость (0.0 для Idle, 0.6 для Walk, 1.0 для Run)
+                if (_hasSpeed) 
+                {
+                    _animator.SetFloat("Speed", normalizedSpeed);
+                }
+
+                // 🦅 ЛОГИКА ДЛЯ ПТИЦ
                 if (_hasIsFlying) 
                 {
                     _animator.SetBool("IsFlying", moveData.IsFlying);

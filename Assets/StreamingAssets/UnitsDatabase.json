@@ -13,6 +13,7 @@
     "parameters": {
       "base_health": 100,
       "base_speed": 5.0,
+      "combat_speed": 5.0,
       "hitbox_radius": 0.72
     },
     "progression": { "health_growth": 1.10, "damage_growth": 1.10 },
@@ -20,6 +21,35 @@
     "visuals": { "prefab_name": "amy" },
     "ai": {
       "profile": "companion",
+      "base_aggro_radius": 0.0,
+      "is_ranged": true,
+      "flee_range": 0.0,
+      "tag_weights": {}
+    },
+    "abilities": []
+  },
+  "fortune_witch": {
+    "identity": {
+      "name_key": "unit_fortune_witch_name",
+      "race": "human",
+      "faction": "player_party",
+      "type": "companion",
+      "default_rank": "common",
+      "unit_class": ["mage"],
+      "loot_table_id": "empty"
+    },
+    "attributes": { "strength": 10, "agility": 15, "intellect": 20, "stamina": 12 },
+    "parameters": {
+      "base_health": 100,
+      "base_speed": 5.0,
+      "combat_speed": 5.0,
+      "hitbox_radius": 0.72
+    },
+    "progression": { "health_growth": 1.10, "damage_growth": 1.10 },
+    "resource": { "type": "mana", "current": 100, "max": 100 },
+    "visuals": { "prefab_name": "fortune_witch" },
+    "ai": {
+      "profile": "neutral_passive",
       "base_aggro_radius": 0.0,
       "is_ranged": true,
       "flee_range": 0.0,
@@ -46,6 +76,7 @@
     "parameters": {
       "base_health": 25,
       "base_speed": 2.7,
+      "combat_speed": 4.2,
       "hitbox_radius": 0.72
     },
     "progression": {
@@ -62,7 +93,7 @@
     },
     "ai": {
       "profile": "aggressive_patrol",
-      "base_aggro_radius": 25.0,
+      "base_aggro_radius": 17.0,
       "is_ranged": false,
       "flee_range": 0.0,
       "tag_weights": {
