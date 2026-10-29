@@ -21,6 +21,12 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         private bool _collapsed = false;
 
+        // 🧊 Гвард: не перестраиваем скрытый/неизменный трекер
+        private int _lastSnapshotHash = int.MinValue;
+        private bool _isShown;
+        private bool _dirty;
+        private bool _flushScheduled;
+
         private readonly List<QuestEntrySnapshot> _quests = new();
         private readonly List<QuestObjectiveSnapshot> _objectives = new();
 
@@ -147,17 +153,22 @@ namespace ProjectTowerRpg.Core.UI.Components
         {
             if (_questContainer == null) return;
 
-            // Найти единственный отслеживаемый квест
             var tracked = _quests.Find(q => q.IsTracked && q.State != QuestState.TurnedIn);
+            bool shouldShow = !string.IsNullOrEmpty(tracked.QuestId);
 
-            // 🆕 Нет отслеживаемого — скрыт. Есть — показан.
-            if (string.IsNullOrEmpty(tracked.QuestId))
+            // Не дёргаем layout, если видимость не менялась
+            if (shouldShow != _isShown)
             {
-                this.style.display = DisplayStyle.None;
-                return;
+                _isShown = shouldShow;
+                this.style.display = shouldShow ? DisplayStyle.Flex : DisplayStyle.None;
             }
 
-            this.style.display = DisplayStyle.Flex;
+            if (!shouldShow) return;
+
+            int hash = ComputeSnapshotHash(tracked.QuestId);
+            if (hash == _lastSnapshotHash) return;
+            _lastSnapshotHash = hash;
+
             _questContainer.Clear();
 
             var config = QuestsDatabase.GetQuest(tracked.QuestId);
@@ -204,6 +215,28 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _questContainer.Add(label);
             }
         }
+
+        private int ComputeSnapshotHash(string trackedId)
+        {
+            unchecked
+            {
+                int h = 17;
+                h = h * 31 + trackedId.GetHashCode();
+
+                for (int i = 0; i < _objectives.Count; i++)
+                {
+                    h = h * 31 + _objectives[i].QuestId.GetHashCode();
+                    h = h * 31 + _objectives[i].ObjectiveId.GetHashCode();
+                    h = h * 31 + _objectives[i].Current;
+                    h = h * 31 + _objectives[i].Required;
+                    h = h * 31 + (_objectives[i].IsCompleted ? 1 : 0);
+                }
+
+                h = h * 31 + (_collapsed ? 1 : 0);
+                return h;
+            }
+        }
+
 
         private QuestObjective FindObjectiveConfig(QuestConfig config, string objectiveId)
         {

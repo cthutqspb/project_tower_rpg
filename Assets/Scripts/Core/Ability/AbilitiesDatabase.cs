@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json;
@@ -10,7 +11,12 @@ namespace ProjectTowerRpg.Core.Abilities
         private static Dictionary<string, AbilityConfig> _database = new();
         // Быстрый числовой кэш для моментального поиска способностей из ECS-систем!
         private static Dictionary<int, AbilityConfig> _hashedDatabase = new();
-        
+
+        public static IEnumerable<AbilityConfig> GetAll()
+        {
+            return _database.Values;
+        }
+
         public static bool IsLoaded { get; private set; } = false;
 
         public static void Load()
@@ -75,6 +81,7 @@ namespace ProjectTowerRpg.Core.Abilities
             Debug.LogWarning($"⚠️ БАЗА ДАННЫХ [Abilities]: Запрос несуществующего хэша способности: {abilityHashId}");
             return null;
         }
+        
     }
 }
 

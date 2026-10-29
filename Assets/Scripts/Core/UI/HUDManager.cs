@@ -132,9 +132,7 @@ namespace ProjectTowerRpg.Core.UI
                 if (currentControlled != _lastControlledEntity)
                 {
                     if (_lastControlledEntity != Entity.Null && _castBar != null)
-                    {
-                        UIRegistry.Unregister(_lastControlledEntity, _castBar);
-                    }
+                        UIRegistry.Unregister(_lastControlledEntity, _castBar);                    
 
                     if (currentControlled != Entity.Null && _castBar != null)
                     {
@@ -214,6 +212,14 @@ namespace ProjectTowerRpg.Core.UI
                     UIRegistry.Unregister(oldPlayerEntity, _playerFrame);
                 }
 
+                if (_lastControlledEntity != Entity.Null && _castBar != null) 
+                {    
+                    UIRegistry.Unregister(_lastControlledEntity, _castBar);
+
+                    _lastControlledEntity = Entity.Null;
+                    _castBar = null;
+                }
+
                 if (_lastTargetEntity != Entity.Null)
                 {
                     UIRegistry.Unregister(_lastTargetEntity, _targetFrame);
@@ -229,6 +235,8 @@ namespace ProjectTowerRpg.Core.UI
                 {
                     if (oldPlayerEntity != Entity.Null)
                         UIRegistry.Unregister(oldPlayerEntity, _dialogueOverlay);
+
+                    _dialogueOverlay.BindToEntity(Entity.Null);
                     _dialogueOverlay = null;
                 }
 
@@ -238,6 +246,16 @@ namespace ProjectTowerRpg.Core.UI
                     if (oldPlayer != Entity.Null)
                         UIRegistry.Unregister(oldPlayer, _questTracker);
                     _questTracker = null;
+                }
+
+                if (_actionBars != null)
+                {
+                    for (int i = 0; i < _actionBars.Count; i++)
+                    {
+                        var oldGrid = _actionBars[i].SlotsGrid;
+                        if (oldGrid != null && oldGrid.BoundEntity != Entity.Null)
+                            UIRegistry.Unregister(oldGrid.BoundEntity, oldGrid);
+                    }
                 }
 
                 globalUiRoot.Remove(_root);

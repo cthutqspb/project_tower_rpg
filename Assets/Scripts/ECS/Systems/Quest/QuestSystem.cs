@@ -11,54 +11,60 @@ namespace ProjectTowerRpg.ECS.Systems
     public partial class QuestSystem : SystemBase
     {
         private EntityCommandBufferSystem _ecbSystem;
+        private EntityQuery _acceptQuery;
+        private EntityQuery _completeQuery;
+        private EntityQuery _trackQuery;
 
         protected override void OnCreate()
         {
             _ecbSystem = World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
+            _acceptQuery = GetEntityQuery(ComponentType.ReadOnly<QuestAcceptRequest>());
+            _completeQuery = GetEntityQuery(ComponentType.ReadOnly<QuestCompleteRequest>());
+            _trackQuery = GetEntityQuery(ComponentType.ReadOnly<QuestTrackRequest>());
         }
 
         protected override void OnUpdate()
         {
+            if (_acceptQuery.IsEmpty && _completeQuery.IsEmpty && _trackQuery.IsEmpty)
+                return;
+
             var em = EntityManager;
             var ecb = _ecbSystem.CreateCommandBuffer();
 
-            var acceptList = new NativeList<Entity>(Allocator.Temp);
-            var completeList = new NativeList<Entity>(Allocator.Temp);
-            var trackList = new NativeList<Entity>(Allocator.Temp);
+            // 🛡️ ЗАЩИТА ОТ ДУБЛИКАТОВ ВНУТРИ КАДРА
+            // Храним пары "юнит + квест", которые уже обработали в этом кадре
+            var acceptedThisFrame = new NativeHashSet<(Entity, FixedString64Bytes)>(16, Allocator.Temp);
 
             foreach (var (req, reqEntity) in SystemAPI.Query<RefRO<QuestAcceptRequest>>().WithEntityAccess())
-                acceptList.Add(reqEntity);
+            {
+                var key = (req.ValueRO.Unit, req.ValueRO.QuestId);
+                
+                // Если этот же юнит уже принял этот же квест в этом кадре — пропускаем
+                if (acceptedThisFrame.Contains(key))
+                {
+                    ecb.DestroyEntity(reqEntity);
+                    continue;
+                }
+
+                HandleAccept(req.ValueRO.Unit, req.ValueRO.QuestId, em, ecb);
+                acceptedThisFrame.Add(key);
+                ecb.DestroyEntity(reqEntity);
+            }
+
+            acceptedThisFrame.Dispose();
 
             foreach (var (req, reqEntity) in SystemAPI.Query<RefRO<QuestCompleteRequest>>().WithEntityAccess())
-                completeList.Add(reqEntity);
+            {
+                HandleComplete(req.ValueRO.Unit, req.ValueRO.QuestId, em, ecb);
+                ecb.DestroyEntity(reqEntity);
+            }
 
             foreach (var (req, reqEntity) in SystemAPI.Query<RefRO<QuestTrackRequest>>().WithEntityAccess())
-                trackList.Add(reqEntity);
-
-            foreach (var reqEntity in acceptList)
             {
-                var req = em.GetComponentData<QuestAcceptRequest>(reqEntity);
-                HandleAccept(req.Unit, req.QuestId, em, ecb);
+                HandleTrack(req.ValueRO.Unit, req.ValueRO.QuestId, em);
                 ecb.DestroyEntity(reqEntity);
             }
 
-            foreach (var reqEntity in completeList)
-            {
-                var req = em.GetComponentData<QuestCompleteRequest>(reqEntity);
-                HandleComplete(req.Unit, req.QuestId, em, ecb);
-                ecb.DestroyEntity(reqEntity);
-            }
-
-            foreach (var reqEntity in trackList)
-            {
-                var req = em.GetComponentData<QuestTrackRequest>(reqEntity);
-                HandleTrack(req.Unit, req.QuestId, em);
-                ecb.DestroyEntity(reqEntity);
-            }
-
-            acceptList.Dispose();
-            completeList.Dispose();
-            trackList.Dispose();
             _ecbSystem.AddJobHandleForProducer(Dependency);
         }
 
@@ -149,10 +155,16 @@ namespace ProjectTowerRpg.ECS.Systems
         {
             if (!em.HasBuffer<QuestComponent>(unit)) return;
             var quests = em.GetBuffer<QuestComponent>(unit);
+
             for (int i = 0; i < quests.Length; i++)
             {
                 var q = quests[i];
-                q.IsTracked = (q.QuestId == questId);
+                bool newTracked = (q.QuestId == questId);
+
+                // 🧊 Пишем только при реальном изменении — иначе зря помечаем буфер dirty
+                if (q.IsTracked == newTracked) continue;
+
+                q.IsTracked = newTracked;
                 quests[i] = q;
             }
         }

@@ -26,6 +26,9 @@ namespace ProjectTowerRpg.Core.Dialogue
         // skill
         public string skill_id;      // "persuasion", "intimidation", ...
         public int skill_dc;         // сложность
+
+        // 🎯 Инверсия (NOT): если true — условие считается выполненным, когда результат ЛОЖЕН
+        public bool invert;
     }
 
     // ============================================================
@@ -89,6 +92,9 @@ namespace ProjectTowerRpg.Core.Dialogue
         public bool flag_value;
         public string skill_id;
         public int skill_dc;
+
+        // 🎯 Инверсия (NOT) для веток роутинга
+        public bool invert;
 
         public string next_node;
     }

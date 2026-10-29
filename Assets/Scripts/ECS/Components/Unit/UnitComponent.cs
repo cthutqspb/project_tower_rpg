@@ -1,5 +1,6 @@
 using Unity.Entities;
 using Unity.Collections;
+using ProjectTowerRpg.Core.Units;
 
 namespace ProjectTowerRpg.ECS.Components
 {
@@ -11,7 +12,7 @@ namespace ProjectTowerRpg.ECS.Components
         public FixedString64Bytes UniqueNameKey;
         public int Level;                    // 1, 5, 10...
         public FixedString64Bytes LootTableId;
-        public FixedString32Bytes Faction;
+        public FactionId Faction;
         public float AggroRadius;
 
         public FixedString32Bytes Race;

@@ -30,6 +30,10 @@ namespace ProjectTowerRpg.ECS.Systems
         private const float DIR_SMOOTHING = 0.2f;
         private const float SEPARATION_MIN_STRENGTH = 0.1f;
         private const float DIR_ANGLE_THRESHOLD = 0.96f;
+        private const float ZERO_EPS = 0.0001f;
+        private const float ZERO_EPS_SQ = ZERO_EPS * ZERO_EPS;
+        private const float REPATH_INTERVAL = 0.25f;
+        private const float TARGET_REPATH_THRESHOLD = 1.5f;
 
         private struct AiContext
         {
@@ -42,6 +46,7 @@ namespace ProjectTowerRpg.ECS.Systems
             public LocalTransform Transform;
             public CombatStateComponent Combat;
             public UnitComponent Unit;
+            public FactionId Faction;
             public UnitConfig UnitCfg;
             public DynamicBuffer<PathBufferElement> PathBuffer;
 
@@ -52,8 +57,7 @@ namespace ProjectTowerRpg.ECS.Systems
             public NavWorld NavWorld;
             public NavQueryBuffer NavBuffer;
 
-            public string Faction => Unit.Faction.ToString();
-            public float3 Position => Transform.Position;
+            public float3 Position => Transform.Position;            
             public float HitboxRadius => Move.HitboxRadius;
             public bool HasTarget => Combat.IsInCombat && Combat.CurrentTarget != Entity.Null;
         }
@@ -95,7 +99,8 @@ namespace ProjectTowerRpg.ECS.Systems
                      .WithEntityAccess()
                      .WithNone<IsDeadTag>())
             {
-                if (!ai.ValueRO.IsFromFactory) continue;
+                if (!ai.ValueRO.IsFromFactory)
+                    continue;
 
                 if (ai.ValueRO.Profile == AiProfileKind.NeutralPassive || ai.ValueRO.Profile == AiProfileKind.Passive)
                 {
@@ -104,15 +109,25 @@ namespace ProjectTowerRpg.ECS.Systems
                     continue;
                 }
 
-                string uIdStr = unit.ValueRO.UnitId.ToString().ToLower().Trim();
+                string uIdStr = unit.ValueRO.UnitId.ToString();
                 var unitCfg = UnitsDatabase.GetUnit(uIdStr);
-                if (unitCfg == null) continue;
+                if (unitCfg == null)
+                    continue;
 
                 if (!em.HasComponent<PathBufferElement>(entity))
                 {
                     ecb.AddBuffer<PathBufferElement>(entity);
                 }
-                var pathBuffer = em.GetBuffer<PathBufferElement>(entity);
+
+                DynamicBuffer<PathBufferElement> pathBuffer;
+                if (em.HasBuffer<PathBufferElement>(entity))
+                {
+                    pathBuffer = em.GetBuffer<PathBufferElement>(entity);
+                }
+                else
+                {
+                    continue;
+                }
 
                 var ctx = new AiContext
                 {
@@ -124,6 +139,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     Transform = localTransform.ValueRO,
                     Combat = combatState.ValueRO,
                     Unit = unit.ValueRO,
+                    Faction = unit.ValueRO.Faction,
                     UnitCfg = unitCfg,
                     PathBuffer = pathBuffer,
                     AllUnits = allUnits,
@@ -165,6 +181,10 @@ namespace ProjectTowerRpg.ECS.Systems
             allUnits.Dispose();
         }
 
+        private static float3 SafeNormalize(float3 value)
+        {
+            return math.lengthsq(value) > ZERO_EPS_SQ ? math.normalize(value) : float3.zero;
+        }
         private void ExecuteIdleState(ref AiContext ctx)
         {
             if (ctx.HasTarget && ctx.Em.Exists(ctx.Combat.CurrentTarget))
@@ -595,7 +615,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (ctx.Em.HasComponent<CastComponent>(otherEntity)) continue;
 
                 var otherUnit = ctx.Em.GetComponentData<UnitComponent>(otherEntity);
-                if (otherUnit.Faction.ToString() != ctx.Faction) continue;
+                if (otherUnit.Faction != ctx.Faction) continue;
 
                 float3 otherPos = ctx.Em.GetComponentData<LocalTransform>(otherEntity).Position;
                 float otherHitbox = ctx.Em.GetComponentData<MovementComponent>(otherEntity).HitboxRadius;

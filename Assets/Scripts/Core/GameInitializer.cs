@@ -2,38 +2,28 @@ using UnityEngine;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Localization;
-using ProjectTowerRpg.Core.Items;
-using ProjectTowerRpg.Core.Units; // ← Добавь юзинг базы юнитов
+using ProjectTowerRpg.Core.Data;
+using ProjectTowerRpg.Core.Presentation;
 //using ProjectTowerRpg.Core.Factions;
-using ProjectTowerRpg.Core.Abilities;
-using ProjectTowerRpg.Core.Auras;
-using ProjectTowerRpg.Core.Dialogue;
-using ProjectTowerRpg.Core.Quest;
+
+using TMPro;
 
 public class GameInitializer : MonoBehaviour
 {
+    [Header("Прогрев VFX аур")]
+    [SerializeField] private TMP_FontAsset _auraFont;
+    [SerializeField] private GameObject _auraVfxPrefab;
+    [SerializeField] private string _auraGlyphs = "";//"󰞇󱐌󰸓󱨨��󱄯"; // запасной список, если из БД не собрать
+
     void Awake()
     {
         // 1. Загружаем русский дефолт (Твой merge_tables на C#)
         LocalizationManager.LoadLanguage("Ru");
+        // 2. Базы
+        GameDB.Initialize();
         
-        // 2. Накатываем базу данных шмоток из JSON
-        ItemsDatabase.Load();
-        LootTables.Load();
-        AbilitiesDatabase.Load();
-        AurasDatabase.Load();
-        FactionsDatabase.Load();
-        DialoguesDatabase.Load();
-        QuestsDatabase.Load();
-
-        // 🌟 3. НАКАТЫВАЕМ БАЗУ ДАННЫХ СУЩЕСТВ (Исправляет слепоту UI на чистой сцене!)
-        if (!UnitsDatabase.IsLoaded)
-        {
-            UnitsDatabase.Load();
-        }
-
         // =========================================================================
-        // 🦾 ШАГ 4: РОЖДЕНИЕ ЦЕНТРАЛЬНОЙ ШИНЫ СОБЫТИЙ (Канон Presentation Buffer)
+        // 🦾 ШАГ 3: РОЖДЕНИЕ ЦЕНТРАЛЬНОЙ ШИНЫ СОБЫТИЙ (Канон Presentation Buffer)
         // =========================================================================
         var world = World.DefaultGameObjectInjectionWorld;
         if (world != null)
@@ -61,23 +51,22 @@ public class GameInitializer : MonoBehaviour
             em.AddBuffer<QuestReadyToClaimEvent>(gameEventsEntity);
 
             Debug.Log("🌐 [GameInitializer]: Синглтон GameEvent с 4 буферами развернут в ECS!");
-        }
+        }        
 
-        // =========================================================================
-        // 🎰 ДEБAГ-ТEСТ: Проверяем, как бэкэнд видит наш Кристальный Меч в ОЗУ!
-        // =========================================================================
-        ItemConfig sword = ItemsDatabase.GetItem("crystal_sword");
-        
-        if (sword != null)
+        // 4. Прогрев VFX аур — глифы СОБИРАЕМ из баз
+        string glyphs = GameDB.GetAllIconChars();
+
+        if (string.IsNullOrEmpty(glyphs))
         {
-            string realName = LocalizationManager.Get(sword.identity.name_key);
-            string realDesc = LocalizationManager.Get(sword.identity.desc_key);
-
-            Debug.Log($"🚀 [БЭКЭНД ТЕСТ]: Успешно вытащили паспорт предмета из ОЗУ!");
-            Debug.Log($"⚔️ Предмет: {realName} ({sword.id}) | Качество: {sword.identity.quality} | Цена: {sword.identity.price}g");
-            Debug.Log($"📜 Описание: {realDesc}");
-            Debug.Log($"💪 Бонус к Силе: {sword.combat_stats.attributes.strength} | Урон: {sword.combat_stats.damage.min}-{sword.combat_stats.damage.max}");
+            Debug.LogWarning("[GameInitializer] GetAllIconChars вернул пусто — использую fallback.");
+            glyphs = _auraGlyphs;  // fallback (можно оставить пустым)
         }
+        else
+        {
+            Debug.Log($"[GameInitializer] Прогрев TMP: {glyphs.Length} глифов.");
+        }
+
+        StartCoroutine(AuraVfxPrewarm.Warmup(_auraFont, glyphs, _auraVfxPrefab, transform));
     }
 }
 

@@ -16,23 +16,29 @@ namespace ProjectTowerRpg.ECS.Systems
             EquipSlot.HEAD, EquipSlot.CHEST, EquipSlot.LEGS, EquipSlot.MAIN_HAND, EquipSlot.OFF_HAND
         };
 
+        private EntityQuery _markerQuery;
+
+        protected override void OnCreate()
+        {
+            // Строим запрос один раз, а не через EntityManager каждый OnUpdate
+            _markerQuery = GetEntityQuery(ComponentType.ReadOnly<UnitSpawnMarkerComponent>());
+        }
+
         protected override void OnUpdate()
         {
             var em = EntityManager;
             
             // ================================================================
             // ОБРАБОТКА МАРКЕРОВ СПАВНА
-            // ================================================================
-            var markerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<UnitSpawnMarkerComponent>());
-            
-            if (markerQuery.IsEmpty)
+            // ================================================================                   
+            if (_markerQuery.IsEmpty)
             {
                 Debug.Log("✅ [UnitSpawnSystem]: Фабрика успешно завершила работу. Все сущности созданы.");
                 this.Enabled = false;
                 return;
             }
 
-            var markers = markerQuery.ToEntityArray(Allocator.Temp);
+            var markers = _markerQuery.ToEntityArray(Allocator.Temp);
 
             foreach (var markerEntity in markers)
             {
@@ -79,10 +85,14 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 string markerFaction = markerData.Faction.ToString();
-                string faction = 
+
+                string factionName =
                     !string.IsNullOrEmpty(markerFaction)          ? markerFaction :
                     !string.IsNullOrEmpty(dbCfg.identity.faction) ? dbCfg.identity.faction :
-                    "neutral_humanoid";// Теперь генерация Uid видит spawnPosition идеально!
+                    "neutral_humanoid";
+
+                // 🎯 Парсим строку → enum. Один раз при спавне. Не в бою.
+                FactionId faction = FactionsDatabase.Parse(factionName);
                 
                 string generatedUid = $"c_{(int)math.floor(spawnPosition.x + 0.5f)}_{(int)math.floor(spawnPosition.z + 0.5f)}";
 
@@ -446,27 +456,25 @@ namespace ProjectTowerRpg.ECS.Systems
                 else
                 {
                     // =========================================================================
-                    // 💀 НАПОЛНЕНИЕ КАРМАНОВ МОБА (Копейка в копейку по канону Игрока!)
+                    // 💀 НАПОЛНЕНИЕ КАРМАНОВ МОБА
                     // =========================================================================
-                    
+
                     if (em.HasBuffer<ItemSlot>(markerEntity))
                     {
-                        // Схлопываем данные маркера в плоский Си-массив, чтобы забыть про HasBuffer
                         var customItems = em.GetBuffer<ItemSlot>(markerEntity).ToNativeArray(Allocator.Temp);
                         int itemsCount = customItems.Length;
 
                         if (itemsCount > 0)
                         {
-                            // 🦾 ШАГ 1: Спавним "души" предметов в ОЗУ копейка в копейку как у игрока!
                             NativeArray<Entity> spawnedItemEntities = new NativeArray<Entity>(itemsCount, Allocator.Temp);
 
                             for (int idx = 0; idx < itemsCount; idx++)
                             {
                                 Entity itemEntity = em.CreateEntity();
-                                
+
                                 em.AddComponentData(itemEntity, new ItemComponent
                                 {
-                                    Uid = customItems[idx].DataId.GetHashCode() + idx, 
+                                    Uid = customItems[idx].DataId.GetHashCode() + idx,
                                     ItemId = customItems[idx].DataId.ToString(),
                                     Amount = customItems[idx].Amount
                                 });
@@ -474,11 +482,9 @@ namespace ProjectTowerRpg.ECS.Systems
                                 spawnedItemEntities[idx] = itemEntity;
                             }
 
-                            // 🦾 ШАГ 2: Скачиваем легитимный буфер инвентаря моба
                             var monsterSlotsBuffer = em.GetBuffer<ItemSlot>(inventoryEntity);
-
-                            // 🦾 ШАГ 3: Шёлково заполняем ячейки рюкзака ссылками на вечные Entity предмета
                             int slotsToFill = math.min(itemsCount, 72);
+
                             for (int idx = 0; idx < slotsToFill; idx++)
                             {
                                 monsterSlotsBuffer[idx] = new ItemSlot
@@ -487,23 +493,24 @@ namespace ProjectTowerRpg.ECS.Systems
                                     DataId = customItems[idx].DataId,
                                     DataType = "item",
                                     Amount = customItems[idx].Amount,
-                                    ItemEntity = spawnedItemEntities[idx], 
+                                    ItemEntity = spawnedItemEntities[idx],
                                     EquipSlot = EquipSlot.NONE,
                                     ContainerType = ContainerType.INVENTORY
                                 };
                             }
 
                             spawnedItemEntities.Dispose();
-                            customItems.Dispose();
-                            
-                            Debug.Log($"🎒 [ФАБРИКА]: Живые карманы моба {unitEntity.Index} сочно набиты кастомным лутом ({slotsToFill} шт.) с вечными Entity-душами предметов!");
-                        }
-                    }
-                    
-                    // Кулдауны мобу тоже намертво вшиваем, чтобы его ИИ мог легально остужать свои спеллы
-                    em.AddBuffer<ActiveCooldownElement>(unitEntity);
-                }
 
+                            Debug.Log($"🎒 [ФАБРИКА]: Живые карманы моба {unitEntity.Index} набиты лутом ({slotsToFill} шт.)");
+                        }
+
+                        // 🧹 Освобождаем ВСЕГДА — раньше текло на пустом маркере
+                        customItems.Dispose();
+                    }
+
+                    // ⚠️ Здесь БЫЛ дубль AddBuffer<ActiveCooldownElement> — буфер добавляется ниже один раз
+                }
+                    
                 // 🎯 ИНИЦИАЛИЗАЦИЯ КУЛДАУНОВ ЮНИТА
                 em.AddBuffer<ActiveCooldownElement>(unitEntity);
 

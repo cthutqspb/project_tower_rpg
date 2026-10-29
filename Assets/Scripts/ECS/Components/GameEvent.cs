@@ -1,5 +1,6 @@
 using Unity.Entities;
 using Unity.Collections;
+using ProjectTowerRpg.Core.Units;
 
 namespace ProjectTowerRpg.ECS.Components
 {
@@ -12,7 +13,7 @@ namespace ProjectTowerRpg.ECS.Components
         public Entity Target;                       // кого убили
         public FixedString64Bytes TargetNameKey;
         public FixedString32Bytes TargetRace;
-        public FixedString32Bytes TargetFaction;
+        public FactionId TargetFaction;
         public FixedString32Bytes TargetType;
         public FixedString32Bytes TargetDefaultRank;
     }

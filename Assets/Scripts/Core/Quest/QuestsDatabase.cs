@@ -9,6 +9,9 @@ namespace ProjectTowerRpg.Core.Quest
  {
         private static Dictionary<string, QuestConfig> _database = new();
         private static Dictionary<int, QuestConfig> _hashedDatabase = new();
+        private static Dictionary<string, List<QuestConfig>> _byGiver;
+
+        private static readonly List<QuestConfig> _emptyList = new();
         
         public static bool IsLoaded { get; private set; } = false;
 
@@ -67,19 +70,34 @@ namespace ProjectTowerRpg.Core.Quest
         
         public static List<QuestConfig> GetQuestsByGiver(string giverNameKey)
         {
-            var result = new List<QuestConfig>();
-            foreach (var pair in _database)
+            if (string.IsNullOrEmpty(giverNameKey)) return _emptyList;
+
+            if (_byGiver == null)
             {
-                if (pair.Value.giver_name_key == giverNameKey)
-                    result.Add(pair.Value);
+                _byGiver = new Dictionary<string, List<QuestConfig>>();
+                foreach (var pair in _database)
+                {
+                    string giver = pair.Value.giver_name_key;
+                    if (string.IsNullOrEmpty(giver)) continue;
+
+                    if (!_byGiver.TryGetValue(giver, out var list))
+                    {
+                        list = new List<QuestConfig>();
+                        _byGiver[giver] = list;
+                    }
+                    list.Add(pair.Value);
+                }
             }
-            return result;
+
+            // ⚠️ Возвращаем кэшированный список — вызывающий НЕ должен его мутировать
+            return _byGiver.TryGetValue(giverNameKey, out var result) ? result : _emptyList;
         }
 
         public static void Unload()
         {
             _database.Clear();
             _hashedDatabase.Clear();
+            _byGiver = null;
             IsLoaded = false;
         }
     }

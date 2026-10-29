@@ -37,6 +37,19 @@
             "next_node": "end",
             "actions": [
               { "type": "dialogue_close" }
+            ],
+            "conditions": [
+              { "type": "quest", "quest_id": "quest_zalina_casino", "required_state": "Locked" }
+            ]
+          },
+          {
+            "text_key": "dialogue_zalina_opt_leave_recent",
+            "next_node": "end",
+            "actions": [
+              { "type": "dialogue_close" }
+            ],
+            "conditions": [
+              { "type": "quest", "quest_id": "quest_zalina_casino", "required_state": "Locked", "invert": true }
             ]
           }
         ]

@@ -3,6 +3,7 @@ using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.Dialogue;
 using ProjectTowerRpg.Core.Quest;
+using System;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
@@ -11,6 +12,8 @@ namespace ProjectTowerRpg.ECS.Systems
     [UpdateBefore(typeof(ActionDispatcherSystem))]
     public partial class DialogueSystem : SystemBase
     {
+        private const int MAX_HISTORY = 512;
+
         private EntityCommandBufferSystem _ecbSystem;
 
         protected override void OnCreate()
@@ -20,14 +23,18 @@ namespace ProjectTowerRpg.ECS.Systems
 
         protected override void OnUpdate()
         {
+            var stateQuery = SystemAPI.QueryBuilder().WithAll<DialogueStateComponent>().Build();
+            var startQuery = SystemAPI.QueryBuilder().WithAll<DialogueStartRequest>().Build();
+            var chooseQuery = SystemAPI.QueryBuilder().WithAll<DialogueChooseOptionRequest>().Build();
+
+            if (stateQuery.IsEmpty && startQuery.IsEmpty && chooseQuery.IsEmpty)
+                return;
+
             var em = EntityManager;
             var ecb = _ecbSystem.CreateCommandBuffer();
 
-            // ================================================================
-            // 0. АВТО-ЗАКРЫТИЕ: если игрок вышел из радиуса взаимодействия
-            // ================================================================
+            // 0. АВТО-ЗАКРЫТИЕ
             var autoCloseList = new NativeList<Entity>(Allocator.Temp);
-
             foreach (var (stateRO, playerEntity) in SystemAPI.Query<RefRO<DialogueStateComponent>>().WithEntityAccess())
             {
                 if (!stateRO.ValueRO.IsActive) continue;
@@ -45,29 +52,15 @@ namespace ProjectTowerRpg.ECS.Systems
                         }
                     }
                 }
-
-                if (!stillInRange)
-                    autoCloseList.Add(playerEntity);
+                if (!stillInRange) autoCloseList.Add(playerEntity);
             }
 
             foreach (var playerEntity in autoCloseList)
-            {
-                if (em.HasComponent<DialogueStateComponent>(playerEntity))
-                {
-                    var state = em.GetComponentData<DialogueStateComponent>(playerEntity);
-                    state.IsActive = false;
-                    em.SetComponentData(playerEntity, state);
-                }
-
-                if (em.HasBuffer<DialogueOptionElement>(playerEntity))
-                    em.GetBuffer<DialogueOptionElement>(playerEntity).Clear();
-            }
-
+                DialogueClose(playerEntity, em);
+            
             autoCloseList.Dispose();
 
-            // ================================================================
-            // 1. СОБИРАЕМ ЗАПРОСЫ (только чтение, без структурных изменений)
-            // ================================================================
+            // 1. СОБИРАЕМ ЗАПРОСЫ
             var startRequests = new NativeList<Entity>(Allocator.Temp);
             var chooseRequests = new NativeList<Entity>(Allocator.Temp);
 
@@ -77,9 +70,7 @@ namespace ProjectTowerRpg.ECS.Systems
             foreach (var (req, reqEntity) in SystemAPI.Query<RefRO<DialogueChooseOptionRequest>>().WithEntityAccess())
                 chooseRequests.Add(reqEntity);
 
-            // ================================================================
-            // 2. ОБРАБАТЫВАЕМ ВНЕ ИТЕРАЦИИ
-            // ================================================================
+            // 2. ОБРАБАТЫВАЕМ
             foreach (var reqEntity in startRequests)
             {
                 var req = em.GetComponentData<DialogueStartRequest>(reqEntity);
@@ -96,19 +87,14 @@ namespace ProjectTowerRpg.ECS.Systems
 
             startRequests.Dispose();
             chooseRequests.Dispose();
-            _ecbSystem.AddJobHandleForProducer(Dependency);
         }
 
-        // ================================================================
-        // СТАРТ ДИАЛОГА
-        // ================================================================
         private void HandleDialogueStart(Entity player, Entity npc, EntityManager em)
         {
             if (player == Entity.Null || !em.Exists(player)) return;
             if (npc == Entity.Null || !em.Exists(npc)) return;
             if (!em.HasComponent<UnitComponent>(npc)) return;
 
-            // Ключ диалога = NameKey спикера
             var unitComp = em.GetComponentData<UnitComponent>(npc);
             string dialogueKey = unitComp.NameKey.ToString();
 
@@ -119,7 +105,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 return;
             }
 
-            // Ищем стартовую ноду
             string startNode = ResolveStartNode(graph, player, em);
             if (string.IsNullOrEmpty(startNode))
             {
@@ -127,12 +112,10 @@ namespace ProjectTowerRpg.ECS.Systems
                 return;
             }
 
-            // Текст стартовой ноды
             string startTextKey = "";
             if (graph.nodes.TryGetValue(startNode, out var startNodeData))
                 startTextKey = startNodeData.text_key ?? "";
 
-            // Состояние диалога
             var state = new DialogueStateComponent
             {
                 Speaker = npc,
@@ -148,35 +131,29 @@ namespace ProjectTowerRpg.ECS.Systems
             else
                 em.AddComponentData(player, state);
 
-            // Буфер опций
             RefreshOptionsBuffer(player, state, graph, em);
         }
 
-        // ================================================================
-        // ВЫБОР ОПЦИИ
-        // ================================================================
-        private void HandleChooseOption(
-            Entity player,
-            int optionIndex,
-            EntityManager em,
-            EntityCommandBuffer ecb
-        )
+        private void HandleChooseOption(Entity player, int optionIndex, EntityManager em, EntityCommandBuffer ecb)
         {
             if (player == Entity.Null || !em.Exists(player)) return;
             if (!em.HasComponent<DialogueStateComponent>(player)) return;
-    
-            Debug.Log($"HandleChooseOption {optionIndex}");
+
             var state = em.GetComponentData<DialogueStateComponent>(player);
             if (!state.IsActive) return;
 
-            // Граф по спикеру
+            if (state.Speaker == Entity.Null || !em.Exists(state.Speaker)
+                || !em.HasComponent<UnitComponent>(state.Speaker))
+            {
+                DialogueClose(player, em);
+                return;
+            }
+
             var speakerUnit = em.GetComponentData<UnitComponent>(state.Speaker);
-            FixedString64Bytes dialogueKeyFS = speakerUnit.NameKey;
-            string dialogueKey = dialogueKeyFS.ToString();   // для DialoguesDatabase
+            string dialogueKey = speakerUnit.NameKey.ToString();
             var graph = DialoguesDatabase.GetDialogue(dialogueKey);
             if (graph == null) return;
 
-            // Текущая нода
             if (!graph.nodes.TryGetValue(state.CurrentNode.ToString(), out var currentNode))
             {
                 DialogueClose(player, em);
@@ -186,18 +163,39 @@ namespace ProjectTowerRpg.ECS.Systems
             if (optionIndex < 0 || optionIndex >= currentNode.options.Count) return;
 
             var chosenOption = currentNode.options[optionIndex];
-            RecordChoice(player, dialogueKey, state.CurrentNode, optionIndex, em);
+            RecordChoice(player, speakerUnit.NameKey, state.CurrentNode, optionIndex, em);
 
-            // Экшены
+            bool closeRequested = false;
+            bool backRequested = false;
+
             if (chosenOption.actions != null)
             {
                 foreach (var act in chosenOption.actions)
                 {
+                    if (act.type == "dialogue_close") { closeRequested = true; continue; }
+                    if (act.type == "back") { backRequested = true; continue; }
                     ExecuteAction(act, player, em, ecb);
                 }
             }
 
-            // Переход
+            if (closeRequested)
+            {
+                DialogueClose(player, em);
+                return;
+            }
+
+            // 🎯 ВОЗВРАТ К СТАРТОВОЙ НОДЕ (если есть экшен back)
+            if (backRequested)
+            {
+                state.CurrentNode = state.EntryNode;
+                if (graph.nodes.TryGetValue(state.EntryNode.ToString(), out var entryNodeData))
+                    state.TextKey = entryNodeData.text_key ?? "";
+                em.SetComponentData(player, state);
+                RefreshOptionsBuffer(player, state, graph, em);
+                return;
+            }
+
+            // Переход к следующей ноде
             string nextNode = chosenOption.next_node;
 
             if (string.IsNullOrEmpty(nextNode) || nextNode == "end" || nextNode == "none")
@@ -213,13 +211,11 @@ namespace ProjectTowerRpg.ECS.Systems
                 return;
             }
 
-            // Обновляем стейт (нода + текст)
             state.CurrentNode = nextNode;
             if (graph.nodes.TryGetValue(nextNode, out var nextNodeData))
                 state.TextKey = nextNodeData.text_key ?? "";
 
             em.SetComponentData(player, state);
-
             RefreshOptionsBuffer(player, state, graph, em);
         }
 
@@ -240,6 +236,9 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
+            while (history.Length >= MAX_HISTORY)
+                history.RemoveAt(0);
+
             history.Add(new DialogueHistoryElement
             {
                 SpeakerKey = speakerKey,
@@ -248,9 +247,6 @@ namespace ProjectTowerRpg.ECS.Systems
             });
         }
 
-        // ================================================================
-        // РАЗРЕШЕНИЕ ЦЕПОЧКИ НОД (роутеры → dialogue)
-        // ================================================================
         private string ResolveNodeChain(string nodeKey, DialogueGraph graph, Entity player, EntityManager em)
         {
             int safety = 32;
@@ -265,7 +261,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (node.type == "dialogue")
                     return nodeKey;
 
-                // type == "condition"
                 string next = ResolveConditionNode(node, player, em);
                 if (string.IsNullOrEmpty(next))
                     return null;
@@ -295,50 +290,56 @@ namespace ProjectTowerRpg.ECS.Systems
         }
 
         // ================================================================
-        // ОЦЕНКА УСЛОВИЙ
+        // ОЦЕНКА УСЛОВИЙ (теперь с поддержкой invert)
         // ================================================================
         private bool EvaluateBranch(DialogueConditionBranch branch, Entity player, EntityManager em)
         {
+            bool result = false;
             switch (branch.type)
             {
                 case "quest":
-                    return EvaluateQuestCondition(branch.quest_id, branch.required_state, player, em);
-
+                    result = EvaluateQuestCondition(branch.quest_id, branch.required_state, player, em);
+                    break;
                 case "flag":
-                    return false;
-
                 case "skill":
-                    return false;
-
                 default:
-                    return false;
+                    result = false;
+                    break;
             }
+            // 🎯 Инверсия для ветвления
+            return branch.invert ? !result : result;
         }
 
         private bool EvaluateCondition(DialogueCondition cond, Entity player, EntityManager em)
         {
+            bool result = true;
             switch (cond.type)
             {
                 case "quest":
-                    return EvaluateQuestCondition(cond.quest_id, cond.required_state, player, em);
-
+                    result = EvaluateQuestCondition(cond.quest_id, cond.required_state, player, em);
+                    break;
                 case "flag":
-                    return false;
-
                 case "skill":
-                    return false;
-
+                    result = false;
+                    break;
                 default:
-                    return true;
+                    result = true;
+                    break;
             }
+            // 🎯 Инверсия для опций
+            return cond.invert ? !result : result;
         }
 
         private bool EvaluateQuestCondition(string questId, string requiredState, Entity player, EntityManager em)
         {
-            if (player == Entity.Null || !em.HasBuffer<QuestComponent>(player)) return false;
+            if (player == Entity.Null || string.IsNullOrEmpty(questId) || string.IsNullOrEmpty(requiredState))
+                return false;
+
+            if (!em.HasBuffer<QuestComponent>(player)) return false;
+            if (!Enum.TryParse<QuestState>(requiredState, true, out var required)) return false;
 
             var buffer = em.GetBuffer<QuestComponent>(player);
-            QuestState current = QuestState.Locked;
+            QuestState current = QuestState.Locked; // Если квеста нет, то он Locked
 
             for (int i = 0; i < buffer.Length; i++)
             {
@@ -349,25 +350,22 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
-            return current.ToString().ToLower().Trim() == requiredState.ToLower().Trim();
+            return current == required;
         }
 
-        // ================================================================
-        // ЗАПОЛНЕНИЕ БУФЕРА ВИДИМЫХ ОПЦИЙ
-        // ================================================================
         private void RefreshOptionsBuffer(Entity player, DialogueStateComponent state, DialogueGraph graph, EntityManager em)
         {
-            if (!graph.nodes.TryGetValue(state.CurrentNode.ToString(), out var node))
-                return;
-
-            if (node.type != "dialogue" || node.options == null)
-                return;
-
             if (!em.HasBuffer<DialogueOptionElement>(player))
                 em.AddBuffer<DialogueOptionElement>(player);
 
             var buffer = em.GetBuffer<DialogueOptionElement>(player);
             buffer.Clear();
+
+            if (!graph.nodes.TryGetValue(state.CurrentNode.ToString(), out var node))
+                return;
+
+            if (node.type != "dialogue" || node.options == null)
+                return;
 
             for (int i = 0; i < node.options.Count; i++)
             {
@@ -383,8 +381,6 @@ namespace ProjectTowerRpg.ECS.Systems
                         switch (opt.actions[a].type)
                         {
                             case "quest_accept":
-                                suffix = "ui_dialogue_action_quest";
-                                break;
                             case "quest_complete":
                                 suffix = "ui_dialogue_action_quest";
                                 break;
@@ -398,7 +394,6 @@ namespace ProjectTowerRpg.ECS.Systems
                                 suffix = "ui_dialogue_action_vendor";
                                 break;
                         }
-
                         if (!suffix.IsEmpty) break;
                     }
                 }
@@ -443,9 +438,6 @@ namespace ProjectTowerRpg.ECS.Systems
             return false;
         }
 
-        // ================================================================
-        // ЗАКРЫТИЕ ДИАЛОГА
-        // ================================================================
         private void DialogueClose(Entity player, EntityManager em)
         {
             if (em.HasComponent<DialogueStateComponent>(player))
@@ -454,48 +446,34 @@ namespace ProjectTowerRpg.ECS.Systems
                 state.IsActive = false;
                 em.SetComponentData(player, state);
             }
-
             if (em.HasBuffer<DialogueOptionElement>(player))
                 em.GetBuffer<DialogueOptionElement>(player).Clear();
         }
 
-        // ================================================================
-        // ЭКШЕНЫ
-        // ================================================================
         private void ExecuteAction(DialogueAction act, Entity player, EntityManager em, EntityCommandBuffer ecb)
         {
             switch (act.type)
             {
                 case "quest_accept":
-                {   
-                    Debug.Log($"quest_accept {act.quest_id}");
-
+                {
                     var reqEntity = ecb.CreateEntity();
-                    ecb.AddComponent(reqEntity, new QuestAcceptRequest
-                    {
-                        Unit = player,
-                        QuestId = act.quest_id
-                    });
+                    ecb.AddComponent(reqEntity, new QuestAcceptRequest { Unit = player, QuestId = act.quest_id });
                     break;
                 }
-
                 case "quest_complete":
-                {   
+                {
                     var reqEntity = ecb.CreateEntity();
-                    ecb.AddComponent(reqEntity, new QuestCompleteRequest
-                    {
-                        Unit = player,
-                        QuestId = act.quest_id
-                    });
+                    ecb.AddComponent(reqEntity, new QuestCompleteRequest { Unit = player, QuestId = act.quest_id });
                     break;
                 }
-
                 case "dialogue_close":
-                    break;
-
+                case "back":
+                    break; // Обрабатываются снаружи
                 case "set_flag":
                 case "clear_flag":
                     break;
+                case "vendor_open":
+                    break; // TODO
             }
         }
     }

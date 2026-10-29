@@ -100,9 +100,11 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         private void OnOptionClicked(int optionIndex)
         {
-            var ecb = World.DefaultGameObjectInjectionWorld
-                .GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>()
-                .CreateCommandBuffer();
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world == null || !world.IsCreated || _boundEntity == Entity.Null) return;
+
+            var ecbSystem = world.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
+            var ecb = ecbSystem.CreateCommandBuffer();
 
             var req = ecb.CreateEntity();
             ecb.AddComponent(req, new DialogueChooseOptionRequest

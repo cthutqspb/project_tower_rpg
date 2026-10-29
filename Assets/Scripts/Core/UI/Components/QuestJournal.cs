@@ -40,6 +40,12 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         private readonly List<QuestEntrySnapshot> _quests = new();
         private readonly List<QuestObjectiveSnapshot> _objectives = new();
+        
+        // 🧊 КЭШ-ГВАРД: перестраиваем дерево только когда данные реально изменились.
+        // Разрывает любой возможный feedback-loop (Toggle -> Request -> буфер -> Rebuild -> Toggle).
+        private int _lastSnapshotHash = int.MinValue;
+        private bool _dirty;
+        private bool _flushScheduled;
 
         private struct QuestEntrySnapshot
         {
@@ -89,11 +95,18 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _hideCompletedToggle.RegisterValueChangedCallback(evt =>
                 {
                     _hideCompleted = evt.newValue;
-                    RebuildQuestList();
+                    MarkDirty();
                 });
             }
 
             ClearDetails();
+
+            // При пересоздании панели сбрасываем «зависший» флаг планировщика
+            RegisterCallback<AttachToPanelEvent>(_ =>
+            {
+                _flushScheduled = false;
+                if (_dirty) MarkDirty();
+            });
         }
 
         public void BindToEntity(Entity unitEntity)
@@ -118,6 +131,9 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             if (em.HasBuffer<QuestObjectiveComponent>(_unitEntity))
                 UpdateFromBuffer(em.GetBuffer<QuestObjectiveComponent>(_unitEntity), false);
+            // При биндинге рисуем сразу, не ждём планировщика
+            _dirty = false;
+            FlushNow();
         }
 
         public void Unbind()
@@ -156,8 +172,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _selectedQuestId = firstActive.QuestId;
             }
 
-            RebuildQuestList();
-            RefreshDetails();
+            MarkDirty();
         }
 
         public void UpdateFromBuffer(
@@ -181,8 +196,68 @@ namespace ProjectTowerRpg.Core.UI.Components
                 });
             }
 
+            MarkDirty();
+        }
+
+        // ================================================================
+        // 🧊 КОАЛЕСИНГ ПЕРЕСТРОЙКИ
+        // ================================================================
+        private void MarkDirty()
+        {
+            _dirty = true;
+
+            if (_flushScheduled) return;
+            if (panel == null) return; // окно не в панели — перестроим на AttachToPanel
+
+            _flushScheduled = true;
+            schedule.Execute(FlushDirty).ExecuteLater(0);
+        }
+
+        private void FlushDirty()
+        {
+            _flushScheduled = false;
+            if (!_dirty) return;
+            _dirty = false;
+            FlushNow();
+        }
+
+        private void FlushNow()
+        {
+            int hash = ComputeSnapshotHash();
+            if (hash == _lastSnapshotHash) return; // данные те же — ничего не трогаем
+            _lastSnapshotHash = hash;
+
             RebuildQuestList();
             RefreshDetails();
+        }
+
+        // Дешёвый отпечаток состояния: строки кэшируют свой hash, так что это почти бесплатно
+        private int ComputeSnapshotHash()
+        {
+            unchecked
+            {
+                int h = 17;
+
+                for (int i = 0; i < _quests.Count; i++)
+                {
+                    h = h * 31 + _quests[i].QuestId.GetHashCode();
+                    h = h * 31 + (int)_quests[i].State;
+                    h = h * 31 + (_quests[i].IsTracked ? 1 : 0);
+                }
+
+                for (int i = 0; i < _objectives.Count; i++)
+                {
+                    h = h * 31 + _objectives[i].QuestId.GetHashCode();
+                    h = h * 31 + _objectives[i].ObjectiveId.GetHashCode();
+                    h = h * 31 + _objectives[i].Current;
+                    h = h * 31 + _objectives[i].Required;
+                    h = h * 31 + (_objectives[i].IsCompleted ? 1 : 0);
+                }
+
+                h = h * 31 + (_selectedQuestId != null ? _selectedQuestId.GetHashCode() : 0);
+                h = h * 31 + (_hideCompleted ? 1 : 0);
+                return h;
+            }
         }
 
         private void RebuildQuestList()
@@ -292,8 +367,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 _selectedQuestId = capturedQuestId;
                 _lastSelectedQuestId = capturedQuestId;
-                RebuildQuestList();
-                RefreshDetails();
+                MarkDirty(); 
             };
 
             return btn;
@@ -357,6 +431,10 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         private void SendTrackQuest(string questId)
         {
+            // Не спамим запросами, если трекинг не меняется
+            var current = _quests.Find(q => q.IsTracked);
+            if (current.QuestId == questId) return;
+
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
             Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
             if (playerEntity == Entity.Null) return;

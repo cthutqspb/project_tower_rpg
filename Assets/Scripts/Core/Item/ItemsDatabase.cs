@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json;
@@ -10,6 +11,11 @@ namespace ProjectTowerRpg.Core.Items
         private static Dictionary<string, ItemConfig> _database = new();
         // Новый кэш для моментального поиска из ECS-систем по числу!
         private static Dictionary<int, ItemConfig> _hashedDatabase = new();
+
+        public static IEnumerable<ItemConfig> GetAll()
+        {
+            return _database.Values;
+        }
         
         public static bool IsLoaded { get; private set; } = false;
 
@@ -73,6 +79,7 @@ namespace ProjectTowerRpg.Core.Items
             Debug.LogWarning($"⚠️ БАЗА ДАННЫХ [Items]: Запрос несуществующего хэша: {itemHashId}");
             return null;
         }
+        
     }
 }
 

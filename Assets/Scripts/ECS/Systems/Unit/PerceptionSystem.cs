@@ -41,14 +41,14 @@ namespace ProjectTowerRpg.ECS.Systems
 
             // Найти игрока (для вычисления Relation)
             Entity playerEntity = Entity.Null;
-            string playerFaction = "neutral_humanoid";
+            FactionId playerFaction = FactionId.NeutralHumanoid;   // 🎯 было string
 
             using (var q = em.CreateEntityQuery(ComponentType.ReadOnly<PlayerTag>(), ComponentType.ReadOnly<UnitComponent>()))
             {
                 if (!q.IsEmpty)
                 {
                     playerEntity = q.GetSingletonEntity();
-                    playerFaction = em.GetComponentData<UnitComponent>(playerEntity).Faction.ToString();
+                    playerFaction = em.GetComponentData<UnitComponent>(playerEntity).Faction;   // 🎯 без ToString
                 }
             }
 
@@ -106,7 +106,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (combatState.CurrentTarget == Entity.Null && unit.AggroRadius > 0f)
                 {
                     float3 currentUnitPosition = localTransform.Position;
-                    string currentUnitFaction = unit.Faction.ToString();
+                    FactionId currentUnitFaction = unit.Faction;   // 🎯 было string
                     float radiusSquared = unit.AggroRadius * unit.AggroRadius;
 
                     Entity closestTarget = Entity.Null;
@@ -118,9 +118,10 @@ namespace ProjectTowerRpg.ECS.Systems
                         if (otherUnitEntity == aiControlledUnit) continue;
 
                         var otherUnit = em.GetComponentData<UnitComponent>(otherUnitEntity);
-                        string otherUnitFaction = otherUnit.Faction.ToString();
 
-                        if (!FactionsDatabase.IsHostile(currentUnitFaction, otherUnitFaction)) continue;
+                        // 🎯 было: string otherUnitFaction = otherUnit.Faction;
+                        // теперь сравнение сразу по enum
+                        if (!FactionsDatabase.IsHostile(currentUnitFaction, otherUnit.Faction)) continue;
 
                         float3 otherUnitPosition = em.GetComponentData<LocalTransform>(otherUnitEntity).Position;
                         float3 differenceVector = otherUnitPosition - currentUnitPosition;
@@ -154,10 +155,11 @@ namespace ProjectTowerRpg.ECS.Systems
                 else
                 {
                     // По фракции
-                    string unitFaction = unit.Faction.ToString();
-                    if (FactionsDatabase.IsHostile(unitFaction, playerFaction))
+                    // 🎯 было: string unitFaction = unit.Faction;
+                    // теперь сравнение сразу по unit.Faction
+                    if (FactionsDatabase.IsHostile(unit.Faction, playerFaction))
                         combatState.Relation = NameplateRelation.Hostile;
-                    else if (FactionsDatabase.IsFriendly(unitFaction, playerFaction))
+                    else if (FactionsDatabase.IsFriendly(unit.Faction, playerFaction))
                         combatState.Relation = NameplateRelation.Friendly;
                     else
                         combatState.Relation = NameplateRelation.Neutral;

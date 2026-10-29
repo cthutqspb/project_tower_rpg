@@ -45,3 +45,7 @@ editor_layout.wlt
 
 *.tif
 *.tiff
+
+# AI
+
+*.md

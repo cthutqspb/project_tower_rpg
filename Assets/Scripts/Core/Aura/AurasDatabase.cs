@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json;
@@ -9,6 +10,11 @@ namespace ProjectTowerRpg.Core.Auras
     {
         private static Dictionary<string, AuraConfig> _database = new();
         private static Dictionary<int, AuraConfig> _hashedDatabase = new();
+
+        public static IEnumerable<AuraConfig> GetAll()
+        {
+            return _database.Values;
+        }
         
         public static bool IsLoaded { get; private set; } = false;
 
@@ -69,6 +75,7 @@ namespace ProjectTowerRpg.Core.Auras
             Debug.LogWarning($"⚠️ БАЗА ДАННЫХ [Auras]: Запрос несуществующего хэша ауры: {auraHashId}");
             return null;
         }
+
     }
 }
 

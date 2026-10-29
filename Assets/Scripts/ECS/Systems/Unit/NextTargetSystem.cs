@@ -46,7 +46,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
             var playerUnit = em.GetComponentData<UnitComponent>(playerEntity);
             var playerTransform = em.GetComponentData<LocalTransform>(playerEntity);
-            string playerFaction = playerUnit.Faction.ToString();
+            FactionId playerFaction = playerUnit.Faction;
 
             float3 playerPos = playerTransform.Position;
             float3 cameraForward = GetCameraForwardXZ();
@@ -67,7 +67,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
                 var otherUnit = em.GetComponentData<UnitComponent>(entity);
 
-                if (!FactionsDatabase.IsHostile(playerFaction, otherUnit.Faction.ToString()))
+                if (!FactionsDatabase.IsHostile(playerFaction, otherUnit.Faction))
                     continue;
 
                 var otherTransform = em.GetComponentData<LocalTransform>(entity);

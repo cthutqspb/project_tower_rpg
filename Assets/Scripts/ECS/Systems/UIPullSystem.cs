@@ -1,4 +1,5 @@
 using Unity.Entities;
+using UnityEngine.UIElements;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.Core.UI;
 
@@ -7,6 +8,12 @@ namespace ProjectTowerRpg.ECS.Systems
     [UpdateInGroup(typeof(PresentationSystemGroup))]
     public partial class UIPullSystem : SystemBase
     {
+        // 🚪 Ресивер «жив» только пока он в панели. Закрытые/уничтоженные окна не кормим.
+        private static bool IsAlive(object receiver)
+        {
+            return receiver is not VisualElement ve || ve.panel != null;
+        }
+
         protected override void OnUpdate()
         {
             // 🔍 1. БЫСТРЫЕ, ПОТОКОБЕЗОПАСНЫЕ ЛУКАПЫ КОМПОНЕНТОВ (Чтение)
@@ -17,7 +24,8 @@ namespace ProjectTowerRpg.ECS.Systems
             var resourceLookup = SystemAPI.GetComponentLookup<ResourceComponent>(true);
             var unitLookup = SystemAPI.GetComponentLookup<UnitComponent>(true);
 
-            var combatLookup = SystemAPI.GetComponentLookup<CombatStateComponent>(true);
+            // ⚠️ combatLookup нигде не используется, я его убрал, чтобы не тратить время
+            // var combatLookup = SystemAPI.GetComponentLookup<CombatStateComponent>(true);
 
             var unitCurrentAttributesLookup = SystemAPI.GetComponentLookup<UnitCurrentAttributesComponent>(true);
             var unitCombatStatsLookup = SystemAPI.GetComponentLookup<UnitCombatStatsComponent>(true);
@@ -33,17 +41,17 @@ namespace ProjectTowerRpg.ECS.Systems
             foreach (var entity in UIRegistry.GetActiveEntities())
             {
                 var receivers = UIRegistry.GetReceivers(entity);
-                if (receivers == null) continue;
+                if (receivers == null || receivers.Count == 0) continue;
 
                 // ================================================================
-                // СЛАЙС А: Твой исходный рабочий код для Инвентаря / Куклы персонажа
+                // СЛАЙС А: Инвентарь / Кукла персонажа
                 // ================================================================
                 if (slotLookup.HasBuffer(entity) && slotLookup.DidChange(entity, LastSystemVersion))
                 {
                     var slots = slotLookup[entity];
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiBufferReceiver<ItemSlot> ui)
+                        if (receiver is IEcsUiBufferReceiver<ItemSlot> ui && IsAlive(receiver))
                         {
                             ui.UpdateFromBuffer(slots, false);
                         }
@@ -56,8 +64,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     
                     foreach (var receiver in receivers)
                     {
-                        // Ищем сетки, готовые принять и отрендерить новый буфер ярлыков!
-                        if (receiver is IEcsUiBufferReceiver<ActionBarSlot> barUi)
+                        if (receiver is IEcsUiBufferReceiver<ActionBarSlot> barUi && IsAlive(receiver))
                         {
                             barUi.UpdateFromBuffer(barSlots, false);
                         }
@@ -65,7 +72,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // =========================================================================
-                // 🔮 РEАКТИВНЫЙ АУРА-МОСТ: Слепой пулл активных баффов/дебаффов из ОЗУ чанка
+                // 🔮 РEАКТИВНЫЙ АУРА-МОСТ
                 // =========================================================================
                 if (auraLookup.HasBuffer(entity) && auraLookup.DidChange(entity, LastSystemVersion))
                 {
@@ -73,24 +80,22 @@ namespace ProjectTowerRpg.ECS.Systems
                     
                     foreach (var receiver in receivers)
                     {
-                        // Намертво и вслепую скармливаем буфер аур любой сетке или окну на экране!
-                        if (receiver is IEcsUiBufferReceiver<AuraSlot> auraUi)
+                        if (receiver is IEcsUiBufferReceiver<AuraSlot> auraUi && IsAlive(receiver))
                         {
                             auraUi.UpdateFromBuffer(auraSlots, false);
                         }
                     }
                 }
 
-
                 // ================================================================
-                // 🌟 СЛАЙС Б: РЕАКТИВНОЕ ОБНОВЛЕНИЕ ЗДОРОВЬЯ ЮНИТА (UnitFrame)
+                // 🌟 СЛАЙС Б: ЗДОРОВЬЕ ЮНИТА (UnitFrame)
                 // ================================================================
                 if (healthLookup.HasComponent(entity) && healthLookup.DidChange(entity, LastSystemVersion))
                 {
                     var healthData = healthLookup[entity];
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiComponentReceiver<HealthComponent> healthUi)
+                        if (receiver is IEcsUiComponentReceiver<HealthComponent> healthUi && IsAlive(receiver))
                         {
                             healthUi.UpdateFromComponent(ref healthData);
                         }
@@ -98,7 +103,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // ================================================================
-                // 🌟 СЛАЙС В: РЕАКТИВНОЕ ОБНОВЛЕНИЕ РЕСУРСА ЮНИТА (UnitFrame)
+                // 🌟 СЛАЙС В: РЕСУРС ЮНИТА (UnitFrame)
                 // ================================================================
                 if (resourceLookup.HasComponent(entity) && resourceLookup.DidChange(entity, LastSystemVersion))
                 {   
@@ -106,7 +111,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiComponentReceiver<ResourceComponent> resourceUi)
+                        if (receiver is IEcsUiComponentReceiver<ResourceComponent> resourceUi && IsAlive(receiver))
                         {   
                             resourceUi.UpdateFromComponent(ref resourceData);
                         }
@@ -114,7 +119,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // ================================================================
-                // 🌟 СЛАЙС Г: РЕАКТИВНОЕ ОБНОВЛЕНИЕ ЮНИТА (UnitFrame)
+                // 🌟 СЛАЙС Г: ЮНИТ (UnitFrame)
                 // ================================================================
                 if (unitLookup.HasComponent(entity) && unitLookup.DidChange(entity, LastSystemVersion))
                 {   
@@ -122,7 +127,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiComponentReceiver<UnitComponent> unitUi)
+                        if (receiver is IEcsUiComponentReceiver<UnitComponent> unitUi && IsAlive(receiver))
                         {   
                             unitUi.UpdateFromComponent(ref unitData);
                         }
@@ -130,7 +135,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // ================================================================
-                // 🌟 СЛАЙС Д: РЕАКТИВНОЕ ОБНОВЛЕНИЕ ТЕКУЩИХ АТРИБУТОВ ЮНИТА (UnitStats)
+                // 🌟 СЛАЙС Д: ТЕКУЩИЕ АТРИБУТЫ ЮНИТА (UnitStats)
                 // ================================================================
                 if (unitCurrentAttributesLookup.HasComponent(entity) && unitCurrentAttributesLookup.DidChange(entity, LastSystemVersion))
                 {   
@@ -138,7 +143,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiComponentReceiver<UnitCurrentAttributesComponent> unitStatsUi)
+                        if (receiver is IEcsUiComponentReceiver<UnitCurrentAttributesComponent> unitStatsUi && IsAlive(receiver))
                         {   
                             unitStatsUi.UpdateFromComponent(ref unitCurrentAttributesData);
                         }
@@ -146,7 +151,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // ================================================================
-                // 🌟 СЛАЙС E: РЕАКТИВНОЕ ОБНОВЛЕНИЕ СТАТОВ ЮНИТА (UnitStats)
+                // 🌟 СЛАЙС E: СТАТЫ ЮНИТА (UnitStats)
                 // ================================================================
                 if (unitCombatStatsLookup.HasComponent(entity) && unitCombatStatsLookup.DidChange(entity, LastSystemVersion))
                 {   
@@ -154,7 +159,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiComponentReceiver<UnitCombatStatsComponent> unitStatsUi)
+                        if (receiver is IEcsUiComponentReceiver<UnitCombatStatsComponent> unitStatsUi && IsAlive(receiver))
                         {   
                             unitStatsUi.UpdateFromComponent(ref unitCombatStatsData);
                         }
@@ -162,7 +167,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // ================================================================
-                // 🌟 СЛАЙС Ж: РЕАКТИВНОЕ ОБНОВЛЕНИЕ КАСTА ЮНИТА (Wow-Канон)
+                // 🌟 СЛАЙС Ж: КАСТ ЮНИТА
                 // ================================================================
                 if (castLookup.HasComponent(entity))
                 {
@@ -170,7 +175,7 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiComponentReceiver<CastComponent> castUi)
+                        if (receiver is IEcsUiComponentReceiver<CastComponent> castUi && IsAlive(receiver))
                         {
                             castUi.UpdateFromComponent(ref castData);
                         }
@@ -178,16 +183,15 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
 
                 // =========================================================================
-                // 📊 РЕАКТИВНЫЙ КВЕСТOВЫЙ МОСТ: Копейка в копейку по канону Аур и Инвентаря!
+                // 📊 РЕАКТИВНЫЙ КВЕСТOВЫЙ МОСТ
                 // =========================================================================
                 if (questLookup.HasBuffer(entity) && questLookup.DidChange(entity, LastSystemVersion))
                 {
                     var questSlots = questLookup[entity];
-                    
+
                     foreach (var receiver in receivers)
                     {
-                        // Вслепую скармливаем unmanaged-буфер квестов любому подписанному окну или оверлею!
-                        if (receiver is IEcsUiBufferReceiver<QuestComponent> questUi)
+                        if (receiver is IEcsUiBufferReceiver<QuestComponent> questUi && IsAlive(receiver))
                         {
                             questUi.UpdateFromBuffer(questSlots, false);
                         }
@@ -199,7 +203,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     var objectiveSlots = questObjectiveLookup[entity];
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiBufferReceiver<QuestObjectiveComponent> objUi)
+                        if (receiver is IEcsUiBufferReceiver<QuestObjectiveComponent> objUi && IsAlive(receiver))
                         {
                             objUi.UpdateFromBuffer(objectiveSlots, false);
                         }
@@ -212,7 +216,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     var stateData = dialogueStateLookup[entity];
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiComponentReceiver<DialogueStateComponent> stateUi)
+                        if (receiver is IEcsUiComponentReceiver<DialogueStateComponent> stateUi && IsAlive(receiver))
                         {
                             stateUi.UpdateFromComponent(ref stateData);
                         }
@@ -225,7 +229,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     var options = dialogueOptionsLookup[entity];
                     foreach (var receiver in receivers)
                     {
-                        if (receiver is IEcsUiBufferReceiver<DialogueOptionElement> optUi)
+                        if (receiver is IEcsUiBufferReceiver<DialogueOptionElement> optUi && IsAlive(receiver))
                         {
                             optUi.UpdateFromBuffer(options, false);
                         }
@@ -235,4 +239,3 @@ namespace ProjectTowerRpg.ECS.Systems
         }
     }
 }
-
