@@ -76,6 +76,10 @@ namespace ProjectTowerRpg.ECS.Systems
                         ExecuteItemCreate(cmd.ValueRO, ecb, presentationBufferEntity);
                         break;
 
+                    case ActionKind.ItemSplit:
+                        ExecuteItemSplit(cmd.ValueRO, ecb);
+                        break;
+
                     case ActionKind.ActionBarAssign:
                         ExecuteActionBarAssign(cmd.ValueRO);
                         break;
@@ -301,6 +305,13 @@ namespace ProjectTowerRpg.ECS.Systems
             );
 
             Debug.Log($"[ActionDispatcher] Использован {cmd.ItemId} актором {cmd.SourceEntity.Index}");
+        }
+
+        private void ExecuteItemSplit(ActionCommand cmd, EntityCommandBuffer ecb)
+        {
+            Debug.Log($"[ActionDispatcher] ЗАПРОС НА СПЛИТ: {cmd.ItemId} из слота {cmd.SourceSlot} (Amount: {cmd.Amount}). Редюсер пока в разработке!");
+            
+            // TODO: ItemReducer.Split(ref _slotDataLookup, ecb, cmd.SourceEntity, cmd.SourceSlot, cmd.Amount);
         }
 
         private void ExecuteItemCreate(ActionCommand cmd, EntityCommandBuffer ecb, Entity presentationBufferEntity)

@@ -44,13 +44,12 @@ namespace ProjectTowerRpg.ECS.Systems
                 // 1. СБОР СТАТ СО ШМОТОК НА КУКЛЕ (PAPERDOLL) — Считаем всё подряд!
                 if (paperdollEntity != Entity.Null && itemSlotLookup.HasBuffer(paperdollEntity))
                 {
-                    var slotsBuffer = em.GetBuffer<ItemSlot>(paperdollEntity, true);
+                    var slotsBuffer = itemSlotLookup[paperdollEntity];
                     foreach (var slot in slotsBuffer)
                     {
                         if (slot.IsEmpty || slot.ContainerType != ContainerType.PAPERDOLL) continue;
 
-                        string itemIdStr = slot.DataId.ToString().ToLower().Trim();
-                        ItemConfig itemConfig = ItemsDatabase.GetItem(itemIdStr);
+                        ItemConfig itemConfig = ItemsDatabase.GetItem(slot.DataId.GetHashCode());
                         
                         if (itemConfig != null && itemConfig.combat_stats?.attributes != null)
                         {
@@ -68,13 +67,12 @@ namespace ProjectTowerRpg.ECS.Systems
                 // Обычный шмот игнорируем! Плюсуем только если это ПАССИВНЫЙ ТАЛИСМАН/АМУЛЕТ!
                 if (inventoryEntity != Entity.Null && itemSlotLookup.HasBuffer(inventoryEntity))
                 {
-                    var slotsBuffer = em.GetBuffer<ItemSlot>(inventoryEntity, true);
+                    var slotsBuffer = itemSlotLookup[paperdollEntity];
                     foreach (var slot in slotsBuffer)
                     {
                         if (slot.IsEmpty || slot.ContainerType != ContainerType.INVENTORY) continue;
 
-                        string itemIdStr = slot.DataId.ToString().ToLower().Trim();
-                        ItemConfig itemConfig = ItemsDatabase.GetItem(itemIdStr);
+                        ItemConfig itemConfig = ItemsDatabase.GetItem(slot.DataId.GetHashCode());
                         
                         // Проверяем ММО-флаг пассивки из твоего конфига (например, .is_passive или по типу предмета)
                         // Если такого флага пока нет, временно закомментируй этот блок или оставь проверку на будущее,

@@ -50,5 +50,30 @@ namespace ProjectTowerRpg.Core.UI
         }
 
         public static bool IsAnyOpen => _stack.Count > 0;
+
+        // 🎯 Сбросить позиции ВСЕХ окон. Открытые перецентровываются сразу,
+        // закрытые — при следующем открытии (т.к. кэш очищен).
+        public static void ResetAllWindowPositions()
+        {
+            UIWindow.ClearSavedPositions();
+
+            foreach (var ctx in _stack)
+            {
+                if (ctx?.Owner != null && ctx.IsVisible)
+                    ctx.Owner.CenterWindow();
+            }
+        }
+
+        // 🎯 Сбросить позицию одного типа окна
+        public static void ResetWindowPosition(WindowType type)
+        {
+            UIWindow.ClearSavedPosition(type);
+
+            foreach (var ctx in _stack)
+            {
+                if (ctx?.Owner != null && ctx.IsVisible && ctx.Owner.Type == type)
+                    ctx.Owner.CenterWindow();
+            }
+        }
     }
 }

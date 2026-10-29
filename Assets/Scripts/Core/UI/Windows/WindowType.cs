@@ -5,6 +5,7 @@ namespace ProjectTowerRpg.Core.UI
         Container,
         Character,
         QuestEnd,
+        ItemSplit,
         // Trade,
         // Quest,
         // ...

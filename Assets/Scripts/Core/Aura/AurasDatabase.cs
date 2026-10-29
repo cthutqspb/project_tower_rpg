@@ -1,7 +1,7 @@
 using System.IO;
-using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Collections;
 using Newtonsoft.Json;
 
 namespace ProjectTowerRpg.Core.Auras
@@ -48,7 +48,7 @@ namespace ProjectTowerRpg.Core.Auras
                         cfg.action_type = "aura";
                     }
 
-                    int numericHash = idStr.GetHashCode();
+                    int numericHash = new FixedString64Bytes(idStr).GetHashCode();
                     _hashedDatabase[numericHash] = cfg;
                 }
 

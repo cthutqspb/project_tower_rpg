@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Collections;
 using Newtonsoft.Json;
 
 namespace ProjectTowerRpg.Core.Localization
@@ -75,6 +76,10 @@ namespace ProjectTowerRpg.Core.Localization
             // Твоя каноничная зрячая заглушка, если перевода нет!
             return $"[{key}]";
         }
+
+        public static string Get(FixedString32Bytes key) => Get(key.ToString());
+        public static string Get(FixedString64Bytes key) => Get(key.ToString());
+        public static string Get(FixedString128Bytes key) => Get(key.ToString());
     }
 }
 

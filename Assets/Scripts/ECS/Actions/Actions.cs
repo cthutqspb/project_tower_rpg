@@ -14,6 +14,7 @@ namespace ProjectTowerRpg.ECS.Actions
         ItemDrop = 3,
         ItemUse = 4,
         ItemCreate = 5,
+        ItemSplit = 6,
 
         // 📦 КОНТЕЙНЕРЫ (СУНДУКИ)
         OpenContainer = 10,
@@ -39,6 +40,7 @@ namespace ProjectTowerRpg.ECS.Actions
         public const ActionKind Drop = ActionKind.ItemDrop;
         public const ActionKind Use = ActionKind.ItemUse;
         public const ActionKind Create = ActionKind.ItemCreate;
+        public const ActionKind Split = ActionKind.ItemSplit;
     }
 
     public static class ContainerActions

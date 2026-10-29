@@ -12,26 +12,40 @@ namespace ProjectTowerRpg.ECS.Systems
     {
         private bool _isLinked = false;
 
+        // 🎯 Кэшируем запросы в OnCreate (или Lazy-инициализации)
+        private EntityQuery _anchorQuery;
+        private EntityQuery _playerQuery;
+
+        protected override void OnCreate()
+        {
+            _anchorQuery = GetEntityQuery(
+                ComponentType.ReadWrite<NameplateStateComponent>(),
+                ComponentType.ReadOnly<QuestAnchor>()
+            );
+
+            _playerQuery = GetEntityQuery(
+                ComponentType.ReadOnly<PlayerTag>(),
+                ComponentType.ReadOnly<QuestComponent>()
+            );
+        }
+
         protected override void OnUpdate()
         {
             var em = EntityManager;
 
-            // 1. Одноразовая линковка: связываем квесты с якорями
+            // 1. Одноразовая линковка
             if (!_isLinked)
             {
                 TryLinkAnchors(em);
             }
 
-            // 2. Каждый кадр обновляем маркеры (!) у якорей (дёшево)
+            // 2. Каждый кадр обновляем маркеры (дёшево)
             UpdateAnchorMarks(em);
         }
 
-        // ================================================================
-        // ЛИНКОВКА: КВЕСТ ↔ ЯКОРЬ
-        // ================================================================
         private void TryLinkAnchors(EntityManager em)
         {
-            // Проходим по всем юнитам (у которых есть имя)
+            // Создаем запрос один раз для линковки (это не каждый кадр, можно)
             using var query = em.CreateEntityQuery(
                 ComponentType.ReadOnly<UnitComponent>(),
                 ComponentType.ReadWrite<NameplateStateComponent>()
@@ -44,18 +58,23 @@ namespace ProjectTowerRpg.ECS.Systems
             foreach (var entity in entities)
             {
                 var unit = em.GetComponentData<UnitComponent>(entity);
-                string nameKey = unit.NameKey.ToString();
+                // ToString() тут нормален — выполняется 1 раз при старте
+                string nameKey = unit.NameKey.ToString(); 
 
                 var questsByGiver = QuestsDatabase.GetQuestsByGiver(nameKey);
 
                 if (questsByGiver.Count > 0)
                 {
-                    var buffer = em.AddBuffer<QuestAnchor>(entity);
-                    foreach (var q in questsByGiver)
+                    // Избегаем ошибки "буфер уже существует"
+                    if (!em.HasBuffer<QuestAnchor>(entity))
                     {
-                        buffer.Add(new QuestAnchor { QuestId = q.id });
+                        var buffer = em.AddBuffer<QuestAnchor>(entity);
+                        foreach (var q in questsByGiver)
+                        {
+                            buffer.Add(new QuestAnchor { QuestId = q.id });
+                        }
                     }
-
+                    
                     Debug.Log($"[QuestAnchorSystem] Юнит {nameKey} связан с {questsByGiver.Count} квестами.");
                 }
             }
@@ -64,41 +83,26 @@ namespace ProjectTowerRpg.ECS.Systems
             _isLinked = true;
         }
 
-        // ================================================================
-        // ОБНОВЛЕНИЕ МАРКЕРОВ (!)
-        // ================================================================
         private void UpdateAnchorMarks(EntityManager em)
         {
-            // Найти игрока
-            using var playerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<PlayerTag>(), ComponentType.ReadOnly<QuestComponent>());
-            if (playerQuery.IsEmpty) return;
+            if (_playerQuery.IsEmpty || _anchorQuery.IsEmpty) return;
 
-            Entity playerEntity = playerQuery.GetSingletonEntity();
+            Entity playerEntity = _playerQuery.GetSingletonEntity();
             var playerQuests = em.GetBuffer<QuestComponent>(playerEntity);
 
-            // Все якоря
-            using var anchorQuery = em.CreateEntityQuery(
-                ComponentType.ReadWrite<NameplateStateComponent>(),
-                ComponentType.ReadOnly<QuestAnchor>()
-            );
-
-            if (anchorQuery.IsEmpty) return;
-
-            var anchors = anchorQuery.ToEntityArray(Allocator.Temp);
-            for (int i = 0; i < anchors.Length; i++)
+            // 🎯 Идем напрямую по чанкам через SystemAPI.Query (без ToEntityArray)
+            foreach (var (nameplateRW, anchorBuffer) in SystemAPI.Query<RefRW<NameplateStateComponent>, DynamicBuffer<QuestAnchor>>())
             {
-                var anchorEntity = anchors[i];
-                var anchorQuests = em.GetBuffer<QuestAnchor>(anchorEntity);
-
                 NameplateMark mark = NameplateMark.None;
 
-                for (int a = 0; a < anchorQuests.Length; a++)
+                for (int a = 0; a < anchorBuffer.Length; a++)
                 {
-                    var questId = anchorQuests[a].QuestId;
+                    var questId = anchorBuffer[a].QuestId;
                     QuestState state = QuestState.Locked;
 
                     for (int q = 0; q < playerQuests.Length; q++)
                     {
+                        // 🎯 Сравнение FixedString == FixedString (быстро, без аллокаций)
                         if (playerQuests[q].QuestId == questId)
                         {
                             state = playerQuests[q].State;
@@ -109,20 +113,20 @@ namespace ProjectTowerRpg.ECS.Systems
                     if (state == QuestState.Locked)
                     {
                         mark = NameplateMark.Quest;   // ! — можно взять
-                        break;
+                        break; // Приоритет у Locked
                     }
                     else if (state == QuestState.Completed)
                     {
                         mark = NameplateMark.TurnIn;  // ? — можно сдать
-                        // не break — если есть ещё Locked, приоритет у него
+                        // Не break — вдруг есть еще Locked, у него приоритет
                     }
                 }
 
-                var nameplate = em.GetComponentData<NameplateStateComponent>(anchorEntity);
-                nameplate.Mark = mark;
-                em.SetComponentData(anchorEntity, nameplate);
+                if (nameplateRW.ValueRO.Mark != mark)
+                {
+                    nameplateRW.ValueRW.Mark = mark;
+                }
             }
-            anchors.Dispose();
         }
     }
 }

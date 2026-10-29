@@ -69,7 +69,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 _header.OnClose += Close;
                 headerSlot.Add(_header);
                 root.RegisterCallback<PointerDownEvent>(evt => root.BringToFront());
-                var dragManipulator = new DragManipulator(_header, root, DragMode.UIElement);
+                var dragManipulator = new DragManipulator(_header, _window, DragMode.UIElement);
                 _header.AddManipulator(dragManipulator);
             }
 

@@ -1,6 +1,5 @@
 /* Глобальный оверлей контейнер диалога */
 .dialogue-overlay {
-    /* Оставляем ТОЛЬКО визуал коробки, без позиционирования в мире! */
     width: 100%;
     height: 100%;
     background-color: rgba(26, 27, 38, 0.85); 
@@ -9,11 +8,9 @@
     border-radius: 4px;
     padding: 12px;
     overflow: hidden;
-    display: none; /* Включится через C# при ПКМ */
+    display: none; 
 }
 
-
-/* Верхняя декоративная панель (Тулбар) */
 .dialogue-overlay__toolbar {
     flex-direction: row;
     justify-content: space-between;
@@ -27,30 +24,26 @@
     background-color: rgba(36, 40, 59, 0.3);
 }
 
-/* Имя говорящего NPC */
 .dialogue-overlay__title {
-    color: rgba(125, 207, 255, 1); /* var(--osaka-cyan) акцент */
+    color: rgba(125, 207, 255, 1); 
     font-size: 12px;
     -unity-font-style: bold;
 }
 
-/* Область скролла для реплик NPC */
 .dialogue-overlay__scroll-view {
     flex-grow: 1;
     width: 100%;
     margin-bottom: 12px;
 }
 
-/* Текст реплики самого NPC */
 .dialogue-overlay__npc-text {
-    color: rgba(192, 202, 245, 1); /* --osaka-text */
+    color: rgba(192, 202, 245, 1); 
     font-size: 13px;
     white-space: normal; 
     padding: 4px;
     -unity-font-definition: initial; 
 }
 
-/* Нижний блок для динамических кнопок игрока */
 .dialogue-overlay__options-list {
     flex-shrink: 0;
     flex-direction: column;
@@ -59,38 +52,32 @@
     padding-top: 6px;
 }
 
-/* Кнопки ответов игрока */
+/* ============================================================
+   КНОПКА ОТВЕТА
+   ============================================================ */
 .dialogue-overlay__option-button {
     background-color: transparent;
     border-width: 0;
-    color: rgba(86, 95, 137, 1); /* --osaka-text-dim */
     text-align: left;
-    padding: 6px 4px;
+    -unity-text-align: middle-left;
+    padding: 6px 8px;
     margin: 0 0 2px 0;
     font-size: 13px;
     white-space: normal;
-    -unity-font-definition: initial; 
-    transition: color 0.15s;
-}
-
-.dialogue-overlay__option-button:hover {
-    color: rgba(192, 202, 245, 1); /* Ховер до яркого */
+    -unity-font-definition: initial;
+    border-radius: 3px; 
+    
+    /* 🎯 Плавность только для фона (цвет текста меняется в C#) */
+    transition: background-color 0.15s; 
     cursor: link;
 }
 
-.dialogue-overlay__option-button {
-    color: var(--color-text);
-}
-
-.dialogue-overlay__option-button.visited {
-    color: var(--color-text-dim);
-}
-
+/* Легкая подсветка при наведении */
 .dialogue-overlay__option-button:hover {
-    color: var(--color-warning);
+    background-color: rgba(122, 162, 247, 0.1);
 }
 
-/* Кастомизация встроенного скроллбара под общий стиль */
+/* Кастомизация встроенного скроллбара */
 .dialogue-overlay__scroll-view .unity-scroller {
     width: 4px;
     background-color: transparent;
@@ -106,4 +93,3 @@
 .dialogue-overlay__scroll-view .unity-scroller__high-button {
     display: none; 
 }
-

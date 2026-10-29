@@ -1,7 +1,7 @@
 using System.IO;
-using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Collections;
 using Newtonsoft.Json;
 
 namespace ProjectTowerRpg.Core.Abilities
@@ -52,7 +52,7 @@ namespace ProjectTowerRpg.Core.Abilities
                     }
 
                     // ГЕНЕРИРУЕМ ХЭШ: Берем строку "frostbolt", делаем из нее инт по твоему канону
-                    int numericHash = idStr.GetHashCode();
+                    int numericHash = new FixedString64Bytes(idStr).GetHashCode();
                     _hashedDatabase[numericHash] = cfg;
                 }
 

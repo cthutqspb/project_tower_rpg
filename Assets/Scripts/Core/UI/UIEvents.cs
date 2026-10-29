@@ -15,6 +15,13 @@ namespace ProjectTowerRpg.Core.UI
         public int ClickCount;        // ✅ 1 = Одиночный клик, 2 = Даблклик
     }
 
+    public struct SplitStackPayload
+    {
+        public Entity SourceContainer;
+        public int SourceSlot;
+        public int MaxAmount;
+    }
+
     public enum SlotAnimationType : byte
     {
         Press,         // Кнопка сочно ушла внутрь при успешном использовании

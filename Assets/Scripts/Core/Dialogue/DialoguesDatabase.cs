@@ -1,6 +1,7 @@
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Collections;
 using Newtonsoft.Json;
 
 namespace ProjectTowerRpg.Core.Dialogue
@@ -38,7 +39,7 @@ namespace ProjectTowerRpg.Core.Dialogue
                     DialogueGraph graph = pair.Value;
 
                     // ГЕНЕРИРУЕМ ХЭШ: Берем строку "banshee_zalina", делаем из нее инт по твоему канону
-                    int numericHash = idStr.GetHashCode();
+                    int numericHash = new FixedString64Bytes(idStr).GetHashCode();
                     _hashedDatabase[numericHash] = graph;
                 }
 

@@ -45,7 +45,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 var markerData = em.GetComponentData<UnitSpawnMarkerComponent>(markerEntity);
                 
                 // 🦾 ВОЗВРАЩАЕМ РОДНУЮ СТАБИЛЬНУЮ СТРОКОВУЮ ЛOГИКУ:
-                string uId = markerData.UnitId.ToString().ToLower().Trim();
+                string uId = markerData.UnitId.ToString();
                 
                 // Ищем строго по строке, как это работало изначально!
                 var dbCfg = UnitsDatabase.GetUnit(uId);
@@ -77,7 +77,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
                 else if (dbCfg.ai != null)
                 {
-                    string profileStr = dbCfg.ai.profile?.ToLower().Trim();
+                    string profileStr = dbCfg.ai.profile;
                     if (profileStr == "neutral_passive")
                         profileKind = AiProfileKind.NeutralPassive;
                     else if (profileStr == "passive")

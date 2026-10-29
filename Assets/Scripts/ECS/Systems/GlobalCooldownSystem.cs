@@ -50,7 +50,6 @@ namespace ProjectTowerRpg.ECS.Systems
                         if (cooldown.Remaining <= 0f)
                         {
                             // 💥 МОМЕНТ ИСТИНЫ: Обычный кулдаун группы полностью остыл!
-                            // Лезем в экшен-бар этого же юнита, чтобы найти все привязанные слоты
                             if (SystemAPI.HasBuffer<ActionBarSlot>(entity))
                             {
                                 var barBuffer = SystemAPI.GetBuffer<ActionBarSlot>(entity);
@@ -59,25 +58,28 @@ namespace ProjectTowerRpg.ECS.Systems
                                 for (int b = 0; b < barBuffer.Length; b++)
                                 {
                                     var slot = barBuffer[b];
-                                    var abilityId = slot.AbilityId.ToString();
                                     
-                                    if (string.IsNullOrEmpty(abilityId)) continue;
+                                    // 🎯 Проверка пустой строки для FixedString
+                                    if (slot.AbilityId.IsEmpty) continue;
 
-                                    // Лезем в базу, чтобы узнать группу кулдауна этой кнопки
-                                    var abilityCfg = AbilitiesDatabase.GetAbility(abilityId);
+                                    // 🎯 Поиск по хэшу (O(1) вместо Dictionary<string>)
+                                    var abilityCfg = AbilitiesDatabase.GetAbility(slot.AbilityId.GetHashCode());
+                                    
                                     if (abilityCfg != null && abilityCfg.parameters != null)
                                     {
-                                        FixedString32Bytes slotCooldownGroup = abilityCfg.parameters.cooldown_group ?? abilityId;
+                                        // 🎯 cooldown_group — это string, поэтому используем string.IsNullOrEmpty
+                                        FixedString32Bytes slotCooldownGroup = string.IsNullOrEmpty(abilityCfg.parameters.cooldown_group)
+                                            ? slot.AbilityId
+                                            : abilityCfg.parameters.cooldown_group; // implicit string -> FixedString32Bytes
 
-                                        // Если группа кнопки совпадает с остывшей группой — триггерим вспышку по её точному индексу слота!
+                                        // Если группа кнопки совпадает с остывшей группой — триггерим вспышку
                                         if (slotCooldownGroup == cooldown.CooldownGroup)
                                         {
-                                            UIEvents.TriggerSlotAnimate(slot.SlotIndex, SlotAnimationType.CooldownReady); // Или просто передавай индекс цикла 'b'
+                                            UIEvents.TriggerSlotAnimate(slot.SlotIndex, SlotAnimationType.CooldownReady);
                                         }
                                     }
                                 }
                             }
-
                             // Кулдаун остыл и вспышки розданы — выкидываем его из памяти юнита
                             cooldownsBuffer.RemoveAt(i);
                         }

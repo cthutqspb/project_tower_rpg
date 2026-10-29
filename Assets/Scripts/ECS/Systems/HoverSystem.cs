@@ -19,6 +19,9 @@ namespace ProjectTowerRpg.ECS.Systems
     [WorldSystemFilter(WorldSystemFilterFlags.LocalSimulation)]
     public partial class HoverSystem : SystemBase
     {
+        private Camera _mainCamera;
+        protected override void OnStartRunning() => _mainCamera = Camera.main;
+
         protected override void OnCreate()
         {
             EntityManager.CreateSingleton<HoverState>();
@@ -33,16 +36,19 @@ namespace ProjectTowerRpg.ECS.Systems
                 ResetHover(ref hoverState.ValueRW);
                 return;
             }
-
-            Camera mainCamera = Camera.main;
-            if (mainCamera == null) return;
+            
+            if (_mainCamera == null)
+            {
+                _mainCamera = Camera.main;
+                if (_mainCamera == null) return; // Если камеры до сих пор нет — выходим
+            }
 
             var currentMouse = UnityEngine.InputSystem.Mouse.current;
             Vector2 mousePosition = currentMouse != null 
                 ? currentMouse.position.ReadValue() 
                 : Vector2.zero;
 
-            Ray ray = mainCamera.ScreenPointToRay(mousePosition);
+            Ray ray = _mainCamera.ScreenPointToRay(mousePosition);
             
             if (Physics.SphereCast(ray, 0.3f, out RaycastHit hit, 100f))
             {

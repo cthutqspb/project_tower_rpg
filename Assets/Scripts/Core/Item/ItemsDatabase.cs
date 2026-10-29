@@ -1,7 +1,7 @@
 using System.IO;
-using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Collections;
 using Newtonsoft.Json;
 
 namespace ProjectTowerRpg.Core.Items
@@ -41,16 +41,13 @@ namespace ProjectTowerRpg.Core.Items
                 {
                     string idStr = pair.Key;
                     ItemConfig cfg = pair.Value;
-
                     cfg.id = idStr;
 
                     if (string.IsNullOrEmpty(cfg.action_type))
-                    {
                         cfg.action_type = "item";
-                    }
 
-                    // ГЕНЕРИРУЕМ ХЭШ: Берем строку "iron_sword", делаем из нее инт
-                    int numericHash = idStr.GetHashCode();
+                    // 🎯 ФИКС: генерируем хэш тем же алгоритмом, что и FixedString64Bytes.GetHashCode()
+                    int numericHash = new FixedString64Bytes(idStr).GetHashCode();
                     _hashedDatabase[numericHash] = cfg;
                 }
 

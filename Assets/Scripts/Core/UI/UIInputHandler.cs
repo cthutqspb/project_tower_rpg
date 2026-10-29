@@ -105,67 +105,67 @@ namespace ProjectTowerRpg.Core.UI
 
 
         // ================================================================
-// 🎯 УНИВЕРСАЛЬНЫЙ ДАБЛКЛИК (РЕЗОЛВ ЧЕРЕЗ BuffersLinkComponent)
-// ================================================================
-private void HandleUiDoubleClick(UiClickContext context)
-{
-    if (context.ContextEntity == Entity.Null) return;
+        // 🎯 УНИВЕРСАЛЬНЫЙ ДАБЛКЛИК (РЕЗОЛВ ЧЕРЕЗ BuffersLinkComponent)
+        // ================================================================
+        private void HandleUiDoubleClick(UiClickContext context)
+        {
+            if (context.ContextEntity == Entity.Null) return;
 
-    var em = _entityManager;
+            var em = _entityManager;
 
-    // 🦾 1. РЕЗОЛВ SOURCE: если есть BuffersLink.Inventory — берём его.
-    //         Иначе работаем с самим entity (это bagEntity или старый стиль).
-    Entity sourceContainer = context.ContextEntity;
-    if (em.HasComponent<BuffersLinkComponent>(context.ContextEntity))
-    {
-        var links = em.GetComponentData<BuffersLinkComponent>(context.ContextEntity);
-        if (links.Inventory != Entity.Null && em.Exists(links.Inventory))
-            sourceContainer = links.Inventory;
-    }
+            // 🦾 1. РЕЗОЛВ SOURCE: если есть BuffersLink.Inventory — берём его.
+            //         Иначе работаем с самим entity (это bagEntity или старый стиль).
+            Entity sourceContainer = context.ContextEntity;
+            if (em.HasComponent<BuffersLinkComponent>(context.ContextEntity))
+            {
+                var links = em.GetComponentData<BuffersLinkComponent>(context.ContextEntity);
+                if (links.Inventory != Entity.Null && em.Exists(links.Inventory))
+                    sourceContainer = links.Inventory;
+            }
 
-    // 🦾 2. РЕЗОЛВ ИГРОКА
-    Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
-    if (playerEntity == Entity.Null || !em.HasComponent<BuffersLinkComponent>(playerEntity))
-    {
-        Debug.LogWarning("[UIInputHandler] Нет игрока или у него нет BuffersLinkComponent");
-        return;
-    }
+            // 🦾 2. РЕЗОЛВ ИГРОКА
+            Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+            if (playerEntity == Entity.Null || !em.HasComponent<BuffersLinkComponent>(playerEntity))
+            {
+                Debug.LogWarning("[UIInputHandler] Нет игрока или у него нет BuffersLinkComponent");
+                return;
+            }
 
-    var playerLinks = em.GetComponentData<BuffersLinkComponent>(playerEntity);
-    Entity playerInventory = playerLinks.Inventory;
-    Entity playerPaperdoll = playerLinks.Paperdoll;
+            var playerLinks = em.GetComponentData<BuffersLinkComponent>(playerEntity);
+            Entity playerInventory = playerLinks.Inventory;
+            Entity playerPaperdoll = playerLinks.Paperdoll;
 
-    // 🦾 3. РЕЗОЛВ TARGET по правилу:
-    //    - source == inventory игрока   → target = paperdoll (экипировка)
-    //    - source == paperdoll игрока   → target = inventory (снятие)
-    //    - иначе (чужой контейнер/лут)  → target = inventory игрока
-    Entity targetContainer;
-    if (sourceContainer == playerInventory)
-        targetContainer = playerPaperdoll;
-    else if (sourceContainer == playerPaperdoll)
-        targetContainer = playerInventory;
-    else
-        targetContainer = playerInventory;
+            // 🦾 3. РЕЗОЛВ TARGET по правилу:
+            //    - source == inventory игрока   → target = paperdoll (экипировка)
+            //    - source == paperdoll игрока   → target = inventory (снятие)
+            //    - иначе (чужой контейнер/лут)  → target = inventory игрока
+            Entity targetContainer;
+            if (sourceContainer == playerInventory)
+                targetContainer = playerPaperdoll;
+            else if (sourceContainer == playerPaperdoll)
+                targetContainer = playerInventory;
+            else
+                targetContainer = playerInventory;
 
-    if (targetContainer == Entity.Null || !em.Exists(targetContainer))
-    {
-        Debug.LogWarning($"[UIInputHandler] Не найден target для source {sourceContainer}");
-        return;
-    }
+            if (targetContainer == Entity.Null || !em.Exists(targetContainer))
+            {
+                Debug.LogWarning($"[UIInputHandler] Не найден target для source {sourceContainer}");
+                return;
+            }
 
-    // 🦾 4. ШЛЁМ КОМАНДУ
-    CreateTransferCommand(
-        em,
-        sourceContainer,
-        context.SlotIndex,
-        targetContainer,
-        context.TargetId,
-        context.Amount,
-        -1
-    );
+            // 🦾 4. ШЛЁМ КОМАНДУ
+            CreateTransferCommand(
+                em,
+                sourceContainer,
+                context.SlotIndex,
+                targetContainer,
+                context.TargetId,
+                context.Amount,
+                -1
+            );
 
-    Debug.Log($"[UIInputHandler] Даблклик: {context.TargetId} из {sourceContainer} в {targetContainer}");
-}
+            Debug.Log($"[UIInputHandler] Даблклик: {context.TargetId} из {sourceContainer} в {targetContainer}");
+        }
 
         // ================================================================
         // 🎯 ЕДИНЫЙ ОБРАБОТЧИК КЛИКОВ В UI
@@ -193,6 +193,39 @@ private void HandleUiDoubleClick(UiClickContext context)
             // ------------------------------------------------------------
             if (context.MouseButton == 0)
             {
+                // 🎯 SHIFT + CLICK = SPLIT STACK
+                if (context.ClickCount == 1 && UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.shiftKey.isPressed)
+                {
+                    var em = _entityManager;
+
+                    // 1. Резолвим реальный контейнер
+                    Entity sourceContainer = context.ContextEntity;
+                    if (em.HasComponent<BuffersLinkComponent>(context.ContextEntity))
+                    {
+                        var links = em.GetComponentData<BuffersLinkComponent>(context.ContextEntity);
+                        if (links.Inventory != Entity.Null && em.Exists(links.Inventory))
+                            sourceContainer = links.Inventory;
+                    }
+
+                    // 2. Проверяем, что это предмет, и что его больше 1 (используем данные из контекста!)
+                    if (em.HasBuffer<ItemSlot>(sourceContainer) && context.Amount > 1)
+                    {
+                        // 🎯 Открываем окно сплита через твой WindowManager
+                        // В payload передаем всё, что нужно окну: контейнер, слот и макс. количество
+                        var payload = new SplitStackPayload
+                        {
+                            SourceContainer = sourceContainer,
+                            SourceSlot = context.SlotIndex,
+                            MaxAmount = context.Amount
+                        };
+                        
+                        UIEvents.TriggerOpenWindow(WindowType.ItemSplit, context.ContextEntity, payload);
+                        return; // Поглощаем клик
+                    }
+                    
+                    return; // Если шифт нажат, но это не стак — просто гасим клик, чтобы не прожать скилл
+                }
+
                 // Одиночный клик ЛКМ — активация способности из буфера Экшенбара!
                 if (context.ClickCount == 1)
                 {

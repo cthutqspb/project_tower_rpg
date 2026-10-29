@@ -19,8 +19,9 @@
     <Style src="project://database/Assets/UI/Components/DialogueOverlay.uss?fileID=7433441132597879392&amp;guid=a395bd620bcea56d882528de8fb0267d&amp;type=3#DialogueOverlay"/>
     <Style src="project://database/Assets/UI/Components/QuestJournal.uss?fileID=7433441132597879392&amp;guid=e6fc4d0c63b2cd8408b0a1fcfdc10d95&amp;type=3#QuestJournal"/>
     <Style src="project://database/Assets/UI/Components/QuestTracker.uss?fileID=7433441132597879392&amp;guid=2fc2ff893f196d1679dbd77760afbe9f&amp;type=3#QuestTracker"/>
-    <Style src="project://database/Assets/UI/Components/QuestEndPopup.uss?fileID=7433441132597879392&amp;guid=16914161fb7675aa9b913ff276e0ae76&amp;type=3#QuestEndPopup"/>
+    <Style src="project://database/Assets/UI/Windows/Quest/QuestEndPopup.uss?fileID=7433441132597879392&amp;guid=16914161fb7675aa9b913ff276e0ae76&amp;type=3#QuestEndPopup"/>
     <Style src="project://database/Assets/UI/Components/SlotPreview.uss?fileID=7433441132597879392&amp;guid=b323b95a349330054831b0dfb9788e26&amp;type=3#SlotPreview"/>
-    <Style src="project://database/Assets/UI/Components/NameplateElement.uss?fileID=7433441132597879392&amp;guid=52381e1bd078f03fc835165a7a9255cd&amp;type=3#NameplateElement"/>
+    <Style src="project://database/Assets/UI/Components/Nameplates/NameplateElement.uss?fileID=7433441132597879392&amp;guid=52381e1bd078f03fc835165a7a9255cd&amp;type=3#NameplateElement"/>
+    <Style src="project://database/Assets/UI/Windows/ItemSplitWindow/ItemSplitWindow.uss?fileID=7433441132597879392&amp;guid=945508d58b0335521a80d21222a2a0a7&amp;type=3#ItemSplitWindow"/>
     <ui:VisualElement picking-mode="Ignore" name="VisualElement" class="ui-layer"/>
 </ui:UXML>

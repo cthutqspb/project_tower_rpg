@@ -76,7 +76,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
 
             if (header != null && root != null)
             {
-                var drag = new DragManipulator(header, root, DragMode.UIElement);
+                var drag = new DragManipulator(header, _window, DragMode.UIElement);
                 header.AddManipulator(drag);
             }
         }

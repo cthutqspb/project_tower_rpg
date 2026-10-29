@@ -1,6 +1,7 @@
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Collections;
 using Newtonsoft.Json;
 
 namespace ProjectTowerRpg.Core.Quest
@@ -42,7 +43,7 @@ namespace ProjectTowerRpg.Core.Quest
                     cfg.id = idStr;
 
                     // Запекаем интовый хэш для моментального поиска на бэкенде ECS!
-                    int numericHash = idStr.GetHashCode();
+                    int numericHash = new FixedString64Bytes(idStr).GetHashCode();
                     _hashedDatabase[numericHash] = cfg;
                 }
 

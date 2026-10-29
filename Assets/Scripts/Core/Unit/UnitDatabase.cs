@@ -1,6 +1,7 @@
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Collections;
 using Newtonsoft.Json;
 
 namespace ProjectTowerRpg.Core.Units
@@ -41,7 +42,7 @@ namespace ProjectTowerRpg.Core.Units
                     cfg.id = idStr;
 
                     // ХЭШ ГЕНЕРИРУЕТСЯ ОТ ИДЕАЛЬНО ОЧИЩЕННОЙ СТРОКИ!
-                    int numericHash = idStr.GetHashCode();
+                    int numericHash = new FixedString64Bytes(idStr).GetHashCode();
                     _hashedDatabase[numericHash] = cfg;
                 }
 

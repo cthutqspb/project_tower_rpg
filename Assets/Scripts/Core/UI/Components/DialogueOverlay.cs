@@ -18,6 +18,13 @@ namespace ProjectTowerRpg.Core.UI.Components
         private Entity _boundEntity = Entity.Null;
         public Entity BoundEntity => _boundEntity;
 
+        // Цвета в формате HEX для Rich Text
+        private const string ColorNumber  = "#7dcfff"; // --osaka-cyan
+        private const string ColorNormal  = "#c0caf5"; // --osaka-text
+        private const string ColorVisited = "#565f89"; // --osaka-text-dim
+        private const string ColorHover   = "#e0af68"; // --osaka-yellow
+        private const string ColorSuffix  = "#e0af68"; // --osaka-yellow
+
         public void BindToEntity(Entity entity)
         {
             _boundEntity = entity;
@@ -35,9 +42,6 @@ namespace ProjectTowerRpg.Core.UI.Components
             _root.style.display = DisplayStyle.None;
         }
 
-        // ============================================================
-        // Реактивный приём состояния диалога
-        // ============================================================
         public void UpdateFromComponent(ref DialogueStateComponent state)
         {
             if (!state.IsActive)
@@ -49,15 +53,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             if (_root != null) _root.style.display = DisplayStyle.Flex;
 
             if (_titleLabel != null)
-                _titleLabel.text = LocalizationManager.Get(state.SpeakerNameKey.ToString()).ToUpper();
+                _titleLabel.text = LocalizationManager.Get(state.SpeakerNameKey).ToUpper();
 
             if (_npcTextLabel != null)
-                _npcTextLabel.text = LocalizationManager.Get(state.TextKey.ToString());
+                _npcTextLabel.text = LocalizationManager.Get(state.TextKey);
         }
 
-        // ============================================================
-        // Реактивный приём буфера опций
-        // ============================================================
         public void UpdateFromBuffer(
             DynamicBuffer<DialogueOptionElement> buffer,
             bool isOnlyValidation = false,
@@ -72,24 +73,28 @@ namespace ProjectTowerRpg.Core.UI.Components
             for (int i = 0; i < buffer.Length; i++)
             {
                 var opt = buffer[i];
-                string text = LocalizationManager.Get(opt.TextKey.ToString());
+                string text = LocalizationManager.Get(opt.TextKey);
                 string suffix = "";
 
                 if (!opt.SuffixKey.IsEmpty)
                 {
-                    string suffixLocalized = LocalizationManager.Get(opt.SuffixKey.ToString());
-                    if (opt.SuffixKey.ToString() == "ui_dialogue_action_quest")
-                        suffix = $" <color=#e0af68>{suffixLocalized}</color>";
-                    else
-                        suffix = $" {suffixLocalized}";
+                    suffix = $" <color={ColorSuffix}>{LocalizationManager.Get(opt.SuffixKey)}</color>";
                 }
 
-                Button btn = new Button();
-                btn.AddToClassList("dialogue-overlay__option-button");
-                if (opt.IsVisited)
-                    btn.AddToClassList("visited");
+                string baseColor = opt.IsVisited ? ColorVisited : ColorNormal;
 
-                btn.text = $"> {text}{suffix}";
+                // 🎯 Число — отдельным цветом (osaka-cyan), текст — основным, суффикс — золотым
+                string normalText = $"<color={ColorNumber}>{i + 1}.</color> <color={baseColor}>{text}</color>{suffix}";
+                string hoverText  = $"<color={ColorNumber}>{i + 1}.</color> <color={ColorHover}>{text}</color>{suffix}";
+
+                Button btn = new Button();
+                btn.enableRichText = true;
+                btn.text = normalText;
+                btn.AddToClassList("dialogue-overlay__option-button");
+
+                // 🎯 Меняем текст при наведении (CSS :hover перебьет <color>, поэтому делаем через C#)
+                btn.RegisterCallback<PointerEnterEvent>(_ => btn.text = hoverText);
+                btn.RegisterCallback<PointerLeaveEvent>(_ => btn.text = normalText);
 
                 int capturedIndex = opt.OptionIndex;
                 btn.clicked += () => OnOptionClicked(capturedIndex);

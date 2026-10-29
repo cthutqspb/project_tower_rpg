@@ -3,6 +3,7 @@ using Unity.Transforms;
 using Unity.Mathematics;
 using ProjectTowerRpg.Core.Presentation;
 using ProjectTowerRpg.ECS.Components;
+using System.Collections.Generic;
 
 using GameObject = UnityEngine.GameObject;
 using Resources = UnityEngine.Resources;
@@ -19,10 +20,25 @@ namespace ProjectTowerRpg.ECS.Systems
         private EntityQuery _playerQuery;
         private EntityCommandBufferSystem _ecbSystem;
 
+        // 🎯 Радиусы выносим в константы
+        private const float MATERIALIZE_DISTANCE = 50f;
+        private const float CULL_DISTANCE = 55f;
+        private const float MATERIALIZE_DISTANCE_SQ = MATERIALIZE_DISTANCE * MATERIALIZE_DISTANCE;
+        private const float CULL_DISTANCE_SQ = CULL_DISTANCE * CULL_DISTANCE;
+
+        // 🎯 КЭШ ПРЕФАБОВ (чтобы не читать с диска каждый раз)
+        private Dictionary<string, GameObject> _prefabCache = new();
+        private GameObject _defaultItemPrefab;
+        private GameObject _defaultUnitPrefab;
+
         protected override void OnCreate()
         {
             _playerQuery = GetEntityQuery(ComponentType.ReadOnly<PlayerTag>(), ComponentType.ReadOnly<LocalTransform>());
             _ecbSystem = World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
+            
+            // Предзагружаем дефолтные префабы один раз
+            _defaultItemPrefab = Resources.Load<GameObject>("Items/default_item");
+            _defaultUnitPrefab = Resources.Load<GameObject>("Units/default_unit");
         }
 
         protected override void OnUpdate()
@@ -45,20 +61,17 @@ namespace ProjectTowerRpg.ECS.Systems
                      .WithEntityAccess())
             {
                 float3 itemPosition = transform.ValueRO.Position;
-                if (math.distance(playerPosition, itemPosition) <= 50f)
+                
+                if (math.distancesq(playerPosition, itemPosition) <= MATERIALIZE_DISTANCE_SQ)
                 {
-                    // Исправлено: itemPrefab вместо unitPrefab
-                    var itemPrefab = Resources.Load<GameObject>("Items/default_item");
-                    if (itemPrefab != null)
+                    if (_defaultItemPrefab != null)
                     {
-                        var itemInstance = Object.Instantiate(itemPrefab, itemPosition, Quaternion.identity);
+                        var itemInstance = Object.Instantiate(_defaultItemPrefab, itemPosition, Quaternion.identity);
                         
-                        // Исправлено: чистый нейминг без суффикса Str
                         string generatedUid = $"i_{(int)itemPosition.x}_{(int)itemPosition.z}";
                         string itemId = item.ValueRO.ItemId.ToString();
                         itemInstance.name = $"{itemId}_{generatedUid}";
 
-                        // Исправлено: itemView вместо абстрактного view
                         var itemView = itemInstance.GetComponent<ItemView>();
                         if (itemView != null)
                         {
@@ -73,7 +86,7 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             // =========================================================================
-            // 🎒 [РАЗДЕЛ ПРЕДМЕТОВ] КЕЙС Б: СВЕРХЗВУКOВОЙ КУЛЛИНГ ДИСТАНЦИИ
+            // 🎒 [РАЗДЕЛ ПРЕДМЕТОВ] КЕЙС Б: КУЛЛИНГ ДИСТАНЦИИ
             // =========================================================================
             foreach (var (transform, entity) in 
                      SystemAPI.Query<RefRO<LocalTransform>>()
@@ -81,10 +94,8 @@ namespace ProjectTowerRpg.ECS.Systems
                      .WithAll<VisualizedTag, ItemComponent>() 
                      .WithEntityAccess())
             {
-                if (math.distance(playerPosition, transform.ValueRO.Position) > 55f)
+                if (math.distancesq(playerPosition, transform.ValueRO.Position) > CULL_DISTANCE_SQ)
                 {
-                    // 🦾 ИСТИННЫЙ ECS-КАНOН: За 0 наносекунд точечно достаем куб из телефонной книги по Entity!
-                    // Никаких покадровых сканирований иерархии сцены и переборов сотен объектов!
                     var itemView = EntityViewRegistry.Get<ItemView>(entity);
                     if (itemView != null)
                     {
@@ -97,7 +108,7 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             // =========================================================================
-            // 💀 [РАЗДЕЛ ЮНИТОВ] КЕЙС А: МАТЕРИАЛИЗАЦИЯ МОНСТРОВ / NPC / ИГРОКА
+            // 💀 [РАЗДЕЛ ЮНИТОВ] КЕЙС А: МАТЕРИАЛИЗАЦИЯ
             // =========================================================================
             foreach (var (transform, unit, entity) in 
                      SystemAPI.Query<RefRO<LocalTransform>, RefRO<UnitComponent>>()
@@ -105,14 +116,17 @@ namespace ProjectTowerRpg.ECS.Systems
                      .WithEntityAccess())
             {
                 float3 unitPosition = transform.ValueRO.Position;
-                if (math.distance(playerPosition, unitPosition) <= 50f)
+                
+                if (math.distancesq(playerPosition, unitPosition) <= MATERIALIZE_DISTANCE_SQ)
                 {
                     string unitId = unit.ValueRO.UnitId.ToString();
-                    var unitPrefab = Resources.Load<GameObject>($"Units/{unitId}");
-                    
-                    if (unitPrefab == null)
+                    string prefabPath = $"Units/{unitId}";
+
+                    // 🎯 Берем из кэша или грузим 1 раз
+                    if (!_prefabCache.TryGetValue(prefabPath, out var unitPrefab))
                     {
-                        unitPrefab = Resources.Load<GameObject>("Units/default_unit");
+                        unitPrefab = Resources.Load<GameObject>(prefabPath) ?? _defaultUnitPrefab;
+                        _prefabCache[prefabPath] = unitPrefab;
                     }
 
                     if (unitPrefab != null)
@@ -126,10 +140,9 @@ namespace ProjectTowerRpg.ECS.Systems
                         var unitView = unitInstance.GetComponent<UnitView>();
                         if (unitView == null)
                         {
-                            Debug.LogError($"[Materialize] Префаб '{unitPrefab.name}' не имеет UnitView! " +
-                                           $"Юнит {unitId} (entity {entity.Index}) не будет зарегистрирован.");
-                            Object.Destroy(unitInstance);   // откат — снести сломанный инстанс
-                            continue;                        // не вешаем VisualizedTag
+                            Debug.LogError($"[Materialize] Префаб '{unitPrefab.name}' не имеет UnitView!");
+                            Object.Destroy(unitInstance);
+                            continue;
                         }
 
                         unitView.uid = currentUid;
@@ -158,23 +171,26 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             // =========================================================================
-            // 💀 [РАЗДЕЛ ЮНИТОВ] КЕЙС Б: ТЕХНИЧЕСКИЙ КУЛЛИНГ МОНСТРОВ (Ушли далеко)
+            // 💀 [РАЗДЕЛ ЮНИТОВ] КЕЙС Б: КУЛЛИНГ
             // =========================================================================
             foreach (var (transform, entity) in 
                      SystemAPI.Query<RefRO<LocalTransform>>()
                      .WithAll<UnitComponent, VisualizedTag>() 
                      .WithEntityAccess())
             {
-                if (math.distance(playerPosition, transform.ValueRO.Position) > 55f)
+                if (math.distancesq(playerPosition, transform.ValueRO.Position) > CULL_DISTANCE_SQ)
                 {
-                    // Исправлено: unitViews вместо абстрактного views
                     var unitView = EntityViewRegistry.Get<UnitView>(entity);
-                    //if (unitView.entity != entity)
+                    
+#if UNITY_EDITOR
                     Debug.Log($"[Visibility-Culling]: entity {entity.Index} unitView {unitView}");
+#endif
 
                     if (unitView != null)
                     {
+#if UNITY_EDITOR
                         Debug.Log($"[Visibility-Culling]: Сношу 3D-тело монстра {unitView.gameObject.name} по дистанции.");
+#endif
                         Object.Destroy(unitView.gameObject);
                         EntityViewRegistry.Unregister(entity);
                     }
@@ -183,56 +199,56 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
-
             // =========================================================================
-            // 🚀 [РАЗДЕЛ СНАРЯДОВ] КЕЙС А: СТEРИЛЬНАЯ МАТЕРИАЛИЗАЦИЯ (Без использования Core.Abilities)
+            // 🚀 [РАЗДЕЛ СНАРЯДОВ] КЕЙС А: МАТЕРИАЛИЗАЦИЯ
             // =========================================================================
             foreach (var (transform, projectileMovement, entity) in 
-                     SystemAPI.Query< RefRO< LocalTransform >, RefRO< ProjectileMovement > >()
-                     .WithAll< ProjectileTag >()
-                     .WithNone< VisualizedTag >() 
+                     SystemAPI.Query<RefRO<LocalTransform>, RefRO<ProjectileMovement>>()
+                     .WithAll<ProjectileTag>()
+                     .WithNone<VisualizedTag>() 
                      .WithEntityAccess())
             {
                 float3 projectilePosition = transform.ValueRO.Position;
 
-                if (math.distance(playerPosition, projectilePosition) <= 50f)
+                if (math.distancesq(playerPosition, projectilePosition) <= MATERIALIZE_DISTANCE_SQ)
                 {
-                    // 🦾 ШЛЮЗ: Достаем путь к префабу НАПРЯМУЮ из ECS-компонента снаряда за 0 наносекунд!
                     string prefabPath = projectileMovement.ValueRO.PrefabPath.ToString();
 
-                    var projectilePrefab = Resources.Load< GameObject >(prefabPath);
+                    if (!_prefabCache.TryGetValue(prefabPath, out var projectilePrefab))
+                    {
+                        projectilePrefab = Resources.Load<GameObject>(prefabPath);
+                        _prefabCache[prefabPath] = projectilePrefab;
+                    }
                     
                     if (projectilePrefab != null)
                     {
                         var projectileInstance = Object.Instantiate(projectilePrefab, projectilePosition, Quaternion.identity);
                         projectileInstance.name = $"{projectileMovement.ValueRO.AbilityId}_projectile_{entity.Index}";
 
-                        // 🦾 СИ-ФИКС: Достаем компонент, жестко выставляем тип снаряда и только ПОТОМ инициализируем!
                         var syncTransform = projectileInstance.GetComponent<SyncTransformWithEntity>();
                         if (syncTransform == null)
                         {
                             syncTransform = projectileInstance.AddComponent<SyncTransformWithEntity>();
                         }
 
-                        // Указываем тип роли!
                         syncTransform.Type = SyncTransformWithEntity.ViewType.Projectile; 
                         syncTransform.Initialize(entity);
                         ProjectileViewRegistry.Register(entity, syncTransform);
 
-                        ecb.AddComponent< VisualizedTag >(entity);
+                        ecb.AddComponent<VisualizedTag>(entity);
                     }
                 }
             }
 
             // =========================================================================
-            // 🚀 [РАЗДЕЛ СНАРЯДОВ] КЕЙС Б: КУЛЛИНГ ДИСТАНЦИИ СНАРЯДОВ (Улетели далеко)
+            // 🚀 [РАЗДЕЛ СНАРЯДОВ] КЕЙС Б: КУЛЛИНГ
             // =========================================================================
             foreach (var (transform, entity) in 
-                     SystemAPI.Query< RefRO< LocalTransform > >()
-                     .WithAll< ProjectileTag, VisualizedTag >() 
+                     SystemAPI.Query<RefRO<LocalTransform>>()
+                     .WithAll<ProjectileTag, VisualizedTag>() 
                      .WithEntityAccess())
             {
-                if (math.distance(playerPosition, transform.ValueRO.Position) > 55f)
+                if (math.distancesq(playerPosition, transform.ValueRO.Position) > CULL_DISTANCE_SQ)
                 {                    
                     var projectileView = ProjectileViewRegistry.Get(entity);
                     if (projectileView != null)
@@ -245,4 +261,3 @@ namespace ProjectTowerRpg.ECS.Systems
         }
     }
 }
-

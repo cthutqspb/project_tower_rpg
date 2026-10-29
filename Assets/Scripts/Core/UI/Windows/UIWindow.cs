@@ -11,9 +11,14 @@ namespace ProjectTowerRpg.Core.UI
         [SerializeField] protected VisualTreeAsset _windowUxml;
         
         protected VisualElement _root;
+        protected VisualElement _window;
         protected WindowContext _context;
 
         private readonly List<IEcsUiBufferReceiver<ItemSlot>> _cachedReceivers = new();
+
+        // 🎯 Сессионный кэш позиций (в памяти, не в сейве).
+        // Живёт до выхода из игры. Можно очистить через ResetSavedPositions().
+        private static readonly Dictionary<WindowType, Vector2> _savedPositions = new();
 
         public VisualElement Root => _root;
         public bool IsOpen => _context != null && _context.IsVisible;
@@ -24,20 +29,26 @@ namespace ProjectTowerRpg.Core.UI
         
         [HideInInspector] public bool IsInPool;
 
-        // 🦾 НАВЕДЕНА СТЕРИЛЬНОСТЬ: Окно больше ничего не ищет само!
-        // Его инициализирует фабрика, передавая живой корень интерфейса сцены.
         public void InitializeWindow(VisualElement globalUiRoot)
         {
             if (globalUiRoot == null || _root != null) return;
 
-            Debug.Log($"🏗️ [{GetType().Name}.InitializeWindow]: Получен живой root от фабрики. Собираем окно...");
+            Debug.Log($"🏗️ [{GetType().Name}.InitializeWindow]: Собираем окно...");
 
             _root = _windowUxml.CloneTree();
             _root.style.position = Position.Absolute;
-            _root.pickingMode = PickingMode.Position;
+            _root.style.left = 0;
+            _root.style.top = 0;
+            _root.style.width = new Length(100, LengthUnit.Percent);
+            _root.style.height = new Length(100, LengthUnit.Percent);
+            _root.pickingMode = PickingMode.Ignore; 
             _root.style.display = DisplayStyle.None;
-            
-            // Врезаем в правильный, изолированный слой панели
+
+            if (_root.childCount > 0)
+                _window = _root[0];
+            else
+                Debug.LogError($"[{GetType().Name}] UXML не содержит элементов!");
+
             globalUiRoot.Add(_root);
 
             _context = new WindowContext(
@@ -85,17 +96,90 @@ namespace ProjectTowerRpg.Core.UI
                     }
                 }
             }
+
+            CenterWindow();
             OnWindowShown();
         }
 
         private void OnInternalWindowClosed()
         {
+            // 🎯 Сохраняем текущую позицию ПЕРЕД скрытием окна
+            SaveCurrentPosition();
+
             foreach (var receiver in _cachedReceivers)
             {
                 if (receiver.BoundEntity != Entity.Null) UIRegistry.Unregister(receiver.BoundEntity, receiver);
             }
             OnWindowClosed();
         }
+
+        // ============================================================
+        // 🎯 ЦЕНТРИРОВАНИЕ С ВОССТАНОВЛЕНИЕМ ПОЗИЦИИ
+        // ============================================================
+        public void CenterWindow(int attempts = 0)
+        {
+            if (_root == null || _window == null || attempts > 20) return;
+
+            // 🎯 Если для этого типа окна уже сохранена позиция — восстанавливаем её
+            if (attempts == 0 && _savedPositions.TryGetValue(Type, out var saved))
+            {
+                _window.style.left = saved.x;
+                _window.style.top = saved.y;
+                _window.style.visibility = Visibility.Visible;
+                return;
+            }
+
+            // Иначе — центрируем как раньше
+            if (attempts == 0)
+                _window.style.visibility = Visibility.Hidden;
+
+            _root.schedule.Execute(() =>
+            {
+                if (_root == null || _window == null) return;
+                if (!IsOpen) return;
+
+                var w = _window.resolvedStyle.width;
+                var h = _window.resolvedStyle.height;
+                var pw = _root.resolvedStyle.width;
+                var ph = _root.resolvedStyle.height;
+
+                if (float.IsNaN(w) || float.IsNaN(h) || w <= 0f || h <= 0f || pw <= 0f || ph <= 0f)
+                {
+                    CenterWindow(attempts + 1);
+                    return;
+                }
+
+                _window.style.left = (pw - w) / 2f;
+                _window.style.top = (ph - h) / 2f;
+                _window.style.visibility = Visibility.Visible;
+
+            }).ExecuteLater(10);
+        }
+
+        // ============================================================
+        // 🎯 СОХРАНЕНИЕ ПОЗИЦИИ
+        // ============================================================
+        private void SaveCurrentPosition()
+        {
+            if (_window == null) return;
+
+            var leftLen = _window.style.left.value;
+            var topLen = _window.style.top.value;
+
+            // Если DragManipulator использовал пиксели — берём напрямую.
+            // Иначе — фоллбэк на resolvedStyle.
+            float left = leftLen.unit == LengthUnit.Pixel ? leftLen.value : _window.resolvedStyle.left;
+            float top = topLen.unit == LengthUnit.Pixel ? topLen.value : _window.resolvedStyle.top;
+
+            if (float.IsNaN(left) || float.IsNaN(top)) return;
+
+            _savedPositions[Type] = new Vector2(left, top);
+        }
+
+        // 🎯 Чистый сброс кэша. Перецентрированием занимается WindowManager,
+        // потому что именно он знает про открытые окна.
+        public static void ClearSavedPositions() => _savedPositions.Clear();
+        public static void ClearSavedPosition(WindowType type) => _savedPositions.Remove(type);      
 
         public virtual void Open() { if (_context != null) _context.Show(); }
         public virtual void Close()
@@ -112,4 +196,3 @@ namespace ProjectTowerRpg.Core.UI
         public virtual void Unbind() { }
     }
 }
-
