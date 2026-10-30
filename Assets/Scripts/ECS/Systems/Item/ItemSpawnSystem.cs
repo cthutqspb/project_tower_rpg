@@ -70,7 +70,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             {
                                 SlotIndex = i,
                                 DataId = "",
-                                DataType = "",
+                                ContentType = SlotContentType.Empty, // 🎯
                                 Amount = 0,
                                 ContainerType = ContainerType.INVENTORY,
                             });
@@ -86,7 +86,7 @@ namespace ProjectTowerRpg.ECS.Systems
                                 {
                                     SlotIndex = i,
                                     DataId = customItems[i].DataId,
-                                    DataType = "item",
+                                    ContentType = SlotContentType.Item, // 🎯
                                     Amount = customItems[i].Amount,
                                     ContainerType = ContainerType.INVENTORY,
                                 };

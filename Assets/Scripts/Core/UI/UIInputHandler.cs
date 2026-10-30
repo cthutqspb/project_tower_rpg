@@ -74,13 +74,18 @@ namespace ProjectTowerRpg.Core.UI
             // ✅ ESC: СНАЧАЛА КОНТЕКСТНОЕ МЕНЮ, ПОТОМ ОКНА, ПОТОМ ГЛАВНОЕ МЕНЮ
             if (_closeWindowAction.triggered)
             {
+                // 🎯 1. Если тащим предмет — отменяем драг и НЕ закрываем окно
+                if (DragManager.Instance != null && DragManager.Instance.IsDragging)
+                {
+                    DragManager.Instance.CancelDrag();
+                    return; // Поглощаем Esc
+                }
+
+                // 🎯 2. Дальше твоя существующая логика
                 if (ActionsMenu.IsVisible())
                 {
                     ActionsMenu.Hide();
                 }
-                // Предполагаем, что твой WindowManager.CloseTop() возвращает bool:
-                // true — если он успешно закрыл окно из стека, false — если стек окон уже был пуст!
-                // Если у тебя метод void, то гвард пишется через проверку: WindowManager.HasOpenWindows
                 else if (WindowManager.IsAnyOpen)
                 {
                     var top = WindowManager.GetTop();
@@ -89,11 +94,9 @@ namespace ProjectTowerRpg.Core.UI
                 }
                 else
                 {
-                    // 🦾 ФИНАЛЬНЫЙ РУБЕЖ: Окон нет, меню скрыто — шёлково триггерим Главное Меню!
                     UIEvents.TriggerToggleMainMenu();
                 }
             }
-
             if (Mouse.current != null)
             {
                 Vector2 mousePosition = Mouse.current.position.ReadValue();
@@ -210,6 +213,13 @@ namespace ProjectTowerRpg.Core.UI
                     // 2. Проверяем, что это предмет, и что его больше 1 (используем данные из контекста!)
                     if (em.HasBuffer<ItemSlot>(sourceContainer) && context.Amount > 1)
                     {
+                        // 🎯 ГВАРД: если уже тащим что-то — шифт+клик игнорируем
+                        if (DragManager.Instance != null && DragManager.Instance.IsDragging)
+                        {
+                            Debug.Log("[UIInputHandler] Шифт+клик: активен драг, окно сплита не открываем.");
+                            return;
+                        }
+
                         // 🎯 Открываем окно сплита через твой WindowManager
                         // В payload передаем всё, что нужно окну: контейнер, слот и макс. количество
                         var payload = new SplitStackPayload

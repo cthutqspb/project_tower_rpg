@@ -217,9 +217,26 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             // ================================================================
-            // 7. ОБРАБОТКА ХОТКЕЙ (1..=) — ЧИСТЫЙ ECS
+            // 7. ТАРГЕТИНГ ПО TAB (Циклическое переключение врагов)
             // ================================================================
             var keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.tabKey.wasPressedThisFrame)
+            {
+                if (SystemAPI.TryGetSingletonEntity<PlayerTag>(out var tabPlayerEntity))
+                {
+                    var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+                        .CreateCommandBuffer(World.Unmanaged);
+
+                    var reqEntity = ecb.CreateEntity();
+                    ecb.AddComponent(reqEntity, new NextTargetRequest { Unit = tabPlayerEntity });
+                    
+                    Debug.Log("[InputSystem] Tab нажат, запрос на смену цели отправлен.");
+                }
+            }
+
+            // ================================================================
+            // 8. ОБРАБОТКА ХОТКЕЙ (1..=) — ЧИСТЫЙ ECS
+            // ================================================================
             if (keyboard != null)
             {
                 // Находим сущность, КОТОРОЙ МЫ СЕЙЧАС УПРАВЛЯЕМ (это или Игрок, или Монстр под Mind Control)

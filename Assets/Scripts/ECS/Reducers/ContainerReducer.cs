@@ -64,7 +64,7 @@ namespace ProjectTowerRpg.ECS.Reducers
                         {
                             SlotIndex = i,
                             DataId = loot.ItemId,
-                            DataType = "item",
+                            ContentType = SlotContentType.Item,
                             Amount = loot.Amount,
                             ContainerType = ContainerType.INVENTORY,
                         };

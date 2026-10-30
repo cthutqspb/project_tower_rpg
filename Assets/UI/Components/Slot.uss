@@ -151,6 +151,12 @@
   border-color: var(--osaka-surface);
 }
 
+.slot.drop-target--hover {
+    border-color: var(--osaka-primary, #7aa2f7); /* Если нет primary, используй osaka-blue */
+    border-width: 2px;
+    background-color: rgba(122, 162, 247, 0.15); /* Легкий фоновый отклик */
+}
+
 .slot.hidden {
   display: none;
 }

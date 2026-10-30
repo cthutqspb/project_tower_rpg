@@ -903,6 +903,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: zabor
       objectReference: {fileID: 0}
+    - target: {fileID: 3275000518216158760, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 4952970817486610064, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
       propertyPath: m_LocalPosition.x
       value: 17.871
@@ -1970,6 +1974,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: zabor_broken_R
       objectReference: {fileID: 0}
+    - target: {fileID: 3273207550902874748, guid: 6f2cf28f1f4abc69e8d8c1382f3a17b5, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 6272008972029178317, guid: 6f2cf28f1f4abc69e8d8c1382f3a17b5, type: 3}
       propertyPath: m_LocalPosition.x
       value: 25.154
@@ -2163,6 +2171,10 @@ PrefabInstance:
     - target: {fileID: 3275000518216158760, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
       propertyPath: m_Name
       value: zabor (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 3275000518216158760, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 4952970817486610064, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2361,6 +2373,10 @@ PrefabInstance:
     - target: {fileID: 5429065081386712320, guid: d756ebe8e16be0fec97cfac91e1cb7c1, type: 3}
       propertyPath: m_Name
       value: zabor_broken_L
+      objectReference: {fileID: 0}
+    - target: {fileID: 5429065081386712320, guid: d756ebe8e16be0fec97cfac91e1cb7c1, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 6005398603214729288, guid: d756ebe8e16be0fec97cfac91e1cb7c1, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2820,6 +2836,10 @@ PrefabInstance:
     - target: {fileID: 3275000518216158760, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
       propertyPath: m_Name
       value: zabor (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 3275000518216158760, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 4952970817486610064, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3530,6 +3550,10 @@ PrefabInstance:
     - target: {fileID: 3275000518216158760, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
       propertyPath: m_Name
       value: zabor (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 3275000518216158760, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 4952970817486610064, guid: 0b9a76cf79db4277f9f08b0e813c74ea, type: 3}
       propertyPath: m_LocalPosition.x

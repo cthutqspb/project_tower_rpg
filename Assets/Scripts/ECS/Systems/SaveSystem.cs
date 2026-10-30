@@ -79,8 +79,12 @@ namespace ProjectTowerRpg.ECS.Systems
 
                             itemData.ContainerSlots.Add(new ItemSlotSaveData
                             {
-                                Uid = childUid, ItemId = slot.DataId.ToString(), Amount = slot.Amount,
-                                EquipSlot = slot.EquipSlot, ContainerType = slot.ContainerType,
+                                Uid = childUid, 
+                                ItemId = slot.DataId.ToString(), 
+                                Amount = slot.Amount,
+                                EquipSlot = slot.EquipSlot, 
+                                ContainerType = slot.ContainerType,
+                                ContentType = (byte)slot.ContentType // 🎯
                             });
                         }
                     }
@@ -129,9 +133,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     IsNpc = em.HasComponent<NpcTag>(entity),
                 };
 
-                // UniqueNameKey — если на маркере был (по факту NameKey уникального)
-                // (пока сохраняем пусто, если нет отдельного поля)
-
                 // Базовые статы
                 if (em.HasComponent<UnitBaseAttributesComponent>(entity))
                 {
@@ -167,8 +168,12 @@ namespace ProjectTowerRpg.ECS.Systems
 
                         unitData.InventorySlots.Add(new ItemSlotSaveData
                         {
-                            Uid = childUid, ItemId = slot.DataId.ToString(), Amount = slot.Amount,
-                            EquipSlot = slot.EquipSlot, ContainerType = slot.ContainerType,
+                            Uid = childUid, 
+                            ItemId = slot.DataId.ToString(), 
+                            Amount = slot.Amount,
+                            EquipSlot = slot.EquipSlot, 
+                            ContainerType = slot.ContainerType,
+                            ContentType = (byte)slot.ContentType // 🎯
                         });
                     }
                 }
@@ -185,8 +190,12 @@ namespace ProjectTowerRpg.ECS.Systems
 
                         unitData.PaperdollSlots.Add(new ItemSlotSaveData
                         {
-                            Uid = childUid, ItemId = slot.DataId.ToString(), Amount = slot.Amount,
-                            EquipSlot = slot.EquipSlot, ContainerType = slot.ContainerType,
+                            Uid = childUid, 
+                            ItemId = slot.DataId.ToString(), 
+                            Amount = slot.Amount,
+                            EquipSlot = slot.EquipSlot, 
+                            ContainerType = slot.ContainerType,
+                            ContentType = (byte)slot.ContentType // 🎯
                         });
                     }
                 }
@@ -199,7 +208,9 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         unitData.ActionBarSlots.Add(new ActionBarSaveData
                         {
-                            SlotIndex = barSlot.SlotIndex, AbilityId = barSlot.AbilityId.ToString(), SlotType = barSlot.SlotType.ToString(),
+                            SlotIndex = barSlot.SlotIndex, 
+                            AbilityId = barSlot.AbilityId.ToString(), 
+                            ContentType = (byte)barSlot.ContentType // 🎯
                         });
                     }
                 }
@@ -234,7 +245,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     }
                 }
 
-                // Ауры (без Caster/Target Uid — упрощённо)
+                // Ауры
                 if (buffersLink.AuraFrame != Entity.Null && em.HasBuffer<AuraSlot>(buffersLink.AuraFrame))
                 {
                     var auraSlots = em.GetBuffer<AuraSlot>(buffersLink.AuraFrame);
@@ -297,7 +308,7 @@ namespace ProjectTowerRpg.ECS.Systems
             var spawnSystem = World.GetExistingSystemManaged<UnitSpawnSystem>();
             if (spawnSystem != null) spawnSystem.Enabled = true;
 
-            // 5. ВОССТАНАВЛИВАЕМ ПРЕДМЕТЫ (код как был, не трогаю)
+            // 5. ВОССТАНАВЛИВАЕМ ПРЕДМЕТЫ
             foreach (var itemData in saveData.Items)
             {
                 Entity itemEntity;
@@ -339,7 +350,7 @@ namespace ProjectTowerRpg.ECS.Systems
                                 slots[i] = new ItemSlot
                                 {
                                     SlotIndex = i, DataId = s.ItemId,
-                                    DataType = string.IsNullOrEmpty(s.ItemId) ? "" : "item",
+                                    ContentType = string.IsNullOrEmpty(s.ItemId) ? SlotContentType.Empty : (SlotContentType)s.ContentType,
                                     Amount = s.Amount, ItemEntity = childEntity,
                                     EquipSlot = s.EquipSlot, ContainerType = s.ContainerType,
                                 };
@@ -377,7 +388,7 @@ namespace ProjectTowerRpg.ECS.Systems
                             slotsBuffer.Add(new ItemSlot
                             {
                                 SlotIndex = i, DataId = s.ItemId,
-                                DataType = string.IsNullOrEmpty(s.ItemId) ? "" : "item",
+                                ContentType = string.IsNullOrEmpty(s.ItemId) ? SlotContentType.Empty : (SlotContentType)s.ContentType,
                                 Amount = s.Amount, ItemEntity = childEntity,
                                 EquipSlot = s.EquipSlot, ContainerType = s.ContainerType,
                             });
@@ -535,8 +546,9 @@ namespace ProjectTowerRpg.ECS.Systems
 
                 slots[i] = new ItemSlot
                 {
-                    SlotIndex = i, DataId = s.ItemId,
-                    DataType = string.IsNullOrEmpty(s.ItemId) ? "" : "item",
+                    SlotIndex = i, 
+                    DataId = s.ItemId,
+                    ContentType = string.IsNullOrEmpty(s.ItemId) ? SlotContentType.Empty : (SlotContentType)s.ContentType,
                     Amount = s.Amount, ItemEntity = itemEnt,
                     EquipSlot = s.EquipSlot, ContainerType = s.ContainerType,
                 };
@@ -551,7 +563,7 @@ namespace ProjectTowerRpg.ECS.Systems
             {
                 var targetBar = barSlots[k];
                 targetBar.AbilityId = barData[k].AbilityId;
-                targetBar.SlotType = barData[k].SlotType;
+                targetBar.ContentType = (SlotContentType)barData[k].ContentType;
                 barSlots[k] = targetBar;
             }
         }
@@ -700,6 +712,7 @@ namespace ProjectTowerRpg.ECS.Systems
         public int Amount;
         public EquipSlot EquipSlot;
         public ContainerType ContainerType;
+        public byte ContentType; // 🎯 Сохраняем енам как байт
     }
 
     [System.Serializable]
@@ -707,7 +720,7 @@ namespace ProjectTowerRpg.ECS.Systems
     {
         public int SlotIndex;
         public string AbilityId;
-        public string SlotType;
+        public byte ContentType; // 🎯 Сохраняем енам как байт
     }
 
     [System.Serializable]

@@ -287,7 +287,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 // ✅ ПОЛНЫЙ РЕНДЕРИНГ (иконка, количество, бинд)
                 int displayAmount = 1;
 
-                if (slotData.SlotType == "item")
+                if (slotData.ContentType == SlotContentType.Item)
                 {
                     displayAmount = 0;
                     if (hasValidInventory)

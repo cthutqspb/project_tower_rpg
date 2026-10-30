@@ -9,7 +9,7 @@ namespace ProjectTowerRpg.ECS.Components
     {
         public int SlotIndex;
         public FixedString32Bytes DataId;   // ID предмета ("iron_sword")
-        public FixedString32Bytes DataType; // "item", "spell"
+        public SlotContentType ContentType;
         public int Amount;
 
         public Entity ItemEntity;
@@ -24,7 +24,7 @@ namespace ProjectTowerRpg.ECS.Components
         public void ClearContent()
         {
             DataId = "";
-            DataType = "";
+            ContentType = SlotContentType.Empty;
             Amount = 0;
             ItemEntity = Entity.Null;
         }
@@ -35,7 +35,7 @@ namespace ProjectTowerRpg.ECS.Components
             if (content is ItemSlot data)
             {
                 DataId = data.DataId;
-                DataType = data.DataType;
+                ContentType = data.ContentType;
                 Amount = data.Amount;
                 ItemEntity = data.ItemEntity;
             }

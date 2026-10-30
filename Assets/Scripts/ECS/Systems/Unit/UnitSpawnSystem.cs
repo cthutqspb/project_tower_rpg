@@ -289,7 +289,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     { 
                         SlotIndex = i, 
                         DataId = "", 
-                        DataType = "", 
+                        ContentType = SlotContentType.Item, 
                         Amount = 0, 
                         EquipSlot = EquipSlot.NONE, 
                         ContainerType = ContainerType.INVENTORY 
@@ -310,7 +310,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     { 
                         SlotIndex = j, 
                         DataId = "", 
-                        DataType = "", 
+                        ContentType = SlotContentType.Empty, 
                         Amount = 0, 
                         EquipSlot = PAPERDOLL_SLOTS[j], 
                         ContainerType = ContainerType.PAPERDOLL 
@@ -401,7 +401,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         {
                             SlotIndex = idx,
                             DataId = testItems[idx].id,
-                            DataType = "item",
+                            ContentType = SlotContentType.Item,
                             Amount = testItems[idx].amount,
                             ItemEntity = spawnedItemEntities[idx], 
                             EquipSlot = EquipSlot.NONE,
@@ -431,23 +431,23 @@ namespace ProjectTowerRpg.ECS.Systems
 
                         if (k == 0)
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "melee_attack", SlotType = "spell", KeyBinding = defaultKey });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "melee_attack", ContentType = SlotContentType.Ability, KeyBinding = defaultKey });
                         }
                         else if (k == 1)
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "frostbolt", SlotType = "spell", KeyBinding = defaultKey });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "frostbolt", ContentType = SlotContentType.Ability, KeyBinding = defaultKey });
                         }
                         else if (k == 2)
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "frost_armor", SlotType = "spell", KeyBinding = defaultKey });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "frost_armor", ContentType = SlotContentType.Ability, KeyBinding = defaultKey });
                         }
                         else if (k == 3)
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "fireball", SlotType = "spell", KeyBinding = defaultKey });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "fireball", ContentType = SlotContentType.Ability, KeyBinding = defaultKey });
                         }
                         else
                         {
-                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "", SlotType = "", KeyBinding = defaultKey });
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "", ContentType = SlotContentType.Ability, KeyBinding = defaultKey });
                         }
                     }
 
@@ -491,7 +491,7 @@ namespace ProjectTowerRpg.ECS.Systems
                                 {
                                     SlotIndex = idx,
                                     DataId = customItems[idx].DataId,
-                                    DataType = "item",
+                                    ContentType = SlotContentType.Item,
                                     Amount = customItems[idx].Amount,
                                     ItemEntity = spawnedItemEntities[idx],
                                     EquipSlot = EquipSlot.NONE,

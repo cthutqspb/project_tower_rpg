@@ -9,7 +9,7 @@ using ProjectTowerRpg.Core.Colors;
 
 namespace ProjectTowerRpg.Core.UI.Components
 {
-    public class SlotElement : VisualElement, IDragSource
+    public class SlotElement : VisualElement, IDragSource, IDropTarget
     {
         // Было: private VisualElement _icon;
         private Label _icon; // ✅ Изменили на Label для поддержки текста-иконок Nerd Font 
@@ -34,6 +34,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         private int _amount = 0;
         
         private bool _isActionBarSlot = false;
+        private bool _isAuraSlot = false;
 
         public int SlotIndex { get; set; }
         public Entity ContainerEntity { get; set; }
@@ -63,6 +64,12 @@ namespace ProjectTowerRpg.Core.UI.Components
             "element-physical", 
             "element-default" 
         };
+
+        public bool CanAcceptDrop(DragData data)
+        {
+            if (_isAuraSlot) return false; // Аура не принимает дропы
+            return true; // Слоты принимают всё (своп/стак/трансфер)
+        }
 
         public SlotElement()
         {
@@ -106,12 +113,14 @@ namespace ProjectTowerRpg.Core.UI.Components
         {
             // Подписываемся на ивент анимаций ТОЛЬКО когда слот физически появился на экране
             UIEvents.OnSlotAnimation += AnimateSlot;
+            UIEvents.OnDragEnded += RemoveDragHover; // 🎯
         }
 
         private void OnDetach(DetachFromPanelEvent evt)
         {
             // Намертво отписываемся в тот же миг, как слот удален из панели. Нулевой Memory Leak!
             UIEvents.OnSlotAnimation -= AnimateSlot;
+            UIEvents.OnDragEnded -= RemoveDragHover;
         }
 
         /// <summary>
@@ -178,7 +187,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         // ================================================================
         // IDragSource Implementation
         // ================================================================
-        public bool CanDrag() => !string.IsNullOrEmpty(_itemId) && _amount > 0;
+        public bool CanDrag() => !_isAuraSlot && !string.IsNullOrEmpty(_itemId) && _amount > 0;
 
         public DragData GetDragData()
         {
@@ -279,6 +288,8 @@ namespace ProjectTowerRpg.Core.UI.Components
         /// </summary>
         public void SetAura(string auraId, int index, int stacks = 1, float remaining = 0f, float duration = 0f)
         {
+            
+             _isAuraSlot = true;
             // 🆕 ТРОТТЛИНГ: если аура та же и стаки те же — не перестраиваем иконку
             bool sameAura = _lastAuraId == auraId && _lastAuraStacks == stacks;
             
@@ -672,6 +683,9 @@ namespace ProjectTowerRpg.Core.UI.Components
         
         private void OnPointerOver(PointerOverEvent evt)
         {
+            if (!_isAuraSlot && DragManager.Instance != null && DragManager.Instance.IsDragging)
+                this.AddToClassList("drop-target--hover");
+
             //Debug.Log($"[SlotElement] Мышь ХОВЕР на слоте #{SlotIndex}. Текущий ID: '{_itemId}'");
 
             if (string.IsNullOrEmpty(_itemId)) 
@@ -697,7 +711,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 
                 // Передаем в твой TooltipManager домен интерфейса, тип абилки и сам конфиг способности
                 TooltipManager.Show(TooltipDomain.INTERFACE, TooltipKind.ABILITY, abilityConfig);
-            }
+            }            
             else
             {
                 // Если вообще нигде нет — значит реальная ошибка данных
@@ -710,7 +724,12 @@ namespace ProjectTowerRpg.Core.UI.Components
         {
             //Debug.Log($"[SlotElement] Мышь УШЛА со слота #{SlotIndex}. Гасим тултип.");
             TooltipManager.HideGuiTooltips();
+            RemoveDragHover();
         }
-
-    }
+        
+        private void RemoveDragHover()
+        {
+            this.RemoveFromClassList("drop-target--hover"); // 🎯
+        }
+    }   
 }

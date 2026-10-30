@@ -81,8 +81,17 @@ namespace ProjectTowerRpg.Core.UI
             {
                 if (activeWindow.IsOpen && activeWindow.Type == type)
                 {
-                    if (activeWindow.BoundEntity == entity || entity == Entity.Null)
+                    // 🎯 Для окон, принимающих payload, BoundEntity не важен — они обновляются содержимым
+                    bool isPayloadReceiver = activeWindow is IPayloadReceiver;
+                    
+                    if (isPayloadReceiver || activeWindow.BoundEntity == entity || entity == Entity.Null)
                     {
+                        if (payload != null && activeWindow is IPayloadReceiver payloadReceiver)
+                        {
+                            payloadReceiver.ReceivePayload(payload);
+                            return;
+                        }
+
                         if (TryOpenTabOnActive(activeWindow, payload, type, entity)) return;
                         return;
                     }

@@ -9,7 +9,6 @@ namespace ProjectTowerRpg.Core.UI.Windows
 {
     public class ContainerWindow : UIWindow
     {
-        // 🦾 Фиксируем максимальный MMO-размер сетки добычи (например, 4 столбца на 4 строки)
         private const int MAX_LOOT_COLUMNS = 4;
         private const int MAX_LOOT_ROWS = 4;
 
@@ -18,6 +17,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
         private Button _takeAllButton;
         private Entity _containerEntity = Entity.Null;
         private bool _isWaitingForBag = false;
+        private bool _waitForEmptyToClose = false; // 🎯 Новый флаг
         private VisualElement _gridSlot;
 
         public override WindowType Type => WindowType.Container;
@@ -33,12 +33,8 @@ namespace ProjectTowerRpg.Core.UI.Windows
             UIEvents.CloseAllWindows -= Close;
         }
 
-        // =========================================================================
-        // 🦾 ШАГ 1: ТЯЖЕЛАЯ СБОРКА СЕТКИ ПЕРЕНЕСЕНА В AWAKE (Происходит скрыто при спавне!)
-        // =========================================================================
         protected override void OnWindowBuilt(VisualElement root)
         {
-            // Хедер собираем сразу
             var headerSlot = root.Q<VisualElement>("header");
             if (headerSlot != null)
             {
@@ -55,15 +51,12 @@ namespace ProjectTowerRpg.Core.UI.Windows
 
             _gridSlot = root.Q<VisualElement>("grid");
             
-            // 🎯 СТРОИМ ГРИД СРАЗУ ПРИ РОЖДЕНИИ ПРЕФАБА!
-            // Ему пока не нужна сущность, мы просто генерируем меш слотов в ОЗУ.
             if (_gridSlot != null && _lootGrid == null)
             {
                 _lootGrid = new StaticGrid(MAX_LOOT_COLUMNS, MAX_LOOT_ROWS);
                 _lootGrid.AddToClassList("container-window__grid");
                 _gridSlot.Add(_lootGrid);
                               
-                // Кэшируем ресиверы в базовом классе UIWindow
                 ScanAndCacheReceivers();                
             }
         }
@@ -72,9 +65,9 @@ namespace ProjectTowerRpg.Core.UI.Windows
         {
             _containerEntity = targetContainerEntity;
             _isWaitingForBag = true;
+            _waitForEmptyToClose = false; // 🎯 Сбрасываем флаг при открытии
             if (_root != null) _root.userData = _containerEntity;
             
-            // Пробуем привязать данные сразу, если мешок уже готов в ECS
             TryBuildGrid();
             Open();
         }
@@ -90,11 +83,11 @@ namespace ProjectTowerRpg.Core.UI.Windows
             if (_lootGrid != null && _lootGrid.BoundEntity != Entity.Null)
             {
                 UIRegistry.Unregister(_lootGrid.BoundEntity, _lootGrid);
-                // ❌ Больше НЕ зануляем и НЕ удаляем _lootGrid! Он остается спать внутри префаба.
             }
 
             _containerEntity = Entity.Null;
             _isWaitingForBag = false;
+            _waitForEmptyToClose = false; // 🎯 Сбрасываем флаг
             if (_root != null) _root.userData = null;
         }
 
@@ -102,11 +95,38 @@ namespace ProjectTowerRpg.Core.UI.Windows
         {
             if (_isWaitingForBag && _gridSlot != null && _containerEntity != Entity.Null) 
                 TryBuildGrid();
+
+            // 🎯 Проверка на автозакрытие после "Взять всё"
+            if (_waitForEmptyToClose && _containerEntity != Entity.Null)
+            {
+                var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+                if (em.Exists(_containerEntity) && em.HasComponent<BuffersLinkComponent>(_containerEntity))
+                {
+                    var links = em.GetComponentData<BuffersLinkComponent>(_containerEntity);
+                    Entity lootBagEntity = links.Inventory;
+                    if (em.Exists(lootBagEntity) && em.HasBuffer<ItemSlot>(lootBagEntity))
+                    {
+                        var slots = em.GetBuffer<ItemSlot>(lootBagEntity);
+                        bool isEmpty = true;
+                        for (int i = 0; i < slots.Length; i++)
+                        {
+                            if (!slots[i].IsEmpty) { isEmpty = false; break; }
+                        }
+
+                        if (isEmpty)
+                        {
+                            _waitForEmptyToClose = false;
+                            // 🎯 Возвращаем в пул через фабрику, чтобы окно переиспользовалось, а не висело в памяти
+                            if (WindowFactory.Instance != null)
+                                WindowFactory.Instance.ReturnToPool(Type, this);
+                            else
+                                Close(); // fallback
+                        }
+                    }
+                }
+            }
         }
 
-        // =========================================================================
-        // 🦾 ШАГ 2: МГНОВЕННАЯ ПЕРЕПРИВЯЗКА ЗА 0 НАНОСЕКУНД (Без фризов рендеринга!)
-        // =========================================================================
         private void TryBuildGrid()
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -116,35 +136,21 @@ namespace ProjectTowerRpg.Core.UI.Windows
             Entity lootBagEntity = links.Inventory;
             if (lootBagEntity == Entity.Null || !em.Exists(lootBagEntity)) return;
 
-            // Если эта сетка уже шёлково обслуживает текущий мешок — выходим
-            if (_lootGrid != null && _lootGrid.BoundEntity == lootBagEntity)
-            {
-                _isWaitingForBag = false;
-                return;
-            }
-
             if (_lootGrid != null)
             {
-                // 1. Если сетка держала старый сундук — выписываем его из покадрового UI-реестра
+                // 🎯 Убрали ранний return, чтобы при переоткрытии окна сетка заново привязалась к сущности
                 if (_lootGrid.BoundEntity != Entity.Null)
                 {
                     UIRegistry.Unregister(_lootGrid.BoundEntity, _lootGrid);
                 }
 
-                // 2. БЕСШОВНЫЙ REBIND: Скармливаем сетке новый ID мешка.
-                // Внутри .BindToEntity() у тебя уже зашит вызов UIRegistry.Register, так что связь восстановится сама!
                 _lootGrid.BindToEntity(lootBagEntity);
 
-                // 3. 🦾 УМНАЯ АДАПТАЦИЯ (WoW-канон):
-                // Передаем команду в StaticGrid. Он шёлково настроит display: None для лишних ячеек,
-                // а если сундук окажется аномально большим (больше стартовых 4х6) — сам дорастит пул слотов в ОЗУ!
                 var containerComp = em.GetComponentData<ContainerConfigComponent>(lootBagEntity);
                 _lootGrid.ResizeAndExpand(containerComp.Columns, containerComp.Rows);
 
-                // 4. Актуализируем кэш ресиверов базового класса UIWindow под новые реалии
                 ScanAndCacheReceivers();
 
-                // 5. Форсируем чтение шмоток, чтобы экран обновился мгновенно, не дожидаясь тика систем
                 if (em.HasBuffer<ItemSlot>(lootBagEntity))
                 {
                     _lootGrid.UpdateFromBuffer(em.GetBuffer<ItemSlot>(lootBagEntity));
@@ -162,7 +168,8 @@ namespace ProjectTowerRpg.Core.UI.Windows
             Entity activePlayerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
             Entity commandEntity = em.CreateEntity();
             em.AddComponentData(commandEntity, new ActionCommand { Action = ContainerActions.TakeAll, SourceEntity = activePlayerEntity, TargetEntity = _containerEntity });
+
+            _waitForEmptyToClose = true; // 🎯 Включаем ожидание закрытия
         }
     }
 }
-

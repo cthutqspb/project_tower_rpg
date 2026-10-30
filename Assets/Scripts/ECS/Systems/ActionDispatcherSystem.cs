@@ -77,7 +77,7 @@ namespace ProjectTowerRpg.ECS.Systems
                         break;
 
                     case ActionKind.ItemSplit:
-                        ExecuteItemSplit(cmd.ValueRO, ecb);
+                        ExecuteItemSplit(cmd.ValueRO, ecb, presentationBufferEntity);
                         break;
 
                     case ActionKind.ActionBarAssign:
@@ -135,14 +135,10 @@ namespace ProjectTowerRpg.ECS.Systems
         private void ExecuteContainerTakeAll(
             ActionCommand cmd,
             EntityCommandBuffer ecb,
-            Entity presentationBufferEntity
-        )
+            Entity presentationBufferEntity)
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
-            // 🦾 ИСПРАВЛЕНО НАМЕРТВО: Вытаскиваем адрес мешка сундука из паспорта связей!
-            // cmd.TargetEntity — это сам сундук из редактора. 
-            // Залазим в его паспорт и забираем реальный мешок с буфером шмоток!
             if (!em.HasComponent<BuffersLinkComponent>(cmd.TargetEntity))
             {
                 Debug.LogError($"[ActionDispatcher] У сундука {cmd.TargetEntity.Index} отсутствует паспорт связей буферов!");
@@ -151,7 +147,6 @@ namespace ProjectTowerRpg.ECS.Systems
 
             Entity sourceBagEntity = em.GetComponentData<BuffersLinkComponent>(cmd.TargetEntity).Inventory;
             
-            // У Игрока вытаскиваем рюкзак за 0 наносекунд через его паспорт связей!
             if (!em.HasComponent<BuffersLinkComponent>(cmd.SourceEntity))
             {
                 Debug.LogError($"[ActionDispatcher] У актора {cmd.SourceEntity.Index} отсутствует паспорт связей буферов!");
@@ -166,38 +161,12 @@ namespace ProjectTowerRpg.ECS.Systems
                 return;
             }
 
-            var sourceSlotsBuffer = _slotDataLookup[sourceBagEntity];
+            // 🎯 Вся логика поиска слотов, стаков и переноса теперь внутри редюсера
+            ItemReducer.TakeAll(ref _slotDataLookup, ecb, sourceBagEntity, targetBagEntity, presentationBufferEntity);
 
-            // 🦾 СНАЧАЛА СОБИРАЕМ — не мутируем буфер во время сбора
-            var transfers = new NativeList<ActionCommand>(Allocator.Temp);
-            for (int i = 0; i < sourceSlotsBuffer.Length; i++)
-            {
-                var slotData = sourceSlotsBuffer[i];
-                if (!slotData.IsEmpty)
-                {
-                    transfers.Add(new ActionCommand
-                    {
-                        Action = ItemActions.Transfer,
-                        SourceEntity = sourceBagEntity,
-                        SourceSlot = i,
-                        TargetEntity = targetBagEntity,
-                        TargetSlot = -1,
-                        ItemId = slotData.DataId,
-                        Amount = slotData.Amount,
-                    });
-                }
-            }
-
-            // 🦾 ПОТОМ ИСПОЛНЯЕМ — буфер source уже не читаем
-            foreach (var t in transfers)
-            {
-                ExecuteItemTransfer(t, ecb, presentationBufferEntity);
-            }
-            transfers.Dispose();
-
-            Debug.Log($"💰 [ActionDispatcher]: Экшен 'ВЗЯТЬ ВСЁ' шёлково перелил предметы из мешка {sourceBagEntity.Index} в рюкзак {targetBagEntity.Index}.");
+            Debug.Log($"💰 [ActionDispatcher]: Экшен 'ВЗЯТЬ ВСЁ' перелил предметы из мешка {sourceBagEntity.Index} в рюкзак {targetBagEntity.Index}.");
         }
-       
+
         private void ExecuteInteract(ActionCommand cmd, EntityCommandBuffer ecb)
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -209,8 +178,7 @@ namespace ProjectTowerRpg.ECS.Systems
         private void ExecuteItemTransfer(
             ActionCommand cmd,
             EntityCommandBuffer ecb,
-            Entity presentationBufferEntity
-        )
+            Entity presentationBufferEntity)
         {
             ISlotContainer source = CreateContainer(cmd.SourceEntity);
             ISlotContainer target = CreateContainer(cmd.TargetEntity);
@@ -229,12 +197,11 @@ namespace ProjectTowerRpg.ECS.Systems
                 var incomingContent = new ItemSlot
                 {
                     DataId = cmd.ItemId,
-                    DataType = "item",
+                    ContentType = SlotContentType.Item,
                     Amount = cmd.Amount
                 };
 
-                // 🦾 ИСПРАВЛЕНО: Этот цикл ищет анатомический слот ТОЛЬКО если цель — кукла персонажа!
-                // Проверяем по ECS-тегу целевой сущности
+                // 1. Если цель — кукла, ищем анатомический слот
                 if (World.DefaultGameObjectInjectionWorld.EntityManager.HasComponent<PaperdollTag>(cmd.TargetEntity))
                 {
                     for (int i = 0; i < targetSlotsBuffer.Length; i++)
@@ -247,7 +214,20 @@ namespace ProjectTowerRpg.ECS.Systems
                     }
                 }
 
-                // 2. ЕСЛИ НЕ НАШЛИ (ИЛИ ЭТО ИНВЕНТАРЬ) — ИЩЕМ ПУСТОЙ СЛОТ
+                // 🎯 2. Если не нашли — ищем слот с ТАКИМ ЖЕ предметом (для стака)
+                if (finalTargetSlot == -1)
+                {
+                    for (int i = 0; i < targetSlotsBuffer.Length; i++)
+                    {
+                        if (!targetSlotsBuffer[i].IsEmpty && targetSlotsBuffer[i].DataId == cmd.ItemId)
+                        {
+                            finalTargetSlot = i;
+                            break;
+                        }
+                    }
+                }
+
+                // 🎯 3. Если стак не нашли — ищем пустой слот
                 if (finalTargetSlot == -1)
                 {
                     for (int i = 0; i < targetSlotsBuffer.Length; i++)
@@ -266,7 +246,9 @@ namespace ProjectTowerRpg.ECS.Systems
                     return;
                 }
             }
-
+            Debug.Log($"[ActionDispatcher] TRY TRANSFER: {cmd.ItemId} from {cmd.SourceEntity.Index} slot {cmd.SourceSlot} to {cmd.TargetEntity.Index} slot {finalTargetSlot}");
+            // Передаем найденный слот в редюсер.
+            // Если это был стак, но он переполнен — редюсер сам сделает своп или откажет.
             ItemReducer.Transfer(
                 ecb,
                 source,
@@ -275,8 +257,6 @@ namespace ProjectTowerRpg.ECS.Systems
                 finalTargetSlot,
                 presentationBufferEntity
             );
-
-            Debug.Log($"[ActionDispatcher] Трансфер {cmd.ItemId} [{cmd.SourceSlot}] -> [{finalTargetSlot}]");
         }
 
         private void ExecuteItemDrop(ActionCommand cmd, EntityCommandBuffer ecb, Entity presentationBufferEntity)
@@ -307,11 +287,22 @@ namespace ProjectTowerRpg.ECS.Systems
             Debug.Log($"[ActionDispatcher] Использован {cmd.ItemId} актором {cmd.SourceEntity.Index}");
         }
 
-        private void ExecuteItemSplit(ActionCommand cmd, EntityCommandBuffer ecb)
+        private void ExecuteItemSplit(ActionCommand cmd, EntityCommandBuffer ecb, Entity presentationBufferEntity)
         {
-            Debug.Log($"[ActionDispatcher] ЗАПРОС НА СПЛИТ: {cmd.ItemId} из слота {cmd.SourceSlot} (Amount: {cmd.Amount}). Редюсер пока в разработке!");
-            
-            // TODO: ItemReducer.Split(ref _slotDataLookup, ecb, cmd.SourceEntity, cmd.SourceSlot, cmd.Amount);
+            Debug.Log($"[ActionDispatcher] Split: {cmd.ItemId} x{cmd.Amount} из слота #{cmd.SourceSlot} → " +
+                      $"{(cmd.TargetEntity == Entity.Null ? "земля" : $"слот #{cmd.TargetSlot}")}");
+
+            ItemReducer.Split(
+                ref _slotDataLookup,
+                ecb,
+                cmd.SourceEntity,   // контейнер-источник
+                cmd.SourceSlot,     // откуда отрезаем
+                cmd.Amount,         // сколько отрезать (из DragData.Amount)
+                cmd.TargetEntity,   // куда: Entity.Null = мир, иначе контейнер
+                cmd.TargetSlot,     // -1 = мир
+                cmd.Position,       // позиция дропа (используется только если TargetEntity == Null)
+                presentationBufferEntity
+            );
         }
 
         private void ExecuteItemCreate(ActionCommand cmd, EntityCommandBuffer ecb, Entity presentationBufferEntity)

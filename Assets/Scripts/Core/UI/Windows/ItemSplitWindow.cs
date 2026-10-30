@@ -1,5 +1,6 @@
 using Unity.Entities;
 using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 using ProjectTowerRpg.Core.Items;
 using ProjectTowerRpg.Core.Localization;
@@ -31,7 +32,9 @@ namespace ProjectTowerRpg.Core.UI.Windows
                 _currentAmount = Mathf.Max(1, p.MaxAmount / 2);
                 _maxSplittable = Mathf.Max(1, p.MaxAmount - 1);
 
-                Open();
+                 // 🎯 Если окно уже открыто — просто обновляем данные, не вызывая Open() повторно
+                if (!IsOpen)
+                    Open();
                 BuildUI();                
             }
         }
@@ -95,8 +98,39 @@ namespace ProjectTowerRpg.Core.UI.Windows
 
         private void OnConfirmClicked()
         {
-            Debug.Log($"[ItemSplitWindow] Подтверждён сплит: {_currentAmount} шт.");
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+
+            string itemId = "";
+            if (em.HasBuffer<ItemSlot>(_payload.SourceContainer))
+            {
+                var slots = em.GetBuffer<ItemSlot>(_payload.SourceContainer);
+                if (_payload.SourceSlot >= 0 && _payload.SourceSlot < slots.Length)
+                    itemId = slots[_payload.SourceSlot].DataId.ToString();
+            }
+
+            var iconData = new IconData
+            {
+                Glyph = _itemIcon.text,
+                Color = _itemIcon.resolvedStyle.color,
+                Classes = new List<string>(_itemIcon.GetClasses())
+            };
+
+            var dragData = new DragData
+            {
+                Source = null,
+                SlotIndex = _payload.SourceSlot,
+                ItemId = itemId,
+                Amount = _currentAmount,
+                Icon = iconData,
+                SourceEntity = _payload.SourceContainer,
+                TargetEntity = Entity.Null
+            };
+
             Close();
-        }        
+
+            // 🎯 Отложенный старт: текущий PointerUp (клик по кнопке) спокойно
+            // долетит до _root без _activeDrag, а на следующем тике ghost прилипнет к мыши.
+            DragManager.Instance.StartDrag(dragData, captureOnRoot: true);
+        }   
     }
 }

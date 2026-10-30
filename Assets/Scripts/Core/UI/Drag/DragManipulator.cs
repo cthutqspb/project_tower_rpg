@@ -190,7 +190,7 @@ namespace ProjectTowerRpg.Core.UI
                         UpdateUIElementDrag(evt);
                         break;
                     case DragMode.Slot:
-                        evt.StopPropagation();
+                        // 🎯 Захват оставляем на слоте до PointerUp, ничего не делаем
                         break;
                 }
             }
@@ -216,9 +216,13 @@ namespace ProjectTowerRpg.Core.UI
                 case DragMode.Slot:
                     if (target.HasPointerCapture(evt.pointerId))
                     {
+                        // 🎯 Сбрасываем флаг ДО ReleasePointer, чтобы OnPointerCaptureOut
+                        // не вызвал CancelDrag и не убил наш дроп.
+                        _isDragStarted = false;
                         target.ReleasePointer(evt.pointerId);
                     }
-                    evt.StopPropagation();
+                    // 🎯 НЕ StopPropagation — событие должно всплыть до _root,
+                    // где DragManager.OnGlobalPointerUp сделает Finish.
                     break;
             }
         }

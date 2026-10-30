@@ -119,7 +119,7 @@ namespace ProjectTowerRpg.ECS.Authoring
                 {
                     SlotIndex = idx,
                     DataId = "",
-                    DataType = "",
+                    ContentType = SlotContentType.Item,
                     Amount = 0,
                     EquipSlot = EquipSlot.NONE,
                     ContainerType = ContainerType.INVENTORY
@@ -141,7 +141,7 @@ namespace ProjectTowerRpg.ECS.Authoring
                 {
                     SlotIndex = j,
                     DataId = "",
-                    DataType = "",
+                    ContentType = SlotContentType.Empty,
                     Amount = 0,
                     EquipSlot = PAPERDOLL_SLOTS[j],
                     ContainerType = ContainerType.PAPERDOLL

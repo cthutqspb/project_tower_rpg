@@ -44,7 +44,10 @@ namespace ProjectTowerRpg.Core.UI
 
         public static System.Action OnToggleMainMenu;
 
-        public static System.Action<int, SlotAnimationType> OnSlotAnimation;        
+        public static System.Action<int, SlotAnimationType> OnSlotAnimation;
+
+        public static event Action OnDragStarted;
+        public static event Action OnDragEnded;
 
         public static void TriggerOpenWindow(WindowType type, Entity entity = default, object payload = null)
         {
@@ -78,9 +81,12 @@ namespace ProjectTowerRpg.Core.UI
             OnToggleMainMenu?.Invoke();
         }
 
-        public static void TriggerSlotAnimate(int slotIndex, SlotAnimationType animationType) {
+ public static void TriggerSlotAnimate(int slotIndex, SlotAnimationType animationType) {
             OnSlotAnimation?.Invoke(slotIndex, animationType);
         }
+
+        public static void TriggerDragStarted() => OnDragStarted?.Invoke();
+        public static void TriggerDragEnded() => OnDragEnded?.Invoke();
     }
 }
 

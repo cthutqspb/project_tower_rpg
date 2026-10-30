@@ -23,7 +23,7 @@ namespace ProjectTowerRpg.Core.UI
         private Label _amountLabel;
         private DragData _activeDrag;
         private EntityManager _entityManager;
-
+        
         private void Awake() => _instance = this;
 
         private void Start()
@@ -61,16 +61,16 @@ namespace ProjectTowerRpg.Core.UI
             _amountLabel.style.fontSize = 14;
             _amountLabel.style.color = SolarizedOsakaNight.Text;
             _amountLabel.style.unityTextAlign = TextAnchor.MiddleRight;
+            _amountLabel.pickingMode = PickingMode.Ignore;
             _ghost.Add(_amountLabel);
 
             _root.Add(_ghost);
             Debug.Log("[DragManager]: Ghost создан");
         }
-
+        
         private void Update()
         {
-            if (_ghost == null) return;
-            if (_activeDrag == null) return;
+            if (_ghost == null || _activeDrag == null) return;
 
             var mouse = Mouse.current;
             if (mouse == null) return;
@@ -79,53 +79,54 @@ namespace ProjectTowerRpg.Core.UI
             _ghost.style.left = mousePosition.x;
             _ghost.style.top = Screen.height - mousePosition.y;
 
-            if (!mouse.leftButton.isPressed)
+            if (mouse.leftButton.wasReleasedThisFrame)
             {
-                var localPosition = new Vector2(mousePosition.x, Screen.height - mousePosition.y);
-                var picked = _panel?.Pick(localPosition);
+                var panelPos = new Vector2(mousePosition.x, Screen.height - mousePosition.y);
+                var picked = _panel?.Pick(panelPos);
+                
+                if (picked == _ghost) picked = null;
 
-                if (picked != null && picked != _root)
+                bool isOverWorld = picked == null || picked == _root;
+
+                if (isOverWorld)
                 {
-                    IDragSource slot = null;
-                    if (picked is IDragSource ds)
-                        slot = ds;
-                    else
-                        slot = picked.GetFirstAncestorOfType<IDragSource>();
+                    HandleWorldDrop();
+                    return;
+                }
 
-                    if (slot != null && slot is SlotElement slotElement)
+                // 🎯 Ищем IDropTarget вверх по дереву
+                IDropTarget dropTarget = picked as IDropTarget ?? picked.GetFirstAncestorOfType<IDropTarget>();
+
+                if (dropTarget != null)
+                {
+                    if (dropTarget.CanAcceptDrop(_activeDrag))
                     {
-                        Finish(slotElement, slotElement.SlotIndex);
+                        // Если это слот, нам всё ещё нужен его SlotIndex и ContainerEntity.
+                        // Если dropTarget — это SlotElement, приводим тип (или добавляем свойства в интерфейс).
+                        if (dropTarget is SlotElement slotElement)
+                        {
+                            Finish(slotElement, slotElement.SlotIndex);
+                        }
+                        else if (dropTarget is IEntityContainer container)
+                        {
+                            Finish(container, -1);
+                        }
                         return;
                     }
-
-                    if (picked is IEntityContainer container)
+                    else
                     {
-                        Finish(container, -1);
+                        // 🎯 UI есть, но он не принимает этот дроп (например, аура)
+                        CancelDrag();
                         return;
                     }
                 }
 
-                HandleWorldDrop(mousePosition);
+                // UI есть, но это не DropTarget (например, чатлог) — отменяем
+                CancelDrag();
             }
         }
 
-        // private float3 GetDropPosition(float3 playerPosition)
-        // {
-        //     var camera = Camera.main;
-        //     if (camera == null) return playerPosition + new float3(1.5f, 0, 1.5f);
-        //
-        //     var forward = camera.transform.forward;
-        //     forward.y = 0;
-        //     forward.Normalize();
-        //
-        //     var random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(1, 999999));
-        //     float sideAngle = random.NextFloat(-0.3f, 0.3f);
-        //     var direction = math.mul(quaternion.RotateY(sideAngle), forward);
-        //
-        //     return playerPosition + direction * random.NextFloat(0.27f, 0.72f);
-        // }
-
-        private void HandleWorldDrop(Vector2 mousePosition)
+        private void HandleWorldDrop()
         {
             if (!PlayerUtils.TryGetPosition(out float3 playerPosition))
             {
@@ -133,50 +134,51 @@ namespace ProjectTowerRpg.Core.UI
                 return;
             }
 
-            SlotElement sourceSlotElement = _activeDrag.Source as SlotElement;
-            if (sourceSlotElement == null)
+            Entity sourceEntity = _activeDrag.SourceEntity;
+            int sourceSlot = _activeDrag.SlotIndex;
+
+            if (sourceEntity == Entity.Null)
             {
+                Debug.LogWarning("[DragManager] Исходная ECS-сущность не найдена");
                 CancelDrag();
                 return;
             }
 
-            Entity sourceEntity = sourceSlotElement.ContainerEntity;
+            ClearGhost();
+            var em = _entityManager;
+            var actionEntity = em.CreateEntity();
 
-            if (sourceEntity != Entity.Null)
+            bool isFromActionBar = em.HasComponent<PlayerTag>(sourceEntity);
+
+            if (isFromActionBar)
             {
-                ClearGhost();
-                var em = _entityManager;
-                var actionEntity = em.CreateEntity();
-
-                // Различаем домены строго по ECS-тегу Игрока (PlayerTag)
-                bool isFromActionBar = em.HasComponent<PlayerTag>(sourceEntity);
-
-                if (isFromActionBar)
+                em.AddComponentData(actionEntity, new ActionCommand
                 {
-                    // WoW-канон: Шлём команду со сквозным SourceSlot и TargetSlot = -1 на зачистку ярлыка!
+                    Action = PlayerActions.ActionBarAssign,
+                    SourceEntity = sourceEntity,
+                    SourceSlot = sourceSlot,
+                    TargetEntity = sourceEntity,
+                    TargetSlot = -1,
+                    ItemId = _activeDrag.ItemId,
+                    Amount = _activeDrag.Amount
+                });
+
+                Debug.Log($"[DragManager]: Ярлык экшен-бара '{_activeDrag.ItemId}' выброшен в мир из слота #{sourceSlot}.");
+            }
+            else
+            {
+                float3 dropPosition = PositionUtils.GetDropPosition(playerPosition);
+
+                int actualAmount = GetActualAmount(em, sourceEntity, sourceSlot);
+                bool isSplit = _activeDrag.Amount < actualAmount;
+
+                if (isSplit)
+                {
                     em.AddComponentData(actionEntity, new ActionCommand
                     {
-                        Action = PlayerActions.ActionBarAssign,
+                        Action = ItemActions.Split,
                         SourceEntity = sourceEntity,
-                        SourceSlot = sourceSlotElement.SlotIndex, // Прилетит честное сквозное число 0..23!
-                        TargetEntity = sourceEntity, 
-                        TargetSlot = -1,                          // Сигнал бэкенду на зачистку
-                        ItemId = _activeDrag.ItemId,
-                        Amount = _activeDrag.Amount               // Честное количество предметов в стаке спасёно!
-                    });
-
-                    Debug.Log($"[DragManager]: Ярлык экшен-бара '{_activeDrag.ItemId}' выброшен в мир из сквозного слота #{sourceSlotElement.SlotIndex}.");
-                }
-                else
-                {
-                    // СТАНДАРТНЫЙ МАТЕРИАЛЬНЫЙ ДРОП ШМОТОК НА ЗЕМЛЮ (Твой родной рабочий код)
-                    float3 dropPosition = PositionUtils.GetDropPosition(playerPosition);
-                    
-                    em.AddComponentData(actionEntity, new ActionCommand
-                    {
-                        Action = ItemActions.Drop,
-                        SourceEntity = sourceEntity,
-                        SourceSlot = sourceSlotElement.SlotIndex,
+                        SourceSlot = sourceSlot,
                         TargetEntity = Entity.Null,
                         TargetSlot = -1,
                         ItemId = _activeDrag.ItemId,
@@ -184,30 +186,38 @@ namespace ProjectTowerRpg.Core.UI
                         Position = dropPosition
                     });
 
-                    Debug.Log($"[DragManager]: Материальный дроп {_activeDrag.ItemId} на землю рядом с игроком: {dropPosition}");
+                    Debug.Log($"[DragManager]: Split {_activeDrag.ItemId} x{_activeDrag.Amount}/{actualAmount} на землю: {dropPosition}");
                 }
-            }
-            else
-            {
-                Debug.LogWarning("[DragManager] Исходная ECS-сущность не найдена");
-                CancelDrag();
-                return;
+                else
+                {
+                    em.AddComponentData(actionEntity, new ActionCommand
+                    {
+                        Action = ItemActions.Drop,
+                        SourceEntity = sourceEntity,
+                        SourceSlot = sourceSlot,
+                        TargetEntity = Entity.Null,
+                        TargetSlot = -1,
+                        ItemId = _activeDrag.ItemId,
+                        Amount = _activeDrag.Amount,
+                        Position = dropPosition
+                    });
+
+                    Debug.Log($"[DragManager]: Дроп {_activeDrag.ItemId} на землю: {dropPosition}");
+                }
             }
 
             _activeDrag = null;
         }
 
-        public void StartDrag(DragData data)
+        public void StartDrag(DragData data, bool captureOnRoot = false)
         {
             if (_activeDrag != null) CancelDrag();
 
             _activeDrag = data;
 
-            // ✅ ПОДНИМАЕМ НА ВЕРХ
             _ghost.BringToFront();
             _ghost.style.position = Position.Absolute;
 
-            // ✅ СНАЧАЛА ОБНОВЛЯЕМ ПОЗИЦИЮ
             var mouse = Mouse.current;
             if (mouse != null)
             {
@@ -217,72 +227,99 @@ namespace ProjectTowerRpg.Core.UI
             }
 
             foreach (var className in data.Icon.Classes)
-            {
                 _ghost.AddToClassList(className);
-            }
 
-            // ✅ ПОТОМ УСТАНАВЛИВАЕМ ДАННЫЕ
             _ghost.text = data.Icon.Glyph;
-            
-            // ✅ ПОТОМ ПОКАЗЫВАЕМ
+
             _ghost.style.display = DisplayStyle.Flex;
             _ghost.style.opacity = 1;
 
             _amountLabel.text = data.Amount > 1 ? data.Amount.ToString() : "";
             _amountLabel.style.display = data.Amount > 1 ? DisplayStyle.Flex : DisplayStyle.None;
 
+            // 🎯 Для сплита: захватываем пойнтер на корне, чтобы PointerDown/Move/Up
+            // не уходили в слоты-цели и не перебивали активный драг.
+            if (captureOnRoot && _root != null && !_root.HasPointerCapture(PointerId.mousePointerId))
+                _root.CapturePointer(PointerId.mousePointerId);
+
+            UIEvents.TriggerDragStarted();
             Debug.Log($"[DragManager]: Драг начат {data.ItemId} x{data.Amount}");
         }
+
         public void Finish(object targetComponent, int targetSlot)
         {
             if (_activeDrag == null) return;
 
             ClearGhost();
 
-            if (targetComponent is SlotElement targetSlotElement && _activeDrag.Source is SlotElement sourceSlotElement)
+            if (targetComponent is SlotElement targetSlotElement)
             {
-                Entity sourceEntity = sourceSlotElement.ContainerEntity;
+                Entity sourceEntity = _activeDrag.SourceEntity;
+                int sourceSlot = _activeDrag.SlotIndex;
                 Entity targetEntity = targetSlotElement.ContainerEntity;
 
-                if (sourceEntity != Entity.Null && targetEntity != Entity.Null)
+                if (sourceEntity == Entity.Null || targetEntity == Entity.Null)
                 {
-                    var em = _entityManager;
-                    var actionEntity = em.CreateEntity();
-
-                    // 🦾 КРИСТАЛЬНЫЙ ECS-КОНТЕКСТ:
-                    // Если целевая сущность имеет PlayerTag — значит, мы бросили ярлык прямо на экшен-бар Игрока!
-                    bool isTargetBar = em.HasComponent<PlayerTag>(targetEntity);
-                    
-                    // Если мы бросили ярлык на экшен-бар, а исходный контейнер имеет ContainerTag — это 100% чужой сундук или труп!
-                    if (isTargetBar && em.HasComponent<ContainerTag>(sourceEntity))
-                    {
-                        Debug.LogWarning("❌ ГЕЙМДИЗАЙН: Нельзя тащить вещи из чужих сундуков или трупов сразу на панель!");
-                        _activeDrag = null;
-                        return; // Наглухо блокируем транзакцию
-                    }
-
-                    ActionKind action = isTargetBar ? PlayerActions.ActionBarAssign : ItemActions.Transfer;
-                    // 🦾 ММО-РАЗВОД ИНДЕКСОВ:
-                    // Если цель — боевая панель хоткеев, берём её готовый сквозной ММО-индекс из ОЗУ (0..23).
-                    // Если цель — инвентарь или кукла, берём локальный targetSlot (0..11 или 0..71) для трансфера шмота!
-                    int finalTargetSlot = isTargetBar ? targetSlotElement.SlotIndex : targetSlot;
-
-                    em.AddComponentData(actionEntity, new ActionCommand
-                    {
-                        Action = action,
-                        SourceEntity = sourceEntity,
-                        SourceSlot = sourceSlotElement.SlotIndex,
-                        TargetEntity = targetEntity,
-                        TargetSlot = finalTargetSlot, // Сюда улетит чистый сквозной адрес!
-                        ItemId = _activeDrag.ItemId,
-                        Amount = _activeDrag.Amount
-                    });
-
-                    Debug.Log($"[DragManager]: Спавн ECS-команды {action} -> Слот #{targetSlot}");
+                    _activeDrag = null;
+                    return;
                 }
+
+                var em = _entityManager;
+                var actionEntity = em.CreateEntity();
+
+                bool isTargetBar = em.HasComponent<PlayerTag>(targetEntity);
+
+                // Защита: нельзя тащить вещи из чужих сундуков/трупов прямо на панель
+                if (isTargetBar && em.HasComponent<ContainerTag>(sourceEntity))
+                {
+                    Debug.LogWarning("❌ ГЕЙМДИЗАЙН: Нельзя тащить вещи из чужих сундуков или трупов сразу на панель!");
+                    _activeDrag = null;
+                    return;
+                }
+
+                // Определяем экшен
+                ActionKind action;
+                int finalTargetSlot;
+
+                if (isTargetBar)
+                {
+                    action = PlayerActions.ActionBarAssign;
+                    finalTargetSlot = targetSlotElement.SlotIndex;
+                }
+                else
+                {
+                    int actualAmount = GetActualAmount(em, sourceEntity, sourceSlot);
+                    bool isSplit = _activeDrag.Amount < actualAmount;
+                    action = isSplit ? ItemActions.Split : ItemActions.Transfer;
+                    finalTargetSlot = targetSlot;
+                }
+
+                em.AddComponentData(actionEntity, new ActionCommand
+                {
+                    Action = action,
+                    SourceEntity = sourceEntity,
+                    SourceSlot = sourceSlot,
+                    TargetEntity = targetEntity,
+                    TargetSlot = finalTargetSlot,
+                    ItemId = _activeDrag.ItemId,
+                    Amount = _activeDrag.Amount
+                });
+
+                Debug.Log($"[DragManager]: Спавн ECS-команды {action} -> Слот #{finalTargetSlot}, Amount={_activeDrag.Amount}");
             }
-            
+
             _activeDrag = null;
+        }
+
+        // 🎯 Хелпер: сколько предметов реально лежит в исходном слоте
+        private int GetActualAmount(EntityManager em, Entity sourceEntity, int sourceSlot)
+        {
+            if (!em.HasBuffer<ItemSlot>(sourceEntity)) return 0;
+
+            var slots = em.GetBuffer<ItemSlot>(sourceEntity);
+            if (sourceSlot < 0 || sourceSlot >= slots.Length) return 0;
+
+            return slots[sourceSlot].Amount;
         }
 
         public void CancelDrag()
@@ -297,10 +334,18 @@ namespace ProjectTowerRpg.Core.UI
         private void ClearGhost()
         {
             if (_ghost == null) return;
+
+            // 🎯 ОБЯЗАТЕЛЬНО: отпускаем захват с корня, иначе после первого сплита
+            // root залипает владельцем пойнтера и больше никакой ввод не доходит до UI.
+            if (_root != null && _root.HasPointerCapture(PointerId.mousePointerId))
+                _root.ReleasePointer(PointerId.mousePointerId);
+
             _ghost.style.display = DisplayStyle.None;
             _ghost.text = "";
             _amountLabel.text = "";
             _amountLabel.style.display = DisplayStyle.None;
+
+            UIEvents.TriggerDragEnded();
         }
 
         public bool IsDragging => _activeDrag != null;
