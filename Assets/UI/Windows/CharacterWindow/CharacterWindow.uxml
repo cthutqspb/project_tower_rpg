@@ -1,6 +1,4 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <ui:Style src="project://database/Assets/UI/Windows/CharacterWindow/CharacterWindow.uss" />
-
     <ui:VisualElement class="character-window" name="root" picking-mode="Position">
 
         <ui:VisualElement name="header" />

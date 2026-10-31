@@ -28,6 +28,7 @@ namespace ProjectTowerRpg.Core.UI.Components
         private float _nextAllowedAuraUpdate = 0f;
         private string _lastAuraId = "";
         private int _lastAuraStacks = 0;
+        private IVisualElementScheduledItem _criticalPulseTask;
         
         // Слот кэширует свои данные только для Drag-and-Drop
         private string _itemId = "";
@@ -286,9 +287,15 @@ namespace ProjectTowerRpg.Core.UI.Components
         /// <summary>
         /// 🦾 ММО-КАНОН: Перевод ячейки в режим пассивного отображения Ауры (Баффа/Дебаффа)
         /// </summary>
-        public void SetAura(string auraId, int index, int stacks = 1, float remaining = 0f, float duration = 0f)
-        {
-            
+        public void SetAura(
+            string auraId,
+            int index,
+            int stacks = 1,
+            float remaining = 0f,
+            float duration = 0f,
+            float currentAbsorb = 0f
+        )
+        {            
              _isAuraSlot = true;
             // 🆕 ТРОТТЛИНГ: если аура та же и стаки те же — не перестраиваем иконку
             bool sameAura = _lastAuraId == auraId && _lastAuraStacks == stacks;
@@ -326,6 +333,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 this.AddToClassList("hidden");
                 this.pickingMode = PickingMode.Ignore;
+                SetAuraCritical(false);
                 return;
             }
 
@@ -348,6 +356,11 @@ namespace ProjectTowerRpg.Core.UI.Components
             
             _icon.text = iconCharacter;
 
+            if (currentAbsorb > 0f)
+            {
+                _amountLabel.RemoveFromClassList("hidden");
+                _amountLabel.text = Mathf.CeilToInt(currentAbsorb).ToString();
+            }
             if (stacks > 1)
             {
                 _amountLabel.RemoveFromClassList("hidden");
@@ -379,6 +392,38 @@ namespace ProjectTowerRpg.Core.UI.Components
             }
             
             _icon.MarkDirtyRepaint(); 
+        }
+
+        public void SetAuraCritical(bool isCritical)
+        {
+            // Если это не аура — мигание не нужно
+            if (!_isAuraSlot) return;
+
+            if (isCritical)
+            {
+                // Если уже мигаем — не запускаем вторую задачу
+                if (_criticalPulseTask != null && _criticalPulseTask.isActive) return;
+
+                AddToClassList("aura-critical");
+                
+                // Запускаем переключение классов для эффекта пульсации (раз в 0.4 сек)
+                _criticalPulseTask = schedule.Execute(() =>
+                {
+                    if (!ClassListContains("aura-critical")) return;
+                    ToggleInClassList("aura-critical-pulse");
+                }).Every(400);
+            }
+            else
+            {
+                RemoveFromClassList("aura-critical");
+                RemoveFromClassList("aura-critical-pulse");
+
+                if (_criticalPulseTask != null)
+                {
+                    _criticalPulseTask.Pause();
+                    _criticalPulseTask = null;
+                }
+            }
         }
 
         private void SetAbilityClass(string classType)
@@ -637,7 +682,6 @@ namespace ProjectTowerRpg.Core.UI.Components
 
         public void ClearVisual()
         {
-
             // _itemId = "";
             // _amount = 0;
             foreach (var cls in AbilityClasses) _icon.RemoveFromClassList(cls);
@@ -653,11 +697,24 @@ namespace ProjectTowerRpg.Core.UI.Components
             _durationLabel.text = "";
             _durationLabel.AddToClassList("hidden");
             //_cooldownOverlay.style.backgroundColor = new Color(0, 0, 0, 0);
-             _gcdProgress = 0f;
+            _gcdProgress = 0f;
             _flashProgress = 0f;
             _cooldownOverlay.MarkDirtyRepaint();
             RemoveFromClassList("disabled");
             ResetValidationStyle();
+
+            // 🎯 СБРОС ВИЗУАЛЬНЫХ СОСТОЯНИЙ (чтобы слот не «залипал»)
+            RemoveFromClassList("drop-target--hover");
+            RemoveFromClassList("aura-critical");
+            RemoveFromClassList("aura-critical-pulse");
+            
+            if (_criticalPulseTask != null)
+            {
+                _criticalPulseTask.Pause();
+                _criticalPulseTask = null;
+            }
+            
+            _isAuraSlot = false;
         }
 
         private void OnSlotClicked(PointerDownEvent evt)

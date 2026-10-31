@@ -17,7 +17,8 @@ namespace ProjectTowerRpg.ECS.Components
         public Entity CasterEntity;          // Кто повесил бафф/дебафф (чтобы сервер знал, чей инт считать при тике урона)
         public Entity TargetEntity;
 
-        public float TickTimer; 
+        public float TickTimer;
+        public float CurrentAbsorb;
 
         public bool IsEmpty => AuraId.IsEmpty;
 
@@ -31,6 +32,7 @@ namespace ProjectTowerRpg.ECS.Components
             Stacks = 0;
             CasterEntity = Entity.Null;
             TickTimer = 0f;
+            CurrentAbsorb = 0f;
             // TargetEntity и SlotIndex НЕ ТРОГАЕМ, они вечны для этого контейнера!
         }
 

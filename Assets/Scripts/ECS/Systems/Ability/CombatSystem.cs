@@ -1,6 +1,7 @@
 using Unity.Entities;
 using Unity.Mathematics;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.ECS.Utils; // 🎯 Подключаем AbilityUtils
 using ProjectTowerRpg.Core.Abilities;
 using ProjectTowerRpg.Core.Auras;
 using Debug = UnityEngine.Debug;
@@ -35,8 +36,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         UpdateCombatStates(caster, target, em);
 
-                        // 🚀 ИСТИННЫЙ СИ-КАНOН: Называем переменную КРАСИВО и ПОЛНОСТЬЮ — random!
-                        // Чтобы компилятор не слеп, явно скармливаем тип структуры из математики
                         Random random = new Random((uint)(SystemAPI.Time.ElapsedTime * 1000000) + 1);
 
                         foreach (var effect in abilityCfg.effects)
@@ -68,7 +67,6 @@ namespace ProjectTowerRpg.ECS.Systems
         // =========================================================================
         // ПРИВАТНЫЕ ИЗОЛИРОВАННЫЕ МЕТOДЫ ПРИМЕНЕНИЯ ЭФФЕКТОВ
         // =========================================================================
-
         private static void ApplyDirectDamage(
             Entity caster,
             Entity target,
@@ -78,45 +76,11 @@ namespace ProjectTowerRpg.ECS.Systems
             EntityCommandBuffer ecb,
             Entity gameEventsEntity)
         {
-            if (!em.HasComponent<HealthComponent>(target)) return;
-
-            if (em.HasComponent<IsDeadTag>(target)) return;
-
-            var health = em.GetComponentData<HealthComponent>(target);
-
-            if (health.Current <= 0f) return;
-
             float baseDamage = random.NextFloat(effect.min, effect.max);
             if (baseDamage <= 0f && effect.value > 0f) baseDamage = effect.value;
 
-            health.Current = math.max(0f, health.Current - baseDamage);
-            em.SetComponentData(target, health);
-
-            Debug.Log($"⚔️ [CombatSystem]: Цель {target} получила {baseDamage:F1} {effect.damage_type} урона! ХП: {health.Current}/{health.Max}");
-
-            if (health.Current <= 0f)
-            {
-                ecb.AddComponent<IsDeadTag>(target);
-
-                // 🆕 Событие убийства
-                if (em.HasComponent<UnitComponent>(target))
-                {
-                    var targetUnit = em.GetComponentData<UnitComponent>(target);
-                    var killBuffer = em.GetBuffer<EntityKilledEvent>(gameEventsEntity);
-                    killBuffer.Add(new EntityKilledEvent
-                    {
-                        Source = caster,
-                        Target = target,
-                        TargetNameKey = targetUnit.NameKey,
-                        TargetRace = targetUnit.Race,
-                        TargetFaction = targetUnit.Faction,
-                        TargetType = targetUnit.Type,
-                        TargetDefaultRank = targetUnit.DefaultRank
-                    });
-                }
-
-                Debug.Log($"🪦 [CombatSystem]: Сущность {target} скончалась. Событие отправлено.");
-            }
+            // 🎯 Весь урон идёт через AbilityUtils (с учетом абсорба)
+            AbilityUtils.ApplyDamage(target, baseDamage, em, ecb, gameEventsEntity);
         }
 
         private static void ApplyDirectHeal(Entity target, AbilityEffectConfig effect, EntityManager em, ref Unity.Mathematics.Random random)
@@ -155,22 +119,22 @@ namespace ProjectTowerRpg.ECS.Systems
 
             var auraBuffer = em.GetBuffer<AuraSlot>(auraContainer);
             
-            // 🦾 СИ-ФИКС №2: ТОТАЛЬНЫЙ ГВАРД ПЕРЕИСПОЛЬЗОВАНИЯ ПАМЯТИ ЧАНКОВ!
-            // Если буфер контейнера пустой (длина 0, только что заспавнился моб),
-            // мы обязаны принудительно набить его стерильными пустыми Си-ячейками на 8 слотов,
-            // чтобы стереть любые остатки аур от старых умерших скелетов из этого куска ОЗУ!
+            // 🦾 СИ-ФИКС: ТОТАЛЬНЫЙ ГВАРД ПЕРЕИСПОЛЬЗОВАНИЯ ПАМЯТИ ЧАНКОВ!
             if (auraBuffer.Length == 0)
             {
                 for (int i = 0; i < 8; i++)
                 {
                     var emptySlot = new AuraSlot { SlotIndex = i };
-                    emptySlot.ClearContent(); // Вызываем твое точечное самоочищение!
+                    emptySlot.ClearContent();
                     auraBuffer.Add(emptySlot);
                 }
             }
 
             bool isFound = false;
             float auraDuration = effect.value > 0f ? effect.value : (auraCfg.duration > 0f ? auraCfg.duration : 30f);
+            
+            // 🎯 Базовый абсорб из конфига (если это щит)
+            float baseAbsorb = (auraCfg.modifiers != null) ? auraCfg.modifiers.absorb_damage : 0f;
 
             // БЛОК 1: Ищем существующую ауру для обновления таймера и стаков
             for (int i = 0; i < auraBuffer.Length; i++)
@@ -184,6 +148,12 @@ namespace ProjectTowerRpg.ECS.Systems
                     int maxAllowedStacks = auraCfg.max_stacks > 0 ? auraCfg.max_stacks : 1;
                     slot.Stacks = math.min(maxAllowedStacks, slot.Stacks + 1);
                     slot.TickTimer = 0f;
+
+                    // 🎯 Восстанавливаем абсорб при обновлении щита
+                    if (baseAbsorb > 0f)
+                    {
+                        slot.CurrentAbsorb = baseAbsorb;
+                    }
 
                     auraBuffer[i] = slot;
                     isFound = true;
@@ -207,6 +177,12 @@ namespace ProjectTowerRpg.ECS.Systems
                         slot.CasterEntity = caster;
                         slot.TargetEntity = target;
                         slot.TickTimer = 0f;
+
+                        // 🎯 Инициализируем абсорб при создании щита
+                        if (baseAbsorb > 0f)
+                        {
+                            slot.CurrentAbsorb = baseAbsorb;
+                        }
 
                         auraBuffer[i] = slot;
                         isFound = true;
@@ -254,10 +230,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 var targetCombat = em.GetComponentData<CombatStateComponent>(target);
                 targetCombat.IsInCombat = true;
 
-                // 🦾 ААА-ГВАРД СЕЛФ-ТАРГЕТИНГА:
-                // Если у цели нет таргета, мы заставляем её повернуться лицом к обидчику (caster)
-                // СТРОГО тогда, когда кастер и цель — это РАЗНЫЕ сущности (например, Маг и Скелет)!
-                // Если маг баффнул сам себя — этот блок шёлково пролетит мимо, сохранив таргет стерильным!
+                // 🦾 ААА-ГВАРД СЕЛФ-ТАРГЕТИНГА
                 if (targetCombat.CurrentTarget == Entity.Null && caster != target)
                 {
                     targetCombat.CurrentTarget = caster;
@@ -268,4 +241,3 @@ namespace ProjectTowerRpg.ECS.Systems
         }
     }
 }
-

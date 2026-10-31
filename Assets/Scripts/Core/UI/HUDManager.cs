@@ -64,103 +64,81 @@ namespace ProjectTowerRpg.Core.UI
 
         private void Update()
         {
-            // 1. Вытаскиваем биологическую сущность игрока (для фиксированного фрейма)
             Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
             if (playerEntity == Entity.Null) return;
 
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
-            // Старая легальная привязка фрейма игрока (остается неизменной)
+            // 1. Биндим фрейм игрока (только один раз)
             if (_isUiReady && !_isPlayerBound)
             {
                 _playerFrame.BindToEntity(playerEntity);
+                PushInitialState(playerEntity, _playerFrame);
+                _playerFrame.SetVisible(true);
                 _isPlayerBound = true;
             }
 
-            // =========================================================================
-            // 🦾 ИДЕМПОТЕНТНЫЙ БИНД ЭКШЕН-БАРОВ (Без флагов, работает при респавне/релоаде)
-            // =========================================================================
+            // 2. Биндим экшен-бары
             if (_isUiReady && _actionBars != null)
             {
                 for (int i = 0; i < _actionBars.Count; i++)
                 {
                     var grid = _actionBars[i].SlotsGrid;
-                    // Биндим только если сетка создана и ещё не привязана к этому игроку
                     if (grid != null && grid.BoundEntity != playerEntity)
                     {
                         grid.BindToEntity(playerEntity);
-                        Debug.Log($"[HUDManager]: Экшен-бар {i} забинжен на игрока {playerEntity.Index}");
                     }
                 }
             }
 
-            // =========================================================================
-            // 🦾 ИДЕМПОТЕНТНЫЙ БИНД ДИАЛОГОВОГО ОВЕРЛЕЯ
-            // =========================================================================
-            if (_isUiReady && _dialogueOverlay != null)
+            // 3. Биндим диалоговый оверлей
+            if (_isUiReady && _dialogueOverlay != null && _dialogueOverlay.BoundEntity != playerEntity)
             {
-                // Проверяем, привязан ли оверлей к игроку
-                if (_dialogueOverlay.BoundEntity != playerEntity)
-                {
-                    _dialogueOverlay.BindToEntity(playerEntity);
-                    UIRegistry.Register(playerEntity, _dialogueOverlay);
-                    Debug.Log($"[HUDManager]: Диалоговый оверлей забинжен на игрока {playerEntity.Index}");
-                }
+                _dialogueOverlay.BindToEntity(playerEntity);
+                UIRegistry.Register(playerEntity, _dialogueOverlay);
             }
 
-            // =========================================================================
-            // 🦾 ИДЕМПОТЕНТНЫЙ БИНД ТРЕКЕРА КВЕСТОВ
-            // =========================================================================
-            if (_isUiReady && _questTracker != null)
+            // 4. Биндим трекер квестов
+            if (_isUiReady && _questTracker != null && _questTracker.BoundEntity != playerEntity)
             {
-                // Проверяем, привязан ли трекер к игроку (нужно свойство BoundEntity у QuestTracker)
-                if (_questTracker.BoundEntity != playerEntity)
-                {
-                    _questTracker.BindToEntity(playerEntity);
-                    UIRegistry.Register(playerEntity, _questTracker);
-                    Debug.Log($"[HUDManager]: Трекер квестов забинжен на игрока {playerEntity.Index}");
-                }
+                _questTracker.BindToEntity(playerEntity);
+                UIRegistry.Register(playerEntity, _questTracker);
             }
 
-            // =========================================================================
-            // 🦾 ДИНАМИЧЕСКИЙ СИ-МОСТ КАСTБАРA (Wow-Канон Майнд-контроля):
-            // =========================================================================
+            // 5. Биндим кастбар
             if (_isUiReady)
             {
                 Entity currentControlled = PlayerUtils.GetEntityByTag<ControlledByPlayerTag>();
-
                 if (currentControlled != _lastControlledEntity)
                 {
                     if (_lastControlledEntity != Entity.Null && _castBar != null)
-                        UIRegistry.Unregister(_lastControlledEntity, _castBar);                    
+                        UIRegistry.Unregister(_lastControlledEntity, _castBar);
 
                     if (currentControlled != Entity.Null && _castBar != null)
                     {
                         UIRegistry.Register(currentControlled, _castBar);
-                        
                         if (em.HasComponent<CastComponent>(currentControlled))
                         {
                             var castComp = em.GetComponentData<CastComponent>(currentControlled);
                             _castBar.UpdateFromComponent(ref castComp);
                         }
                     }
-
-                    Debug.Log($"[HUDManager]: Кастбар перехвачен! Новый актор инпута: {currentControlled}");
                     _lastControlledEntity = currentControlled;
                 }
             }
 
-            // =========================================================================
-            // Твой старый отлаженный код трекинга Таргет-Фрейма (_targetFrame)...
-            // =========================================================================
-            if (_isPlayerBound && em.HasComponent<CombatStateComponent>(playerEntity))
+            // 🎯 6. БИНДИМ ТАРГЕТ-ФРЕЙМ (с защитой от самого себя)
+            if (_isUiReady && _isPlayerBound && em.HasComponent<CombatStateComponent>(playerEntity))
             {
                 Entity currentTarget = em.GetComponentData<CombatStateComponent>(playerEntity).CurrentTarget;
+
+                // Защита: если таргет — это сам игрок, считаем, что таргета нет
+                if (currentTarget == playerEntity)
+                    currentTarget = Entity.Null;
 
                 if (currentTarget != _lastTargetEntity)
                 {
                     _targetFrame.BindToEntity(currentTarget);
-
                     if (currentTarget == Entity.Null)
                     {
                         _targetFrame.SetVisible(false);
@@ -170,12 +148,10 @@ namespace ProjectTowerRpg.Core.UI
                         PushInitialState(currentTarget, _targetFrame);
                         _targetFrame.SetVisible(true);
                     }
-
                     _lastTargetEntity = currentTarget;
                 }
             }
         }
-
 
         private void PushInitialState(Entity target, object receiver)
         {
@@ -203,49 +179,31 @@ namespace ProjectTowerRpg.Core.UI
         {
             if (globalUiRoot == null || _hudUxml == null) return;
 
-            // Защита от дублирования интерфейса при перезагрузке UI Toolkit
+            // =========================================================================
+            // 1. ОЧИСТКА СТАРОГО ДЕРЕВА (при перезагрузке UI)
+            // =========================================================================
             if (_root != null && globalUiRoot.Contains(_root))
             {
                 Entity oldPlayerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+
+                // Отписываем всё, что было зарегистрировано
                 if (oldPlayerEntity != Entity.Null)
                 {
                     UIRegistry.Unregister(oldPlayerEntity, _playerFrame);
-                }
-
-                if (_lastControlledEntity != Entity.Null && _castBar != null) 
-                {    
-                    UIRegistry.Unregister(_lastControlledEntity, _castBar);
-
-                    _lastControlledEntity = Entity.Null;
-                    _castBar = null;
+                    UIRegistry.Unregister(oldPlayerEntity, _dialogueOverlay);
+                    UIRegistry.Unregister(oldPlayerEntity, _questTracker);
                 }
 
                 if (_lastTargetEntity != Entity.Null)
-                {
                     UIRegistry.Unregister(_lastTargetEntity, _targetFrame);
-                }
 
-                if (_chatLog != null) 
+                if (_lastControlledEntity != Entity.Null && _castBar != null)
+                    UIRegistry.Unregister(_lastControlledEntity, _castBar);
+
+                if (_chatLog != null)
                 {
                     _chatLog.Dispose();
                     _chatLog = null;
-                }
-
-                if (_dialogueOverlay != null)
-                {
-                    if (oldPlayerEntity != Entity.Null)
-                        UIRegistry.Unregister(oldPlayerEntity, _dialogueOverlay);
-
-                    _dialogueOverlay.BindToEntity(Entity.Null);
-                    _dialogueOverlay = null;
-                }
-
-                if (_questTracker != null)
-                {
-                    Entity oldPlayer = PlayerUtils.GetEntityByTag<PlayerTag>();
-                    if (oldPlayer != Entity.Null)
-                        UIRegistry.Unregister(oldPlayer, _questTracker);
-                    _questTracker = null;
                 }
 
                 if (_actionBars != null)
@@ -259,11 +217,17 @@ namespace ProjectTowerRpg.Core.UI
                 }
 
                 globalUiRoot.Remove(_root);
+                _root = null;
+
+                // Сбрасываем стейт
                 _isPlayerBound = false;
-                _lastTargetEntity = Entity.Null; 
+                _lastTargetEntity = Entity.Null;
+                _lastControlledEntity = Entity.Null;
             }
 
-            // 1. Клонируем плоский скелет HUD
+            // =========================================================================
+            // 2. СБОРКА HUD (всё создаётся заново, но без биндинга)
+            // =========================================================================
             _root = _hudUxml.CloneTree();
             _root.pickingMode = PickingMode.Ignore;
             _root.style.position = Position.Absolute;
@@ -271,58 +235,43 @@ namespace ProjectTowerRpg.Core.UI
             _root.style.height = Length.Percent(100);
             globalUiRoot.Add(_root);
 
-            // 2. Находим слоты-пустышки в XML и собираем в них фреймы
+            // Фреймы (создаём визуал)
             var playerSlot = _root.Q<VisualElement>("player-frame-slot");
             var targetSlot = _root.Q<VisualElement>("target-frame-slot");
-
             if (playerSlot != null) _playerFrame.BuildFrame(playerSlot);
             if (targetSlot != null) _targetFrame.BuildFrame(targetSlot);
 
-            // 3. ✅ ИСПРАВЛЕННАЯ СИНХРОНИЗАЦИЯ ПРИ ПЕРЕЗАГРУЗКЕ HUD
-            Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
-            if (playerEntity != Entity.Null)
-            {
-                _playerFrame.BindToEntity(playerEntity);
-                PushInitialState(playerEntity, _playerFrame);
-                _playerFrame.SetVisible(true);                
-                
-                _isPlayerBound = true;
-
-                var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-                if (em.HasComponent<CombatStateComponent>(playerEntity))
-                {
-                    Entity currentTarget = em.GetComponentData<CombatStateComponent>(playerEntity).CurrentTarget;
-
-                    if (currentTarget != Entity.Null)
-                    {
-                        _targetFrame.BindToEntity(currentTarget);
-                        PushInitialState(currentTarget, _targetFrame);
-                        _targetFrame.SetVisible(true);                        
-                        _lastTargetEntity = currentTarget;
-                    }
-                    else
-                    {
-                        _targetFrame.BindToEntity(Entity.Null);
-                        _targetFrame.SetVisible(false);
-                        _lastTargetEntity = Entity.Null;
-                    }
-                }
-            }
-
-            // =========================================================================
-            // 🦾 СБОРКА ЭКШЕН-БАРОВ (БЕЗ БИНДИНГА — БИНДИНГ ТЕПЕРЬ В UPDATE)
-            // =========================================================================
+            // Экшен-бары
             if (_actionBarUxml != null && _actionBars != null)
             {
                 for (int i = 0; i < _actionBars.Count; i++)
-                {
                     _actionBars[i].BuildPanel(_root, _actionBarUxml, i);
-                }
-                Debug.Log("[HUDManager]: Экшен-бары собраны. Ожидаем спавна игрока для биндинга в Update().");
             }
 
-            // 🦾 КАНOНИЧНАЯ СБOРКА ДИАЛОГОВОГО ОВЕРЛЕЯ (ТОЛЬКО СОЗДАНИЕ, БЕЗ БИНДИНГА)
-            if (_dialogueOverlayUxml != null && _root != null)
+            // Кастбар
+            if (_progressBarUxml != null)
+            {
+                var castBarVisual = _progressBarUxml.CloneTree();
+                castBarVisual.name = "CastBar";
+                castBarVisual.style.position = Position.Absolute;
+                castBarVisual.style.left = Length.Percent(42f);
+                castBarVisual.style.top = Length.Percent(70f);
+                _castBar = new CastBar(castBarVisual);
+                _root.Add(castBarVisual);
+            }
+
+            // Чат-лог
+            if (_chatLogUxml != null)
+            {
+                var chatRoot = _chatLogUxml.CloneTree();
+                chatRoot.name = "chat-log";
+                chatRoot.AddToClassList("hud__chat-log");
+                _chatLog = new ChatLog(chatRoot);
+                _root.Add(chatRoot);
+            }
+
+            // Диалоговый оверлей
+            if (_dialogueOverlayUxml != null)
             {
                 var dialogueRoot = _dialogueOverlayUxml.CloneTree();
                 dialogueRoot.name = "dialogue-overlay";
@@ -334,41 +283,18 @@ namespace ProjectTowerRpg.Core.UI
                     _dialogueOverlay = gameObject.AddComponent<DialogueOverlay>();
 
                 _dialogueOverlay.Initialize(dialogueRoot);
-                _root.Add(dialogueRoot);                
+                _root.Add(dialogueRoot);
             }
 
-            // 🦾 КАНOНИЧНАЯ СБOРКА КАСTБАРA ИГРОКА По центру экрана:
-            if (_progressBarUxml != null && _root != null)
-            {
-                var castBarVisual = _progressBarUxml.CloneTree();
-                castBarVisual.name = "CastBar"; 
-                castBarVisual.style.position = Position.Absolute;
-                castBarVisual.style.left = Length.Percent(42f);
-                castBarVisual.style.top = Length.Percent(70f);
-
-                _castBar = new CastBar(castBarVisual);
-                _root.Add(castBarVisual);
-            }
-
-            // 🦾 КАНOНИЧНАЯ СБОРКА ЧАТ-ЛОГА:
-            if (_chatLogUxml != null && _root != null)
-            {
-                var chatRoot = _chatLogUxml.CloneTree();
-                chatRoot.name = "chat-log";
-                chatRoot.AddToClassList("hud__chat-log");
-                _chatLog = new ChatLog(chatRoot);
-                _root.Add(chatRoot);
-            }
-
-            // 🦾 СБОРКА ТРЕКЕРА КВЕСТОВ:
-            if (_questTrackerUxml != null && _root != null)
+            // Трекер квестов
+            if (_questTrackerUxml != null)
             {
                 _questTracker = new QuestTracker(_questTrackerUxml);
-                _root.Add(_questTracker);            
+                _root.Add(_questTracker);
             }
 
             _isUiReady = true;
-            Debug.Log("[HUDManager]: Все фреймы шёлково собраны внутри своих слотов после релоада!");
+            Debug.Log("[HUDManager]: HUD собран заново после релоада.");
         }
 
         private void OnDestroy()

@@ -52,3 +52,18 @@
     -unity-text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.9);
 }
 
+/* 🎯 Состояние "Осталось меньше 10 секунд" */
+.aura-frame__grid .slot.aura-critical {
+    /* Делаем иконку полупрозрачной (или меняем цвет) */
+    opacity: 0.5;
+    
+    /* Включаем плавный переход */
+    transition-property: opacity;
+    transition-duration: 0.5s;
+    transition-timing-function: ease-in-out;
+}
+
+/* Если мы добавим этот класс, прозрачность вернется */
+.aura-frame__grid .slot.aura-critical-pulse {
+    opacity: 1.0;
+}

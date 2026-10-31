@@ -1,7 +1,8 @@
 using Unity.Entities;
 using Unity.Mathematics;
-using Unity.Collections; // Добавлено для Allocator
+using Unity.Collections;
 using ProjectTowerRpg.ECS.Components;
+using ProjectTowerRpg.ECS.Utils; // 🎯 Подключаем AbilityUtils
 using ProjectTowerRpg.Core.Auras;
 using Debug = UnityEngine.Debug;
 
@@ -61,79 +62,21 @@ namespace ProjectTowerRpg.ECS.Systems
                         {
                             aura.TickTimer -= interval; // Сохраняем дробный остаток
 
-                            if (auraCfg.effect.type == "periodic_damage")
+                            // 🎯 СВИЧ ПО ТИПУ ЭФФЕКТА (для будущего расширения)
+                            switch (auraCfg.effect.type)
                             {
-                                float finalDotDamage = auraCfg.effect.base_damage * aura.Stacks;
-                                Entity targetUnit = aura.TargetEntity;
+                                case "periodic_damage":
+                                    ApplyPeriodicDamage(aura, auraCfg, em, ecb, gameEventsEntity, hasPresentationBus, presentationEntity);
+                                    break;
 
-                                if (targetUnit != Entity.Null && em.HasComponent<HealthComponent>(targetUnit))
-                                {
-                                    // ГВАРД A: цель уже мертва
-                                    if (em.HasComponent<IsDeadTag>(targetUnit))
-                                    {
-                                        auraBuffer[i] = aura;
-                                        continue;
-                                    }
+                                case "periodic_heal":
+                                    // TODO: ApplyPeriodicHeal(...)
+                                    break;
 
-                                    var health = em.GetComponentData<HealthComponent>(targetUnit);
-
-                                    // ГВАРД B: HP уже 0
-                                    if (health.Current <= 0f)
-                                    {
-                                        auraBuffer[i] = aura;
-                                        continue;
-                                    }
-                                    
-                                    health.Current = math.max(0f, health.Current - finalDotDamage);
-                                    em.SetComponentData(targetUnit, health);
-
-                                    // СМЕРТЬ ОТ ДОТ-А
-                                    if (health.Current <= 0f)
-                                    {
-                                        ecb.AddComponent<IsDeadTag>(targetUnit);
-
-                                        if (em.HasComponent<UnitComponent>(targetUnit))
-                                        {
-                                            var targetUnitComp = em.GetComponentData<UnitComponent>(targetUnit);
-                                            // 🎯 Пишем событие через ECB, а не напрямую в буфер
-                                            ecb.AppendToBuffer(gameEventsEntity, new EntityKilledEvent
-                                            {
-                                                Source = aura.CasterEntity,
-                                                Target = targetUnit,
-                                                TargetNameKey = targetUnitComp.NameKey,
-                                                TargetRace = targetUnitComp.Race,
-                                                TargetFaction = targetUnitComp.Faction,
-                                                TargetType = targetUnitComp.Type,
-                                                TargetDefaultRank = targetUnitComp.DefaultRank
-                                            });
-                                        }
-
-                                        // Снимаем ауру
-                                        aura.ClearContent();
-                                        auraBuffer[i] = aura;                                       
-
-#if UNITY_EDITOR
-                                        Debug.Log($"🪦 [AuraSystem]: Сущность {targetUnit.Index} скончалась от DoT...");
-#endif
-                                        continue;
-                                    }
-                                    
-                                    // 🎯 Выстреливаем сигнал Hit через ECB, передаем FixedString напрямую
-                                    if (hasPresentationBus)
-                                    {
-                                        ecb.AppendToBuffer(presentationEntity, new PresentationEvent
-                                        {
-                                            Kind = PresentationEventKind.Hit,
-                                            Source = aura.CasterEntity,
-                                            Target = targetUnit,
-                                            Param = aura.AuraId // Если Param это string, замени на aura.AuraId.ToString()
-                                        });
-                                    }
-
-#if UNITY_EDITOR
-                                    Debug.Log($"🔥 [AuraSystem]: Аура '{aura.AuraId}' списала {finalDotDamage} ХП у юнита {targetUnit.Index} (Стаков: {aura.Stacks}). Осталось ХП: {health.Current}");
-#endif
-                                }
+                                case "passive_modifier":
+                                    // Пассивные модификаторы (броня, скорость) обрабатываются в других системах.
+                                    // Тут ничего не делаем.
+                                    break;
                             }
                         }
                     }
@@ -152,6 +95,46 @@ namespace ProjectTowerRpg.ECS.Systems
             }
 
             containers.Dispose();
+        }
+
+        // =========================================================================
+        // ПРИВАТНЫЕ МЕТОДЫ ОБРАБОТКИ ЭФФЕКТОВ
+        // =========================================================================
+
+        private static void ApplyPeriodicDamage(
+            AuraSlot aura,
+            AuraConfig auraCfg,
+            EntityManager em,
+            EntityCommandBuffer ecb,
+            Entity gameEventsEntity,
+            bool hasPresentationBus,
+            Entity presentationEntity)
+        {
+            float finalDotDamage = auraCfg.effect.base_damage * aura.Stacks;
+            Entity targetUnit = aura.TargetEntity;
+
+            if (targetUnit == Entity.Null || !em.Exists(targetUnit)) return;
+            if (!em.HasComponent<HealthComponent>(targetUnit)) return;
+            if (em.HasComponent<IsDeadTag>(targetUnit)) return;
+
+            // 🎯 Наносим урон через AbilityUtils (он сам обработает смерть и событие)
+            AbilityUtils.ApplyDamage(targetUnit, finalDotDamage, em, ecb, gameEventsEntity);
+
+            // 🎯 Выстреливаем сигнал Hit через ECB (для визуала)
+            if (hasPresentationBus)
+            {
+                ecb.AppendToBuffer(presentationEntity, new PresentationEvent
+                {
+                    Kind = PresentationEventKind.Hit,
+                    Source = aura.CasterEntity,
+                    Target = targetUnit,
+                    Param = aura.AuraId
+                });
+            }
+
+#if UNITY_EDITOR
+            Debug.Log($"🔥 [AuraSystem]: Аура '{aura.AuraId}' списала {finalDotDamage} ХП у юнита {targetUnit.Index} (Стаков: {aura.Stacks}).");
+#endif
         }
     }
 }

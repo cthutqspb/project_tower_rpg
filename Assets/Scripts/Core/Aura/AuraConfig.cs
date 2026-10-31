@@ -46,6 +46,8 @@ namespace ProjectTowerRpg.Core.Auras
     {
         public float armor_multiplier = 1.0f;        // 1.5 = +50% брони
         public float attack_speed_modifier = 0.0f;   // -0.25 = -25% скорости атаки
+        public float move_speed_modifier = 0f;
+        public float absorb_damage = 0f;
     }
 }
 

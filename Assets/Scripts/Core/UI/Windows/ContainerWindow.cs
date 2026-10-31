@@ -4,6 +4,8 @@ using ProjectTowerRpg.Core.UI.Components;
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
 using ProjectTowerRpg.ECS.Actions;
+using ProjectTowerRpg.Core.Items;
+using ProjectTowerRpg.Core.Localization;
 
 namespace ProjectTowerRpg.Core.UI.Windows
 {
@@ -38,7 +40,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
             var headerSlot = root.Q<VisualElement>("header");
             if (headerSlot != null)
             {
-                _header = new HeaderComponent { Title = "ДОБЫЧА" };
+                _header = new HeaderComponent();
                 _header.OnClose += Close;
                 headerSlot.Add(_header);
                 root.RegisterCallback<PointerDownEvent>(evt => root.BringToFront());
@@ -68,6 +70,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
             _waitForEmptyToClose = false; // 🎯 Сбрасываем флаг при открытии
             if (_root != null) _root.userData = _containerEntity;
             
+            UpdateTitle();
             TryBuildGrid();
             Open();
         }
@@ -170,6 +173,38 @@ namespace ProjectTowerRpg.Core.UI.Windows
             em.AddComponentData(commandEntity, new ActionCommand { Action = ContainerActions.TakeAll, SourceEntity = activePlayerEntity, TargetEntity = _containerEntity });
 
             _waitForEmptyToClose = true; // 🎯 Включаем ожидание закрытия
+        }
+
+        private void UpdateTitle()
+        {
+            if (_containerEntity == Entity.Null)
+            {
+                _header.Title = "ДОБЫЧА"; // Дефолт
+                return;
+            }
+
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+            string nameKey = "";
+
+            // 1. Это юнит (труп скелета, кабана и т.д.)
+            if (em.HasComponent<UnitComponent>(_containerEntity))
+            {
+                var unit = em.GetComponentData<UnitComponent>(_containerEntity);
+                nameKey = unit.NameKey.ToString();
+            }
+            // 2. Это предмет-контейнер (сундук, бочка)
+            else if (em.HasComponent<ItemComponent>(_containerEntity))
+            {
+                var item = em.GetComponentData<ItemComponent>(_containerEntity);
+                var config = ItemsDatabase.GetItem(item.ItemId.ToString());
+                if (config != null) nameKey = config.identity.name_key;
+            }
+
+            // 3. Локализуем и ставим в хедер
+            if (!string.IsNullOrEmpty(nameKey))
+                _header.Title = LocalizationManager.Get(nameKey).ToUpper();
+            else
+                _header.Title = "ДОБЫЧА"; // Фоллбек
         }
     }
 }

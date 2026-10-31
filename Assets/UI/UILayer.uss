@@ -73,51 +73,48 @@ TemplateContainer {
 }
 
 /* ============================================================
-   SCROLLER (Osaka Night, тонкий) — Unity 7
+   СКРОЛЛБАР (Osaka Night)
    ============================================================ */
 
-/* Скрываем стрелки-кнопки */
+/* 1. Скрываем стрелки (оба варианта классов для разных версий Unity) */
 .unity-scroller__low-button,
-.unity-scroller__high-button {
+.unity-scroller__high-button,
+.unity-scroller--vertical .unity-scroller__low-button,
+.unity-scroller--vertical .unity-scroller__high-button {
     display: none;
 }
 
-/* Сам скроллер — тонкий */
+/* 2. Тонкий контейнер */
 .unity-scroller--vertical {
-    width: 6px;
-    min-width: 6px;
-    max-width: 6px;
-    padding: 0;
-    margin: 0;
+    min-width: 8px;
+    max-width: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: transparent;  
+}
+
+/* 3. Убираем все возможные фоны у треков */
+.unity-scroller--vertical .unity-scroller__slider,
+.unity-scroller--vertical .unity-base-slider__tracker { 
+    border-width: 0;
     background-color: transparent;
-    border-width: 0;
 }
 
-/* Трек */
-.unity-scroller__slider {
-    background-color: rgba(26, 27, 38, 0.5);
-    border-width: 0;
+/* 4. Ползунок (он же dragger) */
+.unity-scroller--vertical .unity-base-slider__dragger {
+    background-color: var(--osaka-text-dim, #6c6f85);
     border-radius: 3px;
-    margin: 0;
-    padding: 0;
+    width: 8px;
+    min-width: 8px;
+    max-width: 8px;
 }
 
-/* Ползунок — ищем через drag-container внутри слайдера */
-.unity-scroller__slider .unity-base-slider__drag-container,
-.unity-scroller__slider .unity-slider-button {
-    background-color: var(--osaka-text-dim);
-    border-width: 0;
-    border-radius: 3px;
-    margin: 0;
-    min-height: 24px;
+/* 5. Ховер и активное состояние */
+.unity-scroller--vertical .unity-base-slider__dragger:hover {
+    background-color: var(--osaka-blue, #7aa2f7);
 }
 
-.unity-scroller__slider .unity-base-slider__drag-container:hover,
-.unity-scroller__slider .unity-slider-button:hover {
-    background-color: var(--osaka-blue);
-}
-
-.unity-scroller__slider .unity-base-slider__drag-container:active,
-.unity-scroller__slider .unity-slider-button:active {
-    background-color: var(--osaka-cyan);
+.unity-scroller--vertical .unity-base-slider__dragger:active {
+    background-color: var(--osaka-cyan, #7dcfff);
 }

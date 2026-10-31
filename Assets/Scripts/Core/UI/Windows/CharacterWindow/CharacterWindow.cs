@@ -65,7 +65,7 @@ namespace ProjectTowerRpg.Core.UI.Windows
             var headerSlot = root.Q<VisualElement>("header");
             if (headerSlot != null)
             {
-                _header = new HeaderComponent { Title = LocalizationManager.Get("character_window") };
+                _header = new HeaderComponent(LocalizationManager.Get("character"));
                 _header.OnClose += Close;
                 headerSlot.Add(_header);
                 root.RegisterCallback<PointerDownEvent>(evt => root.BringToFront());
@@ -109,24 +109,23 @@ namespace ProjectTowerRpg.Core.UI.Windows
         private void SwitchTab(CharacterWindowTabs tab)
         {
             _currentTab = tab;
-
+            
             _pageCharacter.RemoveFromClassList("character-window__page--active");
             _pageQuestJournal.RemoveFromClassList("character-window__page--active");
             _pageSpellbook.RemoveFromClassList("character-window__page--active");
 
-            switch (tab)
+            var (page, titleKey) = tab switch
             {
-                case CharacterWindowTabs.Character:
-                    _pageCharacter.AddToClassList("character-window__page--active");
-                    break;
-                case CharacterWindowTabs.QuestJournal:
-                    _pageQuestJournal.AddToClassList("character-window__page--active");
-                    break;
-                case CharacterWindowTabs.Spellbook:
-                    _pageSpellbook.AddToClassList("character-window__page--active");
-                    break;
-            }
-        }
+                CharacterWindowTabs.Character => (_pageCharacter, "character"),
+                CharacterWindowTabs.QuestJournal => (_pageQuestJournal, "quest_journal"),
+                CharacterWindowTabs.Spellbook => (_pageSpellbook, "spellbook"),
+                _ => (null, "")
+            };
+
+            if (page != null) page.AddToClassList("character-window__page--active"); // 🎯 Вот тут вернул полное имя
+            if (_header != null && !string.IsNullOrEmpty(titleKey))
+                _header.Title = LocalizationManager.Get(titleKey);
+        }      
 
         public void OpenOnTab(CharacterWindowTabs tab)
         {

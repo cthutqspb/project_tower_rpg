@@ -309,6 +309,63 @@
         "value": 1800.0
       }
     ]
+  },
+  "magic_shield": {
+    "action_type": "ability",
+    "identity": {
+      "name_key": "ability_magic_shield_name",
+      "desc_key": "ability_magic_shield_desc",
+      "class": "mage",
+      "school": "abjuration",
+      "element": "arcane",
+      "tags": ["buff", "arcane", "defense", "absorb"]
+    },
+    "visuals": {
+      "animation": "frost_armor",
+      "texture": "project_utumno",
+      "tile_index": 2021,
+      "icon_char": "󰒙"
+    },
+    "delivery": {
+      "type": "instant_hit",
+      "factory_url": null,
+      "fx": {
+        "sprite_animation": null,
+        "particle_fx": "magic_shield_cast_vfx",
+        "hit_fx": null,
+        "duration": 0.0
+      }
+    },
+    "parameters": {
+      "cooldown_group": "magic_shield",
+      "range": 0.0,
+      "speed": 0.0,
+      "cast_time": 0.0,
+      "cooldown": 10.0,
+      "triggers_gcd": true,
+      "is_homing": false,
+      "requires_target": false
+    },
+    "requirements": {
+      "level": 2,
+      "class": "mage"
+    },
+    "cost": {
+      "resource": "mana",
+      "value": 7.5
+    },
+    "effects": [
+      {
+        "type": "apply_aura",
+        "school": null,
+        "min": 0.0,
+        "max": 0.0,
+        "weapon_multiplier": 0.0,
+        "scaling_stats": null,
+        "aura_id": "magic_shield",
+        "value": 15.0
+      }
+    ]
   }
 }
 

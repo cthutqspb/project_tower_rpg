@@ -1,7 +1,9 @@
 {
   "_comment_gui_windows": "",
   "inventory_title": "Инвентарь",
-  "character_window": "Окно персонажа",
+  "character": "Персонаж",
+  "quest_journal": "Журнал",
+  "spellbook": "Заклинания",
   "character_journal": "Журнал",
   "character_talents": "Таланты",
   

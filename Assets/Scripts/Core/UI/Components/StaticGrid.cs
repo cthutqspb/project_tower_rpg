@@ -341,8 +341,14 @@ namespace ProjectTowerRpg.Core.UI.Components
                                 i,
                                 aura.Stacks,
                                 aura.TimeRemaining,
-                                aura.Duration
+                                aura.Duration,
+                                aura.CurrentAbsorb
                             );
+
+                            // 🎯 ВКЛЮЧАЕМ МИГАНИЕ, ЕСЛИ ОСТАЛОСЬ МЕНЬШЕ 10 СЕКУНД
+                            bool isCritical = aura.TimeRemaining > 0f && aura.TimeRemaining <= 10f;
+                            slotVisual.SetAuraCritical(isCritical);
+
                             continue;
                         }
                     }
@@ -353,6 +359,7 @@ namespace ProjectTowerRpg.Core.UI.Components
                 // но НЕ ломает бинды экшен-бара и валидацию!
                 //slotVisual.ClearVisual();
                 slotVisual.SetAura("", i, 0, 0f, 0f);
+                slotVisual.SetAuraCritical(false);
                 //slotVisual.ClearVisual();
             }
         }

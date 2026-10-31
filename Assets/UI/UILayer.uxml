@@ -23,5 +23,7 @@
     <Style src="project://database/Assets/UI/Components/SlotPreview.uss?fileID=7433441132597879392&amp;guid=b323b95a349330054831b0dfb9788e26&amp;type=3#SlotPreview"/>
     <Style src="project://database/Assets/UI/Components/Nameplates/NameplateElement.uss?fileID=7433441132597879392&amp;guid=52381e1bd078f03fc835165a7a9255cd&amp;type=3#NameplateElement"/>
     <Style src="project://database/Assets/UI/Windows/ItemSplitWindow/ItemSplitWindow.uss?fileID=7433441132597879392&amp;guid=945508d58b0335521a80d21222a2a0a7&amp;type=3#ItemSplitWindow"/>
+    <Style src="project://database/Assets/UI/Windows/CharacterWindow/CharacterWindow.uss?fileID=7433441132597879392&amp;guid=fb33a4665b250f98eb5e132b0c946e57&amp;type=3#CharacterWindow"/>
+    <Style src="project://database/Assets/UI/Components/HealthBar.uss?fileID=7433441132597879392&amp;guid=de6fb45071f4883c1849cfa0b4a0f5be&amp;type=3#HealthBar"/>
     <ui:VisualElement picking-mode="Ignore" name="VisualElement" class="ui-layer"/>
 </ui:UXML>

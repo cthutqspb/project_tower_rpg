@@ -15,14 +15,13 @@ namespace ProjectTowerRpg.Core.UI.Components
         
         public event System.Action OnClose;
 
-
-        public HeaderComponent(bool hasCloseButton = true)
-        {
+        public HeaderComponent(string title = "Заголовок", bool hasCloseButton = true)
+        {   
             this.AddToClassList("header");
             
             _titleLabel = new Label();
             _titleLabel.AddToClassList("header__label");
-            _titleLabel.text = "Заголовок";
+            _titleLabel.text = title; // 🎯 Ставим текст здесь, всё ок
             Add(_titleLabel);
             
             if (hasCloseButton)

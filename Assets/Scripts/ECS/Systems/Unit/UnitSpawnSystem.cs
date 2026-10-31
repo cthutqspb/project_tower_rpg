@@ -443,6 +443,10 @@ namespace ProjectTowerRpg.ECS.Systems
                         }
                         else if (k == 3)
                         {
+                            barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "magic_shield", ContentType = SlotContentType.Ability, KeyBinding = defaultKey });
+                        }
+                        else if (k == 4)
+                        {
                             barBuffer.Add(new ActionBarSlot { SlotIndex = k, AbilityId = "fireball", ContentType = SlotContentType.Ability, KeyBinding = defaultKey });
                         }
                         else

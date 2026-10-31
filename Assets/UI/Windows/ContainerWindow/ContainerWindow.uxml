@@ -1,7 +1,4 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <!-- Подключаем наш свежий файл стилей без инлайнов -->
-    <ui:Style src="project://database/Assets/UI/Windows/ContainerWindow/ContainerWindow.uss" />
-
     <!-- Корневой контейнер окна добычи -->
     <ui:VisualElement class="container-window" name="root" picking-mode="Position">
         
@@ -16,7 +13,8 @@
               class="container-window__grid-scroll"
               name="grid"   
               movement-type="Elastic"
-              elasticity="0.1">
+              elasticity="0.1"
+              horizontal-scroller-visibility="Hidden">
             </ui:ScrollView>
             
             <!-- Подвал окна с кнопкой -->

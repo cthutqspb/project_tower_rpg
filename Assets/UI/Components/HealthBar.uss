@@ -1,0 +1,13 @@
+/* Здоровье */
+.health-fill--high { background-color: var(--osaka-green); }
+.health-fill--mid  { background-color: var(--osaka-yellow); }
+.health-fill--low  { background-color: var(--osaka-red); }
+
+/* Плавный переход цвета (чтобы при смене класса не было резкого скачка) */
+.health-fill {
+    transition-property: background-color, width;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-out;
+}
+
+

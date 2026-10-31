@@ -100,6 +100,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             {
                 Debug.LogError("🚨 [UnitFrame]: В UXML фрейма не найдена нода 'aura-frame-root'!");
             }
+
+            SetVisible(false);
         }
 
         // =========================================================================

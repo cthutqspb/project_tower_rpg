@@ -104,6 +104,9 @@
 /* Колонка с инвентарём */
 .character-window__inventory {
     width: 320px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     flex-shrink: 0;
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
@@ -119,12 +122,12 @@
 }
 
 .character-window__inventory-grid .slot {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
 }
 
 .character-window__inventory-grid .slot-icon {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     font-size: 39px;
 }
