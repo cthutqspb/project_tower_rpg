@@ -11,8 +11,24 @@ namespace ProjectTowerRpg.ECS.Reducers
 {
     public static class ItemReducer
     {
-        // 🎯 Счётчик для уникальных Uid новых душ (сплиты одного и того же стака)
+        // 🎯 Счётчик для уникальных Uid новых предметов (сплиты одного и того же стака)
         private static int _splitUidCounter = 10000;
+
+        // ================================================================
+        // СИНХРОНИЗАЦИЯ ITEMCOMPONENT
+        // ================================================================
+        private static void SyncItemComponent(Entity itemEntity, int newAmount)
+        {
+            if (itemEntity == Entity.Null) return;
+
+            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+            if (em.HasComponent<ItemComponent>(itemEntity))
+            {
+                var component = em.GetComponentData<ItemComponent>(itemEntity);
+                component.Amount = newAmount;
+                em.SetComponentData(itemEntity, component);
+            }
+        }
 
         // ================================================================
         // ОЧИСТИТЕЛЬ СЛОТОВ
@@ -32,9 +48,6 @@ namespace ProjectTowerRpg.ECS.Reducers
             Debug.Log($"🎒 [ItemReducer.ClearSlot]: Очищен слот #{index}. Паспорт '{targetSlot.EquipSlot}' сохранён.");
         }
 
-        // ================================================================
-        // УНИВЕРСАЛЬНЫЙ ТРАНСФЕР
-        // ================================================================
         public static void Transfer(
             EntityCommandBuffer ecb,
             ISlotContainer source,
@@ -58,6 +71,7 @@ namespace ProjectTowerRpg.ECS.Reducers
             }
 
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
+            var playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>(em);
 
             // КЕЙС А: целевой слот пустой
             if (!target.HasContent(targetSlot))
@@ -65,12 +79,11 @@ namespace ProjectTowerRpg.ECS.Reducers
                 target.SetContent(targetSlot, content);
                 source.ClearSlot(sourceSlot);
 
-                var playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>(em);
                 if (playerEntity != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntity))
                 {
-                    var links = em.GetComponentData<BuffersLinkComponent>(playerEntity);
+                    var playerLinks = em.GetComponentData<BuffersLinkComponent>(playerEntity);
 
-                    if (source.Entity != links.Inventory && target.Entity == links.Inventory)
+                    if (source.Entity != playerLinks.Inventory && target.Entity == playerLinks.Inventory)
                     {
                         ItemSlot itemSlot = (ItemSlot)content;
                         ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
@@ -105,15 +118,14 @@ namespace ProjectTowerRpg.ECS.Reducers
             target.SetContent(targetSlot, content);
             source.SetContent(sourceSlot, targetContent);
 
-            var playerEntSwap = PlayerUtils.GetEntityByTag<PlayerTag>(em);
-            if (playerEntSwap != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntSwap))
+            if (playerEntity != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntity))
             {
-                var links = em.GetComponentData<BuffersLinkComponent>(playerEntSwap);
+                var playerLinks = em.GetComponentData<BuffersLinkComponent>(playerEntity);
 
-                bool isSourceExternal = source.Entity != links.Inventory;
-                bool isTargetMyBag = target.Entity == links.Inventory;
+                bool isSourceExternal = source.Entity != playerLinks.Inventory;
+                bool isTargetPlayerInventory = target.Entity == playerLinks.Inventory;
 
-                if (isSourceExternal && isTargetMyBag)
+                if (isSourceExternal && isTargetPlayerInventory)
                 {
                     ItemSlot itemSlot = (ItemSlot)content;
                     ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
@@ -124,7 +136,7 @@ namespace ProjectTowerRpg.ECS.Reducers
                         Param = itemSlot.DataId
                     });
                 }
-                else if (!isSourceExternal && !isTargetMyBag && source.Entity == links.Inventory && target.Entity != links.Inventory)
+                else if (!isSourceExternal && !isTargetPlayerInventory && source.Entity == playerLinks.Inventory && target.Entity != playerLinks.Inventory)
                 {
                     ItemSlot returnedItemSlot = (ItemSlot)targetContent;
                     ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
@@ -215,8 +227,8 @@ namespace ProjectTowerRpg.ECS.Reducers
             var sourceSlots = slotDataLookup[sourceEntity];
             if (sourceSlot < 0 || sourceSlot >= sourceSlots.Length) return;
 
-            var sourceSlotData = sourceSlots[sourceSlot];
-            if (sourceSlotData.IsEmpty || sourceSlotData.Amount <= splitAmount) return;
+            var sourceItemSlot = sourceSlots[sourceSlot];
+            if (sourceItemSlot.IsEmpty || sourceItemSlot.Amount <= splitAmount) return;
 
             // 🎯 PRE-CHECK целевого слота ДО модификации источника
             bool targetIsWorld = targetEntity == Entity.Null;
@@ -229,61 +241,47 @@ namespace ProjectTowerRpg.ECS.Reducers
                 var targetSlots = slotDataLookup[targetEntity];
                 if (targetSlot < 0 || targetSlot >= targetSlots.Length) return;
 
-                var targetSlotData = targetSlots[targetSlot];
-                if (!targetSlotData.IsEmpty && targetSlotData.DataId != sourceSlotData.DataId)
+                var targetItemSlot = targetSlots[targetSlot];
+                if (!targetItemSlot.IsEmpty && targetItemSlot.DataId != sourceItemSlot.DataId)
                 {
                     Debug.LogWarning("[ItemReducer.Split] Целевой слот занят другим предметом — отказ");
                     return;
                 }
 
-                targetIsEmpty = targetSlotData.IsEmpty;
-                targetIsSameItem = !targetSlotData.IsEmpty;
+                targetIsEmpty = targetItemSlot.IsEmpty;
+                targetIsSameItem = !targetItemSlot.IsEmpty;
             }
-
-            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
 
             // 1. Уменьшаем исходный слот
-            int remaining = sourceSlotData.Amount - splitAmount;
-            sourceSlotData.Amount = remaining;
-            sourceSlots[sourceSlot] = sourceSlotData;
+            int remainingAmount = sourceItemSlot.Amount - splitAmount;
+            sourceItemSlot.Amount = remainingAmount;
+            sourceSlots[sourceSlot] = sourceItemSlot;
 
-            // 2. Синхронизируем ItemComponent.Amount у исходной души
-            Entity sourceSoul = sourceSlotData.ItemEntity;
-            if (sourceSoul != Entity.Null && em.HasComponent<ItemComponent>(sourceSoul))
-            {
-                var soul = em.GetComponentData<ItemComponent>(sourceSoul);
-                soul.Amount = remaining;
-                em.SetComponentData(sourceSoul, soul);
-            }
+            // 2. Синхронизируем ItemComponent.Amount у исходного предмета
+            SyncItemComponent(sourceItemSlot.ItemEntity, remainingAmount);
 
-            // 🎯 MERGE: кладём в слот с таким же предметом — новую душу не создаём
+            // 🎯 MERGE: кладём в слот с таким же предметом — новый предмет не создаём
             if (targetIsSameItem)
             {
                 var targetSlots = slotDataLookup[targetEntity];
-                var targetSlotData = targetSlots[targetSlot];
-                int mergedAmount = targetSlotData.Amount + splitAmount;
-                targetSlotData.Amount = mergedAmount;
-                targetSlots[targetSlot] = targetSlotData;
+                var targetItemSlot = targetSlots[targetSlot];
+                int mergedAmount = targetItemSlot.Amount + splitAmount;
+                targetItemSlot.Amount = mergedAmount;
+                targetSlots[targetSlot] = targetItemSlot;
 
-                Entity targetSoul = targetSlotData.ItemEntity;
-                if (targetSoul != Entity.Null && em.HasComponent<ItemComponent>(targetSoul))
-                {
-                    var soul = em.GetComponentData<ItemComponent>(targetSoul);
-                    soul.Amount = mergedAmount;
-                    em.SetComponentData(targetSoul, soul);
-                }
+                SyncItemComponent(targetItemSlot.ItemEntity, mergedAmount);
 
-                Debug.Log($"[ItemReducer.Split] {sourceSlotData.DataId} x{splitAmount} слито в слот #{targetSlot} (итого {mergedAmount})");
+                Debug.Log($"[ItemReducer.Split] {sourceItemSlot.DataId} x{splitAmount} слито в слот #{targetSlot} (итого {mergedAmount})");
                 return;
             }
 
-            // 🎯 CREATE: создаём новую душу через ECB
+            // 🎯 CREATE: создаём новую сущность предмета через ECB
             _splitUidCounter++;
-            Entity newSoul = ecb.CreateEntity();
-            ecb.AddComponent(newSoul, new ItemComponent
+            Entity newItemEntity = ecb.CreateEntity();
+            ecb.AddComponent(newItemEntity, new ItemComponent
             {
-                Uid = sourceSlotData.DataId.GetHashCode() + _splitUidCounter,
-                ItemId = sourceSlotData.DataId,
+                Uid = sourceItemSlot.DataId.GetHashCode() + _splitUidCounter,
+                ItemId = sourceItemSlot.DataId,
                 Amount = splitAmount
             });
 
@@ -293,17 +291,16 @@ namespace ProjectTowerRpg.ECS.Reducers
                 float3 groundPos = dropPosition;
                 groundPos.y = PhysicsUtils.GetGroundHeight(groundPos);
 
-                ecb.AddComponent(newSoul, LocalTransform.FromPosition(groundPos));
-                // StoredTag НЕ добавляем — предмет на земле
+                ecb.AddComponent(newItemEntity, LocalTransform.FromPosition(groundPos));
 
                 ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
                 {
                     Kind = PresentationEventKind.ItemLooted,
-                    Target = newSoul,
-                    Param = sourceSlotData.DataId
+                    Target = newItemEntity,
+                    Param = sourceItemSlot.DataId
                 });
 
-                Debug.Log($"[ItemReducer.Split] {sourceSlotData.DataId} x{splitAmount} → земля {groundPos}");
+                Debug.Log($"[ItemReducer.Split] {sourceItemSlot.DataId} x{splitAmount} → земля {groundPos}");
                 return;
             }
 
@@ -311,18 +308,17 @@ namespace ProjectTowerRpg.ECS.Reducers
             if (targetIsEmpty)
             {
                 var targetSlots = slotDataLookup[targetEntity];
-                var targetSlotData = targetSlots[targetSlot];
+                var targetItemSlot = targetSlots[targetSlot];
 
-                targetSlotData.DataId = sourceSlotData.DataId;
-                targetSlotData.ContentType = sourceSlotData.ContentType;
-                targetSlotData.Amount = splitAmount;
-                targetSlotData.ItemEntity = newSoul;
-                // SlotIndex, EquipSlot, ContainerType — паспорт целевого слота, не трогаем
-                targetSlots[targetSlot] = targetSlotData;
+                targetItemSlot.DataId = sourceItemSlot.DataId;
+                targetItemSlot.ContentType = sourceItemSlot.ContentType;
+                targetItemSlot.Amount = splitAmount;
+                targetItemSlot.ItemEntity = newItemEntity;
+                targetSlots[targetSlot] = targetItemSlot;
 
-                ecb.AddComponent<StoredTag>(newSoul);
+                ecb.AddComponent<StoredTag>(newItemEntity);
 
-                Debug.Log($"[ItemReducer.Split] {sourceSlotData.DataId} x{splitAmount} → пустой слот #{targetSlot}");
+                Debug.Log($"[ItemReducer.Split] {sourceItemSlot.DataId} x{splitAmount} → пустой слот #{targetSlot}");
             }
         }
 
@@ -404,45 +400,37 @@ namespace ProjectTowerRpg.ECS.Reducers
 
             for (int i = 0; i < sourceSlots.Length; i++)
             {
-                var sourceSlot = sourceSlots[i];
-                if (sourceSlot.IsEmpty) continue;
+                var sourceItemSlot = sourceSlots[i];
+                if (sourceItemSlot.IsEmpty) continue;
 
-                var config = ItemsDatabase.GetItem(sourceSlot.DataId.ToString());
+                var config = ItemsDatabase.GetItem(sourceItemSlot.DataId.ToString());
                 bool isStacked = false;
 
-                // 🎯 1. Пытаемся стакнуть в существующие слоты
                 if (config != null && config.properties.stackable && config.properties.max_stack > 0)
                 {
                     for (int j = 0; j < targetSlots.Length; j++)
                     {
-                        if (!targetSlots[j].IsEmpty && targetSlots[j].DataId == sourceSlot.DataId)
+                        if (!targetSlots[j].IsEmpty && targetSlots[j].DataId == sourceItemSlot.DataId)
                         {
                             int space = config.properties.max_stack - targetSlots[j].Amount;
                             if (space > 0)
                             {
-                                int toAdd = math.min(sourceSlot.Amount, space);
+                                int amountToAdd = math.min(sourceItemSlot.Amount, space);
 
-                                var targetSlot = targetSlots[j];
-                                targetSlot.Amount += toAdd;
-                                targetSlots[j] = targetSlot;
+                                var targetItemSlot = targetSlots[j];
+                                targetItemSlot.Amount += amountToAdd;
+                                targetSlots[j] = targetItemSlot;
 
-                                sourceSlot.Amount -= toAdd;
-                                sourceSlots[i] = sourceSlot;
+                                sourceItemSlot.Amount -= amountToAdd;
+                                sourceSlots[i] = sourceItemSlot;
 
-                                // Синхронизация целевой души
-                                if (targetSlot.ItemEntity != Entity.Null && em.HasComponent<ItemComponent>(targetSlot.ItemEntity))
+                                SyncItemComponent(targetItemSlot.ItemEntity, targetItemSlot.Amount);
+
+                                if (sourceItemSlot.Amount <= 0)
                                 {
-                                    var soul = em.GetComponentData<ItemComponent>(targetSlot.ItemEntity);
-                                    soul.Amount = targetSlot.Amount;
-                                    em.SetComponentData(targetSlot.ItemEntity, soul);
-                                }
-
-                                // Если исходный опустел
-                                if (sourceSlot.Amount <= 0)
-                                {
-                                    if (sourceSlot.ItemEntity != Entity.Null) ecb.DestroyEntity(sourceSlot.ItemEntity);
-                                    sourceSlot.ClearContent();
-                                    sourceSlots[i] = sourceSlot;
+                                    if (sourceItemSlot.ItemEntity != Entity.Null) ecb.DestroyEntity(sourceItemSlot.ItemEntity);
+                                    sourceItemSlot.ClearContent();
+                                    sourceSlots[i] = sourceItemSlot;
                                     isStacked = true;
                                     break;
                                 }
@@ -451,9 +439,8 @@ namespace ProjectTowerRpg.ECS.Reducers
                     }
                 }
 
-                if (isStacked || sourceSlot.IsEmpty) continue;
+                if (isStacked || sourceItemSlot.IsEmpty) continue;
 
-                // 🎯 2. Пытаемся найти пустой слот для остатка
                 int freeSlotIndex = -1;
                 for (int j = 0; j < targetSlots.Length; j++)
                 {
@@ -462,27 +449,26 @@ namespace ProjectTowerRpg.ECS.Reducers
 
                 if (freeSlotIndex != -1)
                 {
-                    var targetSlot = targetSlots[freeSlotIndex];
-                    targetSlot.DataId = sourceSlot.DataId;
-                    targetSlot.ContentType = sourceSlot.ContentType;
-                    targetSlot.Amount = sourceSlot.Amount;
-                    targetSlot.ItemEntity = sourceSlot.ItemEntity;
-                    targetSlots[freeSlotIndex] = targetSlot;
+                    var targetItemSlot = targetSlots[freeSlotIndex];
+                    targetItemSlot.DataId = sourceItemSlot.DataId;
+                    targetItemSlot.ContentType = sourceItemSlot.ContentType;
+                    targetItemSlot.Amount = sourceItemSlot.Amount;
+                    targetItemSlot.ItemEntity = sourceItemSlot.ItemEntity;
+                    targetSlots[freeSlotIndex] = targetItemSlot;
 
-                    if (sourceSlot.ItemEntity != Entity.Null)
+                    if (sourceItemSlot.ItemEntity != Entity.Null)
                     {
-                        ecb.AddComponent<StoredTag>(sourceSlot.ItemEntity);
-                        if (em.HasComponent<VisualizedTag>(sourceSlot.ItemEntity)) 
-                            ecb.RemoveComponent<VisualizedTag>(sourceSlot.ItemEntity);
+                        ecb.AddComponent<StoredTag>(sourceItemSlot.ItemEntity);
+                        if (em.HasComponent<VisualizedTag>(sourceItemSlot.ItemEntity)) 
+                            ecb.RemoveComponent<VisualizedTag>(sourceItemSlot.ItemEntity);
                     }
 
-                    sourceSlot.ClearContent();
-                    sourceSlots[i] = sourceSlot;
+                    sourceItemSlot.ClearContent();
+                    sourceSlots[i] = sourceItemSlot;
                 }
                 else
                 {
-                    // 🎯 3. Нет места — оставляем в сундуке и идём к следующему
-                    Debug.LogWarning($"[ItemReducer.TakeAll] Нет места для {sourceSlot.DataId} в рюкзаке, оставлен в сундуке.");
+                    Debug.LogWarning($"[ItemReducer.TakeAll] Нет места для {sourceItemSlot.DataId} в рюкзаке, оставлен в сундуке.");
                 }
             }
 
@@ -636,7 +622,6 @@ namespace ProjectTowerRpg.ECS.Reducers
             isStacking = false;
             var config = ItemsDatabase.GetItem(itemId.ToString());
 
-            // 1. Ищем слот для стака
             if (config != null && config.properties.stackable && config.properties.max_stack > 0)
             {
                 for (int i = 0; i < slots.Length; i++)
@@ -652,13 +637,12 @@ namespace ProjectTowerRpg.ECS.Reducers
                 }
             }
 
-            // 2. Ищем пустой слот
             for (int i = 0; i < slots.Length; i++)
             {
                 if (slots[i].IsEmpty) return i;
             }
 
-            return -1; // Нет места
+            return -1;
         }
 
         // ================================================================
@@ -672,44 +656,27 @@ namespace ProjectTowerRpg.ECS.Reducers
             int targetSlot,
             Entity presentationBufferEntity)
         {
-            // 1. Нельзя стакать в тот же самый слот
             if (source.Entity == target.Entity && sourceSlot == targetSlot) return false;
-
-            // 2. Проверяем, что оба слота не пустые
             if (!source.HasContent(sourceSlot) || !target.HasContent(targetSlot)) return false;
-
-            // 3. Приводим контент к ItemSlot
             if (source.GetContent(sourceSlot) is not ItemSlot sourceItem) return false;
             if (target.GetContent(targetSlot) is not ItemSlot targetItem) return false;
 
-            // 4. Проверяем, что это один и тот же предмет
             string sourceItemId = sourceItem.DataId.ToString();
             string targetItemId = targetItem.DataId.ToString();
 
             if (string.IsNullOrEmpty(sourceItemId) || sourceItemId != targetItemId) return false;
 
-            // 5. Проверяем, что предмет можно стакать и есть ли место
             var config = ItemsDatabase.GetItem(sourceItemId);
             if (config == null || !config.properties.stackable || config.properties.max_stack <= 0) return false;
 
             int totalAmount = sourceItem.Amount + targetItem.Amount;
             if (totalAmount > config.properties.max_stack) return false;
 
-            // ================================================================
-            // ВЫПОЛНЯЕМ СТАК
-            // ================================================================
-            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-
             targetItem.Amount = totalAmount;
             target.SetContent(targetSlot, targetItem);
             source.ClearSlot(sourceSlot);
 
-            if (targetItem.ItemEntity != Entity.Null && em.HasComponent<ItemComponent>(targetItem.ItemEntity))
-            {
-                var targetSoul = em.GetComponentData<ItemComponent>(targetItem.ItemEntity);
-                targetSoul.Amount = totalAmount;
-                em.SetComponentData(targetItem.ItemEntity, targetSoul);
-            }
+            SyncItemComponent(targetItem.ItemEntity, totalAmount);
 
             if (sourceItem.ItemEntity != Entity.Null && sourceItem.ItemEntity != targetItem.ItemEntity)
             {
@@ -732,21 +699,15 @@ namespace ProjectTowerRpg.ECS.Reducers
             Entity sourceItemEntity,
             int amountToAdd)
         {
-            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
             var slots = slotDataLookup[targetEntity];
-            var targetSlotData = slots[targetSlot];
+            var targetItemSlot = slots[targetSlot];
 
-            targetSlotData.Amount += amountToAdd;
-            slots[targetSlot] = targetSlotData;
+            targetItemSlot.Amount += amountToAdd;
+            slots[targetSlot] = targetItemSlot;
 
-            if (targetSlotData.ItemEntity != Entity.Null && em.HasComponent<ItemComponent>(targetSlotData.ItemEntity))
-            {
-                var targetSoul = em.GetComponentData<ItemComponent>(targetSlotData.ItemEntity);
-                targetSoul.Amount = targetSlotData.Amount;
-                em.SetComponentData(targetSlotData.ItemEntity, targetSoul);
-            }
+            SyncItemComponent(targetItemSlot.ItemEntity, targetItemSlot.Amount);
 
-            if (sourceItemEntity == Entity.Null) return; // Create — нет исходной сущности
+            if (sourceItemEntity == Entity.Null) return;
 
             if (amountToAdd >= sourceItemComponent.Amount)
             {
@@ -754,6 +715,7 @@ namespace ProjectTowerRpg.ECS.Reducers
             }
             else
             {
+                var em = World.DefaultGameObjectInjectionWorld.EntityManager;
                 var updatedSource = em.GetComponentData<ItemComponent>(sourceItemEntity);
                 updatedSource.Amount -= amountToAdd;
                 em.SetComponentData(sourceItemEntity, updatedSource);

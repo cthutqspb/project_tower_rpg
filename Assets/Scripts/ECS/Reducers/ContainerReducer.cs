@@ -43,16 +43,24 @@ namespace ProjectTowerRpg.ECS.Reducers
                 {
                     lootTableId = em.GetComponentData<ItemComponent>(containerEntity).LootTableId;
                 }
-                // TODO: UnitComponent.LootTableId — когда добавишь, раскомментируй:
-                // else if (em.HasComponent<UnitComponent>(containerEntity))
-                // {
-                //     lootTableId = em.GetComponentData<UnitComponent>(containerEntity).LootTableId;
-                // }
+
+                else if (em.HasComponent<UnitComponent>(containerEntity))
+                {
+                    lootTableId = em.GetComponentData<UnitComponent>(containerEntity).LootTableId;
+                }
 
                 if (!lootTableId.IsEmpty)
                 {
                     var dynamicLoot = LootService.GenerateLoot(lootTableId.ToString());
                     var slotsBuffer = em.GetBuffer<ItemSlot>(bagEntity);
+
+                    // 🎯 ЛОГ: сколько уже занято кастомным лутом
+    int occupied = 0;
+    for (int i = 0; i < slotsBuffer.Length; i++)
+    {
+        if (!slotsBuffer[i].DataId.IsEmpty) occupied++;
+    }
+    Debug.Log($"[ContainerReducer] До генерации: занято слотов {occupied} из {slotsBuffer.Length}. Таблица: {lootTableId}");
 
                     int filled = 0;
                     for (int i = 0; i < slotsBuffer.Length && filled < dynamicLoot.Count; i++)

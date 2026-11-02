@@ -13,8 +13,6 @@ using ProjectTowerRpg.Core.Localization;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
-    // 🦾 КАНОН ПРЕЗЕНТАЦИИ: Система тикает строго в SimulationGroup,
-    // выгребает события, дергает визуал и сама же безопасно чистит память в конце кадра!
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial class PresentationEventSystem : SystemBase
     {
@@ -22,27 +20,18 @@ namespace ProjectTowerRpg.ECS.Systems
         {
             var em = EntityManager;
 
-            // 1. Ищем синглтон-сущность нашего буфера презентационных событий
             if (!SystemAPI.TryGetSingletonEntity<PresentationEventBufferTag>(out var bufferEntity)) return;
 
-            // 2. Напрямую выгребаем буфер событий из ОЗУ чанка симуляции
             var eventBuffer = em.GetBuffer<PresentationEvent>(bufferEntity);
-
-            // Если за этот кадр сервер не выплюнул ни одного события — шёлково выходим
             if (eventBuffer.Length == 0) return;
 
-            // 3. Хладнокровно перебираем все накопившиеся за кадр визуальные сигналы
             for (int i = 0; i < eventBuffer.Length; i++)
             {
                 var ev = eventBuffer[i];
 
-                
+                // 🎯 ОБРАБОТКА СОБЫТИЙ БЕЗ ЮНИТА (ЛОГИ, ИНВЕНТАРЬ)
                 switch (ev.Kind)
                 {
-                    case PresentationEventKind.AuraApplied:
-                        HandleAuraApplied(ev);
-                        continue;
-
                     case PresentationEventKind.ItemLooted:
                         HandleItemLooted(ev);
                         continue;
@@ -50,20 +39,31 @@ namespace ProjectTowerRpg.ECS.Systems
                     case PresentationEventKind.ItemDropped:
                         HandleItemDropped(ev);
                         continue;
+                }
 
-                    default:
-                        break;
+                // 🎯 ОБРАБОТКА СОБЫТИЙ АУР (Таргет — это юнит, на которого наложили ауру)
+                switch (ev.Kind)
+                {
+                    case PresentationEventKind.AuraApplied:
+                        HandleAuraApplied(ev);
+                        continue;
+
+                    case PresentationEventKind.AuraEnd:
+                        HandleAuraEnd(ev);
+                        continue;
+
+                    case PresentationEventKind.AuraRemoved:
+                        HandleAuraRemoved(ev);
+                        continue;
                 }
                 
-                // Ищем 3D-модель (вьюху) моба в нашей телефонной книге по его Entity за O(1)
+                // 🎯 ОБРАБОТКА СОБЫТИЙ БОЯ (Сорс — это юнит, который делает действие)
                 var unitView = EntityViewRegistry.Get<UnitView>(ev.Source);
                 if (unitView == null) continue;
 
-                // Вытаскиваем Аниматор из найденной модели
                 var animator = unitView.GetComponent<Animator>();
                 if (animator == null) continue;
 
-                // СТEЙТ-МАШИНА ОБРАБОТКИ ВИЗУАЛЬНЫХ СИГНАЛОВ:
                 switch (ev.Kind)
                 {
                     case PresentationEventKind.CastStart:
@@ -79,43 +79,41 @@ namespace ProjectTowerRpg.ECS.Systems
                         break;
 
                     case PresentationEventKind.Death:
-                    {
                         HandleDeath(in ev, unitView, animator);
                         break;
-                    }
                 }
             }
 
-            // 🦾 ЕДИНСТВЕННЫЙ ИСТИННЫЙ КАНОН ОЧИСТКИ: 
-            // Буфер очищается строго в самом конце метода OnUpdate этой же системы,
-            // гарантируя, что память освобождается ровно после того, как все события отработали!
             eventBuffer.Clear();
         }
 
         // =========================================================================
-        // 🔮 ИЗОЛИРОВАННЫЙ СИ-ШЛЮЗ УПРАВЛЕНИЯ НЕОНОВЫМИ РУНАМИ АУР
+        // 🔮 ОБРАБОТКА АУР (Иконки и VFX)
         // =========================================================================
         private void HandleAuraApplied(PresentationEvent ev)
         {
             Entity unitEntity = ev.Target; 
             string auraIdStr = ev.Param.ToString();
 
-            var unitView = EntityViewRegistry.Get(unitEntity);
+            var unitView = EntityViewRegistry.Get<UnitView>(unitEntity);
             if (unitView == null) return;
-
-            GameObject targetGo = unitView.gameObject;
-            if (targetGo == null) return;
 
             var auraCfg = AurasDatabase.GetAura(auraIdStr);
             if (auraCfg == null) return;
-            
+
+            // 🎯 1. ПРОВЕРКА НА VFX (щиты, эллипсы)
+            if (!string.IsNullOrEmpty(auraCfg.visuals.vfx_type))
+            {
+                HandleAuraBodyVfx(unitView, auraCfg.visuals.vfx_type, auraIdStr);
+                return; // Если это VFX, то иконку не спавним
+            }
+
+            // 🎯 2. ИНАЧЕ — СПАВНИМ ИКОНКУ (твой старый код)
+            GameObject targetGo = unitView.gameObject;
             string targetIconChar = auraCfg.visuals.icon_char;
             string magicElement = auraCfg.identity?.element ?? "default";
             var colors = ColorUtils.GetColorByElement(magicElement);
 
-            // =========================================================================
-            // 🦾 ЗРЯЧИЙ СИ-КОНТРОЛЬ КЛИЕНТА: Сканируем все живые руны над головой моба
-            // =========================================================================
             var activeRunes = unitView.GetComponentsInChildren<AuraVfxLifetime>();
             for (int i = 0; i < activeRunes.Length; i++)
             {
@@ -124,30 +122,20 @@ namespace ProjectTowerRpg.ECS.Systems
                 
                 if (activeTmp != null)
                 {
-                    // Сценарий А: Это ТОТ ЖЕ САМЫЙ дебафф (например, повторный Фаербол в ignite)
                     if (activeTmp.text == targetIconChar)
                     {
-                        // Просто сочно продлеваем жизнь существующему глифу в 4К-атласе!
                         activeRune.Initialize(activeTmp, colors.FaceColor, colors.GlowColor, 2.5f);
-                        
                         Debug.Log($"🔄 [Presentation]: Аура '{auraIdStr}' ({magicElement}) продлена. Префаб сохранен.");
-                        return; // Выходим, новый префаб не спавним!
+                        return;
                     }
                     else
                     {
-                        // 🦾 Сценарий Б: ММО-ПРИОРИТЕТ! Прилетела СОВЕРШЕННО НОВАЯ аура (например, Хит от Фростбола)
-                        // Мы ХЛАДНОКРОВНО и намертво гасим предыдущий глиф из 3D-мира прямо сейчас,
-                        // полностью исключая наложение, мерцание и неоновую кашу в воздухе!
                         Object.Destroy(activeRune.gameObject);
-                        
-                        Debug.Log($"🧹 [Presentation]: Старый 3D-глиф '{activeTmp.text}' принудительно выжжен. Освобождаем место под '{auraIdStr}'.");
+                        Debug.Log($"🧹 [Presentation]: Старый 3D-глиф '{activeTmp.text}' принудительно выжжен.");
                     }
                 }
             }
 
-            // =========================================================================
-            // 🔮 СПАВН НОВОЙ РУНЫ (Сработает, если на цели ничего не было, или мы только что стерли чужой глиф!)
-            // =========================================================================
             var prefab = Resources.Load<GameObject>("Shared/AuraRune");
             if (prefab == null) return;
 
@@ -164,10 +152,8 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (mat != null)
                 {
                     mat.EnableKeyword("GLOW_ON");
-                    
                     mat.SetColor("_FaceColor", colors.FaceColor);
                     mat.SetColor("_GlowColor", colors.GlowColor);                     
-
                     mat.SetFloat("_FaceDilate", 0.0f);      
                     mat.SetFloat("_FaceSoftness", 0.0f);  
                     mat.SetFloat("_ScaleRatioB", 0.35f); 
@@ -188,14 +174,101 @@ namespace ProjectTowerRpg.ECS.Systems
 
             Debug.Log($"✨ [Presentation]: Впервые заспавнен 3D-глиф '{auraIdStr}' ({magicElement}) над юнитом {unitEntity.Index}.");
         }
+
+        // =========================================================================
+        // 🛡️ СПАВН ЭЛЛИПСА (Body VFX)
+        // =========================================================================
+        private void HandleAuraBodyVfx(UnitView unitView, string vfxType, string auraId)
+        {
+            // 1. Проверяем, нет ли уже такого VFX (чтобы не дублировать при повторном касте)
+            var existingVfx = unitView.GetComponentsInChildren<AuraBodyVfx>();
+            foreach (var vfx in existingVfx)
+            {
+                if (vfx.VfxType == vfxType)
+                {
+                    vfx.RefreshLifetime();
+                    return;
+                }
+            }
+
+            // 2. Определяем путь к префабу
+            string prefabPath = vfxType switch
+            {
+                "magic_shield" => "Shared/MagicShield",
+                _ => null
+            };
+
+            if (string.IsNullOrEmpty(prefabPath)) return;
+
+            // 3. Загружаем и спавним
+            var prefab = Resources.Load<GameObject>(prefabPath);
+            if (prefab == null)
+            {
+                Debug.LogError($"[Presentation] Не найден префаб VFX: {prefabPath}");
+                return;
+            }
+
+            GameObject vfxObj = Object.Instantiate(prefab);
+            
+            // Привязываем к персонажу (в центр тела)
+            vfxObj.transform.SetParent(unitView.transform, false);
+            vfxObj.transform.localPosition = new Vector3(0f, 1.0f, 0f);
+            vfxObj.transform.localScale = new Vector3(1.2f, 1.5f, 1.2f); // Вытянутый эллипс
+
+            var marker = vfxObj.AddComponent<AuraBodyVfx>();
+            marker.Setup(auraId, vfxType, new Vector3(1.2f, 1.5f, 1.2f));
+
+            Debug.Log($"🛡️ [Presentation]: Спавн VFX '{vfxType}' для ауры '{auraId}'");
+        }
+
+        // =========================================================================
+        // 🧹 УДАЛЕНИЕ VFX (AuraEnd — просто исчезновение, AuraRemoved — "разбитие")
+        // =========================================================================
+        private void HandleAuraEnd(PresentationEvent ev)
+        {
+            Entity unitEntity = ev.Target;
+            string auraIdStr = ev.Param.ToString();
+
+            var unitView = EntityViewRegistry.Get(unitEntity);
+            if (unitView == null) return;
+
+            var vfxList = unitView.GetComponentsInChildren<AuraBodyVfx>();
+            foreach (var vfx in vfxList)
+            {
+                if (vfx.AuraId == auraIdStr)
+                {
+                    vfx.PlayDeathAnimation();
+                    Debug.Log($"🧹 [Presentation]: VFX '{vfx.VfxType}' истек (аура '{auraIdStr}' закончилась).");
+                }
+            }
+        }
+
+        private void HandleAuraRemoved(PresentationEvent ev)
+        {
+            Entity unitEntity = ev.Target;
+            string auraIdStr = ev.Param.ToString();
+
+            var unitView = EntityViewRegistry.Get(unitEntity);
+            if (unitView == null) return;
+
+            var vfxList = unitView.GetComponentsInChildren<AuraBodyVfx>();
+            foreach (var vfx in vfxList)
+            {
+                if (vfx.AuraId == auraIdStr)
+{
+    // TODO: Здесь можно спавнить префаб взрыва (разбития) щита
+    vfx.PlayDeathAnimation(); // 🎯 Вместо Object.Destroy
+    Debug.Log($"💥 [Presentation]: VFX '{vfx.VfxType}' принудительно снят (аура '{auraIdStr}' разбита).");
+}
+            }
+        }
         
         private void HandleItemLooted(in PresentationEvent ev)
         {
             string lootedId = ev.Param.ToString();
             var lootedCfg = ItemsDatabase.GetItem(lootedId);
             
-            if (lootedCfg == null)
-                return;
+            if (lootedCfg == null) return;
             
             var qualityColor = SolarizedOsakaNight.GetQualityColor(lootedCfg.identity?.quality);
             string hexColor = "#" + UnityEngine.ColorUtility.ToHtmlStringRGB(qualityColor);
@@ -215,8 +288,7 @@ namespace ProjectTowerRpg.ECS.Systems
             string droppedId = ev.Param.ToString();
             var lootedCfg = ItemsDatabase.GetItem(droppedId);
             
-            if (lootedCfg == null)
-                return;
+            if (lootedCfg == null) return;
 
             var qualityColor = SolarizedOsakaNight.GetQualityColor(lootedCfg.identity?.quality);
             string hexColor = "#" + UnityEngine.ColorUtility.ToHtmlStringRGB(qualityColor);
@@ -236,41 +308,21 @@ namespace ProjectTowerRpg.ECS.Systems
             string castStartId = ev.Param.ToString();
             var castStartCfg = AbilitiesDatabase.GetAbility(castStartId);
 
-            if (castStartCfg?.identity == null || castStartCfg.parameters == null)
-                return;
+            if (castStartCfg?.identity == null || castStartCfg.parameters == null) return;
 
             var tags = castStartCfg.identity.tags;
             bool isMelee = tags != null && tags.Contains("melee_attack");
 
-            // — Лог —
             if (isMelee)
             {
-                LogBroadcast.Send(
-                    LogChannel.Combat,
-                    string.Format(
-                        "⚔️ [Бой]: Юнит {0} совершил атаку ближнего боя.",
-                        ev.Source.Index
-                    )
-                );
+                LogBroadcast.Send(LogChannel.Combat, string.Format("⚔️ [Бой]: Юнит {0} совершил атаку ближнего боя.", ev.Source.Index));
             }
             else
             {
-                string logActionText = castStartCfg.parameters.cast_time <= 0f
-                    ? "применил"
-                    : "начинает чтение";
-                
-                LogBroadcast.Send(
-                    LogChannel.Combat,
-                    string.Format(
-                        "🔮 [Каст]: Юнит {0} {1} {2}",
-                        ev.Source.Index,
-                        logActionText,
-                        LocalizationManager.Get(castStartCfg.identity.name_key)
-                    )
-                );
+                string logActionText = castStartCfg.parameters.cast_time <= 0f ? "применил" : "начинает чтение";
+                LogBroadcast.Send(LogChannel.Combat, string.Format("🔮 [Каст]: Юнит {0} {1} {2}", ev.Source.Index, logActionText, LocalizationManager.Get(castStartCfg.identity.name_key)));
             }
 
-            // — Визуал —
             if (isMelee)
             {
                 animator.SetTrigger("Attack");
@@ -283,18 +335,14 @@ namespace ProjectTowerRpg.ECS.Systems
             if (castStartCfg.parameters.cast_time <= 0f)
             {
                 animator.SetTrigger("CastInstant");
-
-                if (sync != null)
-                    sync.PlayInstantCastVfx(elementColors);
+                if (sync != null) sync.PlayInstantCastVfx(elementColors);
             }
             else
             {
                 animator.ResetTrigger("CastEnd");
                 animator.SetBool("IsCasting", true);
                 animator.SetTrigger("CastStart");
-
-                if (sync != null)
-                    sync.StartCastVfx(elementColors);
+                if (sync != null) sync.StartCastVfx(elementColors);
             }            
         }
 
@@ -310,13 +358,8 @@ namespace ProjectTowerRpg.ECS.Systems
             if (castEndCfg != null && castEndCfg.parameters != null)
             {
                 var sync = unitView.Sync;
-
                 if (sync != null)
                 {
-                    // 🦾 ВСЕЯДНЫЙ СИ-РАЗДЕЛИТЕЛЬ РАНТАЙМА:
-                    // Если это завершение ДОЛГОГО каста — мы просто тушим постоянное свечение рук.
-                    // А если это МГНОВЕННЫЙ каст (cast_time <= 0), то постоянное свечение и так не горело,
-                    // и мы сочно бахаем мгновенный Burst-взрыв искр прямо в момент взмаха рук!
                     if (castEndCfg.parameters.cast_time <= 0f)
                     {
                         string element = castEndCfg.identity?.element ?? "default";
@@ -334,43 +377,46 @@ namespace ProjectTowerRpg.ECS.Systems
         private static void HandleHit(in PresentationEvent ev, UnitView unitView, Animator animator)
         {
             animator.SetTrigger("Hit");
-                        
-            // 🚀 ДОБАВИЛИ ДЛЯ ТЕСТА: Спавним красивый префаб взрыва льда/удара прямо в ECS-системе!
+            
+            // 1. Спавн эффекта удара (impact) — как было
             var impactPrefab = Resources.Load<GameObject>($"VFX/impact_{ev.Param}");
             if (impactPrefab != null)
             {
-                Object.Instantiate(
-                    impactPrefab,
-                    unitView.transform.position + new Vector3(0f, 1f, 0f),
-                    Quaternion.identity
-                );
+                Object.Instantiate(impactPrefab, unitView.transform.position + new Vector3(0f, 1f, 0f), Quaternion.identity);
             }
 
+            // 2. 🎯 ТРЯСКА ВСЕХ АУРА-ЭФФЕКТОВ (щитов), которые висят на юните
+            var auraVfxList = unitView.GetComponentsInChildren<AuraBodyVfx>();
+            foreach (var vfx in auraVfxList)
+            {
+                vfx.TriggerHitRipple();
+            }
         }
 
         private static void HandleDeath(in PresentationEvent ev, UnitView unitView, Animator animator)
         {
-            // 🦾 ТУШИМ ЭФФЕКТЫ: Через кэш unitView.Sync мгновенно гасим боевой неон в ладонях
             var sync = unitView.Sync;
-            if (sync != null)
+            if (sync != null) sync.StopCastVfx();
+
+            // 🎯 ТУШИМ ВСЕ ИСТОЧНИКИ СВЕТА
+            var lights = unitView.GetComponentsInChildren<Light>(true); // true = включая выключенные
+            foreach (var l in lights)
             {
-                sync.StopCastVfx();
+                l.enabled = false;
             }
 
-            // 🦾 ММО БОЕВОЙ ЛОГ: Снайперски выстреливаем финальным Rich Text аккордом в чат
-            LogBroadcast.Send(
-                LogChannel.Combat,
-                string.Format(
-                    "💀 [Бой]: Сущность {0} официально пала в бою!",
-                    ev.Source.Index
-                )
-            );
+            // 🎯 ТУШИМ ВСЕ СФЕРЫ (глаза)
+            var renderers = unitView.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in renderers)
+            {
+                // Если это сфера (или имя содержит Sphere/Eye) — выключаем
+                if (r.gameObject.name.Contains("Sphere") || r.gameObject.name.Contains("Eye"))
+                {
+                    r.enabled = false;
+                }
+            }
 
-            // 🚀 Сюда завтра шёлково встанет: 
-            // GameObject.Instantiate(bloodPrefab, unitView.transform.position, Quaternion.identity);
-            // AudioSource.PlayClipAtPoint(deathVoiceClip, unitView.transform.position);
+            LogBroadcast.Send(LogChannel.Combat, string.Format("💀 [Бой]: Сущность {0} официально пала в бою!", ev.Source.Index));
         }
-
     }
 }
-

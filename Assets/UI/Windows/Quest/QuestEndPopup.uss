@@ -88,7 +88,7 @@
 }
 
 .quest-end__rewards .slot-preview--choice {
-    border-color: var(--color-warning);
+    border-color: var(--color-primary);
 }
 
 .quest-end__rewards .slot-preview--choice:hover {
@@ -96,8 +96,7 @@
 }
 
 .quest-end__rewards .slot-preview--selected {
-    border-color: var(--color-primary);
-    background-color: rgba(122, 162, 247, 0.3);
+    border-color: var(--color-success);
 }
 
 /* 🦾 РАЗМЕРЫ СЛОТА ВНУТРИ ПРЕВЬЮ (42x42) */

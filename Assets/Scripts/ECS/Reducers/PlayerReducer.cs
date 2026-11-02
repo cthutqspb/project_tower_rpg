@@ -59,36 +59,61 @@ namespace ProjectTowerRpg.ECS.Reducers
 
         public static void AuraDisable(EntityManager em, ActionCommand cmd)
         {
-            // 🦾 ГВАРД БЕЗОПАСНОСТИ: Проверяем, существует ли вообще контейнер аур
-            // и есть ли на нём легитимный DynamicBuffer
+            // 🦾 ГВАРД БЕЗОПАСНОСТИ
             if (cmd.SourceEntity == Entity.Null || !em.Exists(cmd.SourceEntity)) return;
             if (!em.HasBuffer<AuraSlot>(cmd.SourceEntity)) return;
 
             var auraBuffer = em.GetBuffer<AuraSlot>(cmd.SourceEntity);
             int targetSlotIndex = cmd.SourceSlot;
 
-            // Проверяем границы массива, чтобы не словить IndexOutOfRangeException
+            // Проверяем границы массива
             if (targetSlotIndex >= 0 && targetSlotIndex < auraBuffer.Length)
             {
                 var auraSlot = auraBuffer[targetSlotIndex];
 
-                // Валидируем Си-паспорт: стираем ауру только если ID в ячейке совпадает с тем, по которому кликнули
+                // Валидируем Си-паспорт
                 if (auraSlot.AuraId == cmd.ItemId)
                 {
                     Debug.Log($"🧹 [PlayerReducer]: Аннигилирую бафф '{cmd.ItemId}' из ячейки #{targetSlotIndex} контейнера {cmd.SourceEntity.Index} по приказу игрока (ПКМ).");
 
-                    // Полностью сбрасываем структуру в девственный ноль (IsEmpty)
+                    // 🎯 ДОСТАЁМ ВЛАДЕЛЬЦА КОНТЕЙНЕРА (ЮНИТА)
+                    Entity ownerEntity = Entity.Null;
+                    if (em.HasComponent<ContainerConfigComponent>(cmd.SourceEntity))
+                    {
+                        ownerEntity = em.GetComponentData<ContainerConfigComponent>(cmd.SourceEntity).Owner;
+                    }
+
+                    // 🎯 ОТПРАВЛЯЕМ СОБЫТИЕ УДАЛЕНИЯ VFX
+                    if (ownerEntity != Entity.Null)
+                    {
+                        var bufferQuery = em.CreateEntityQuery(ComponentType.ReadOnly<PresentationEventBufferTag>());
+                        if (!bufferQuery.IsEmpty)
+                        {
+                            Entity eventBufferEntity = bufferQuery.GetSingletonEntity();
+                            var eventBuffer = em.GetBuffer<PresentationEvent>(eventBufferEntity);
+                            
+                            eventBuffer.Add(new PresentationEvent
+                            {
+                                Kind = PresentationEventKind.AuraRemoved, // Или AuraEnd, если не хочешь различать
+                                Target = ownerEntity, // Юнит, с которого сняли
+                                Param = cmd.ItemId    // ID ауры
+                            });
+                        }
+                    }
+
+                    // Полностью сбрасываем структуру
                     auraSlot.AuraId = "";
                     auraSlot.Stacks = 0;
                     auraSlot.TimeRemaining = 0f;
                     auraSlot.Duration = 0f;
                     auraSlot.CasterEntity = Entity.Null;
+                    auraSlot.CurrentAbsorb = 0f; // 🎯 Заодно сбрасываем щит
 
-                    // Перезаписываем очищенные Си-байты обратно в ОЗУ чанка
+                    // Перезаписываем очищенные Си-байты
                     auraBuffer[targetSlotIndex] = auraSlot;
                 }
             }
-        }  
+    }
 
         /// <summary>
         /// 🦾 ААА-КАНOН ВЗАИМОДЕЙСТВИЯ С NPC И ДРУЖЕСТВЕННЫМИ ЮНИТАМИ:

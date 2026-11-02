@@ -1,23 +1,20 @@
 using Unity.Entities;
 using Unity.Mathematics;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.Auras;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Utils
 {
     public static class AbilityUtils
     {
-        /// <summary>
-        /// Наносит урон цели, учитывая все активные щиты (абсорб).
-        /// Возвращает, сколько урона реально прошло в HP.
-        /// </summary>
         public static float ApplyDamage(
+            Entity caster,
             Entity target,
             float baseDamage,
             EntityManager em,
             EntityCommandBuffer ecb,
-            Entity presentationEntity = default)
+            Entity gameEventsEntity, // 🎯 Для квестов (EntityKilledEvent)
+            Entity presentationEntity = default) // 🎯 Для VFX (AuraRemoved)
         {
             if (baseDamage <= 0f) return 0f;
             if (!em.HasComponent<HealthComponent>(target)) return 0f;
@@ -25,7 +22,7 @@ namespace ProjectTowerRpg.ECS.Utils
 
             float remainingDamage = baseDamage;
 
-            // 1. Ищем щиты в аура-контейнере
+            // 1. Абсорб
             if (em.HasComponent<BuffersLinkComponent>(target))
             {
                 var links = em.GetComponentData<BuffersLinkComponent>(target);
@@ -45,16 +42,29 @@ namespace ProjectTowerRpg.ECS.Utils
                         aura.CurrentAbsorb -= absorbed;
 
                         if (aura.CurrentAbsorb <= 0f)
-                            aura.ClearContent(); // Щит лопнул
+                        {
+                            // 🎯 Отправляем визуальное событие (VFX)
+                            if (presentationEntity != Entity.Null && em.Exists(presentationEntity))
+                            {
+                                var eventBuffer = em.GetBuffer<PresentationEvent>(presentationEntity);
+                                eventBuffer.Add(new PresentationEvent
+                                {
+                                    Kind = PresentationEventKind.AuraRemoved,
+                                    Target = target,
+                                    Param = aura.AuraId
+                                });
+                            }
+
+                            aura.ClearContent();
+                        }
 
                         auras[i] = aura;
-
                         if (remainingDamage <= 0f) break;
                     }
                 }
             }
 
-            // 2. Наносим остаток в HP
+            // 2. Наносим урон в HP
             if (remainingDamage > 0f)
             {
                 var health = em.GetComponentData<HealthComponent>(target);
@@ -63,14 +73,39 @@ namespace ProjectTowerRpg.ECS.Utils
 
                 Debug.Log($"⚔️ [AbilityUtils]: {target} получил {remainingDamage:F1} урона. HP: {health.Current}/{health.Max}");
 
+                // 3. Смерть
                 if (health.Current <= 0f)
                 {
                     ecb.AddComponent<IsDeadTag>(target);
 
-                    // Событие убийства (если нужно)
-                    if (em.HasComponent<UnitComponent>(target))
+                    // 🎯 ОТПРАВЛЯЕМ СОБЫТИЕ СМЕРТИ В ПРЕЗЕНТАЦИЮ
+                    if (presentationEntity != Entity.Null && em.Exists(presentationEntity))
                     {
-                        // ... твой EntityKilledEvent (если есть шина GameEvent) ...
+                        var presBuffer = em.GetBuffer<PresentationEvent>(presentationEntity);
+                        presBuffer.Add(new PresentationEvent
+                        {
+                            Kind = PresentationEventKind.Death,
+                            Source = target, // В Source передаем самого умершего, чтобы аниматор нашел его модель
+                            Target = target
+                        });
+                    }
+
+                    if (em.HasComponent<UnitComponent>(target) && gameEventsEntity != Entity.Null && em.Exists(gameEventsEntity))
+                    {
+                        var targetUnit = em.GetComponentData<UnitComponent>(target);
+                        var killBuffer = em.GetBuffer<EntityKilledEvent>(gameEventsEntity);
+                        killBuffer.Add(new EntityKilledEvent
+                        {
+                            Source = caster, // TODO: Передать кастера, если нужно
+                            Target = target,
+                            TargetNameKey = targetUnit.NameKey,
+                            TargetRace = targetUnit.Race,
+                            TargetFaction = targetUnit.Faction,
+                            TargetType = targetUnit.Type,
+                            TargetDefaultRank = targetUnit.DefaultRank
+                        });
+                        
+                        Debug.Log($"🪦 [AbilityUtils]: Сущность {target} скончалась. Событие убийства отправлено в GameEvent.");
                     }
                 }
             }

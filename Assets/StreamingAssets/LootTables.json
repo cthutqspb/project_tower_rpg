@@ -40,6 +40,21 @@
       "min_amount": 1,
       "max_amount": 1
     }
+  ],
+
+  "skeleton_warrior": [
+    {
+      "item_id": "skeleton_dust",
+      "chance": 1.0,
+      "min_amount": 1,
+      "max_amount": 3
+    },
+    {
+      "item_id": "human_bone",
+      "chance": 1.0,
+      "min_amount": 1,
+      "max_amount": 1
+    }
   ]
 }
 

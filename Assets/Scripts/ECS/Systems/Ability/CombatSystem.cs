@@ -1,7 +1,7 @@
 using Unity.Entities;
 using Unity.Mathematics;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.ECS.Utils; // 🎯 Подключаем AbilityUtils
+using ProjectTowerRpg.ECS.Utils;
 using ProjectTowerRpg.Core.Abilities;
 using ProjectTowerRpg.Core.Auras;
 using Debug = UnityEngine.Debug;
@@ -11,6 +11,14 @@ namespace ProjectTowerRpg.ECS.Systems
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial class CombatSystem : SystemBase
     {
+        private EntityQuery _presentationBufferQuery;
+
+        protected override void OnCreate()
+        {
+            // 🎯 Кэшируем запрос на шину презентации ОДИН РАЗ при создании системы
+            _presentationBufferQuery = GetEntityQuery(ComponentType.ReadOnly<PresentationEventBufferTag>());
+        }
+
         protected override void OnUpdate()
         {
             var em = EntityManager;
@@ -64,10 +72,7 @@ namespace ProjectTowerRpg.ECS.Systems
             }
         }
 
-        // =========================================================================
-        // ПРИВАТНЫЕ ИЗОЛИРОВАННЫЕ МЕТOДЫ ПРИМЕНЕНИЯ ЭФФЕКТОВ
-        // =========================================================================
-        private static void ApplyDirectDamage(
+        private void ApplyDirectDamage(
             Entity caster,
             Entity target,
             AbilityEffectConfig effect,
@@ -79,15 +84,20 @@ namespace ProjectTowerRpg.ECS.Systems
             float baseDamage = random.NextFloat(effect.min, effect.max);
             if (baseDamage <= 0f && effect.value > 0f) baseDamage = effect.value;
 
-            // 🎯 Весь урон идёт через AbilityUtils (с учетом абсорба)
-            AbilityUtils.ApplyDamage(target, baseDamage, em, ecb, gameEventsEntity);
+            // 🎯 Берем шину презентации из закэшированного запроса (без создания каждый кадр)
+            Entity presentationEntity = Entity.Null;
+            if (!_presentationBufferQuery.IsEmpty)
+            {
+                presentationEntity = _presentationBufferQuery.GetSingletonEntity();
+            }
+
+            AbilityUtils.ApplyDamage(caster, target, baseDamage, em, ecb, gameEventsEntity, presentationEntity);
         }
 
         private static void ApplyDirectHeal(Entity target, AbilityEffectConfig effect, EntityManager em, ref Unity.Mathematics.Random random)
         {
             if (!em.HasComponent<HealthComponent>(target)) return;
 
-            // 🪦 Труп вылечить прямым хилом нельзя!
             if (em.HasComponent<IsDeadTag>(target)) return;
 
             var health = em.GetComponentData<HealthComponent>(target);
@@ -101,7 +111,7 @@ namespace ProjectTowerRpg.ECS.Systems
             Debug.Log($"💚 [CombatSystem]: Цель {target} исцелена на {baseHeal:F1}! ХП: {health.Current}/{health.Max}");
         }
 
-        private static void ApplyAura(Entity caster, Entity target, AbilityEffectConfig effect, EntityManager em, EntityCommandBuffer ecb)
+        private void ApplyAura(Entity caster, Entity target, AbilityEffectConfig effect, EntityManager em, EntityCommandBuffer ecb)
         {
             if (em.HasComponent<IsDeadTag>(target)) return;
 
@@ -119,7 +129,6 @@ namespace ProjectTowerRpg.ECS.Systems
 
             var auraBuffer = em.GetBuffer<AuraSlot>(auraContainer);
             
-            // 🦾 СИ-ФИКС: ТОТАЛЬНЫЙ ГВАРД ПЕРЕИСПОЛЬЗОВАНИЯ ПАМЯТИ ЧАНКОВ!
             if (auraBuffer.Length == 0)
             {
                 for (int i = 0; i < 8; i++)
@@ -133,7 +142,6 @@ namespace ProjectTowerRpg.ECS.Systems
             bool isFound = false;
             float auraDuration = effect.value > 0f ? effect.value : (auraCfg.duration > 0f ? auraCfg.duration : 30f);
             
-            // 🎯 Базовый абсорб из конфига (если это щит)
             float baseAbsorb = (auraCfg.modifiers != null) ? auraCfg.modifiers.absorb_damage : 0f;
 
             // БЛОК 1: Ищем существующую ауру для обновления таймера и стаков
@@ -149,7 +157,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     slot.Stacks = math.min(maxAllowedStacks, slot.Stacks + 1);
                     slot.TickTimer = 0f;
 
-                    // 🎯 Восстанавливаем абсорб при обновлении щита
                     if (baseAbsorb > 0f)
                     {
                         slot.CurrentAbsorb = baseAbsorb;
@@ -178,7 +185,6 @@ namespace ProjectTowerRpg.ECS.Systems
                         slot.TargetEntity = target;
                         slot.TickTimer = 0f;
 
-                        // 🎯 Инициализируем абсорб при создании щита
                         if (baseAbsorb > 0f)
                         {
                             slot.CurrentAbsorb = baseAbsorb;
@@ -192,15 +198,14 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
-            // Наш пуленепробиваемый шлюз презентации для спавна 3D-рун и ивентов
+            // Наш пуленепробиваемый шлюз презентации
             if (isFound)
             {
                 UpdateCombatStates(caster, target, em);
 
-                var bufferQuery = em.CreateEntityQuery(ComponentType.ReadOnly<PresentationEventBufferTag>());
-                if (!bufferQuery.IsEmpty)
+                if (!_presentationBufferQuery.IsEmpty)
                 {
-                    Entity eventBufferSingleton = bufferQuery.GetSingletonEntity();
+                    Entity eventBufferSingleton = _presentationBufferQuery.GetSingletonEntity();
                     var eventBuffer = em.GetBuffer<PresentationEvent>(eventBufferSingleton);
                     
                     eventBuffer.Add(new PresentationEvent
@@ -216,7 +221,6 @@ namespace ProjectTowerRpg.ECS.Systems
 
         private static void UpdateCombatStates(Entity caster, Entity target, EntityManager em)
         {
-            // 1. Вводим кастера в режим боя (если у него есть боевой компонент)
             if (em.HasComponent<CombatStateComponent>(caster))
             {
                 var casterCombat = em.GetComponentData<CombatStateComponent>(caster);
@@ -224,13 +228,11 @@ namespace ProjectTowerRpg.ECS.Systems
                 em.SetComponentData(caster, casterCombat);
             }
 
-            // 2. Вводим цель в режим боя
             if (em.HasComponent<CombatStateComponent>(target))
             {
                 var targetCombat = em.GetComponentData<CombatStateComponent>(target);
                 targetCombat.IsInCombat = true;
 
-                // 🦾 ААА-ГВАРД СЕЛФ-ТАРГЕТИНГА
                 if (targetCombat.CurrentTarget == Entity.Null && caster != target)
                 {
                     targetCombat.CurrentTarget = caster;

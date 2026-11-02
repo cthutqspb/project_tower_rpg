@@ -118,7 +118,8 @@
     },
     "visuals": {
       "animation": "magic_shield",
-      "icon_char": "󰒙"
+      "icon_char": "󰒙",
+      "vfx_type": "magic_shield"
     },
     "modifiers": {
       "absorb_damage": 25

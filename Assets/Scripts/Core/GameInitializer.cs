@@ -13,7 +13,7 @@ public class GameInitializer : MonoBehaviour
     [Header("Прогрев VFX аур")]
     [SerializeField] private TMP_FontAsset _auraFont;
     [SerializeField] private GameObject _auraVfxPrefab;
-    [SerializeField] private string _auraGlyphs = "";//"󰞇󱐌󰸓󱨨��󱄯"; // запасной список, если из БД не собрать
+    [SerializeField] private string _auraGlyphs = "";//"󰞇󱐌󰸓󱨨��󱄯    󰺾   󱓁 󰋵" ; // запасной список, если из БД не собрать
 
     void Awake()
     {

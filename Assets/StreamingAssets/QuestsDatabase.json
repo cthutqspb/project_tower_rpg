@@ -28,5 +28,25 @@
       { "kind": "item", "id": "crystal_sword", "amount": 1, "is_choice": true },
       { "kind": "item", "id": "iron_sword", "amount": 1, "is_choice": true }
     ]
+  },
+  "quest_anna_skeleton_dust": {
+      "giver_name_key": "unit_fortune_witch_anna_name",
+      "title_key": "quest_anna_skeleton_dust_title",
+      "desc_key": "quest_anna_skeleton_dust_desc",
+      "objectives": [
+        {
+          "id": "collect_skeleton_dust",
+          "type": "collect",
+          "text_key": "quest_anna_skeleton_dust_obj_1",
+          "required_amount": 1,
+          "identity": {
+            "name_key": "skeleton_dust"
+          }
+        }
+      ],
+      "rewards": [
+        { "kind": "item", "id": "lesser_mana_potion", "amount": 3, "is_choice": true },
+        { "kind": "item", "id": "clown_hat", "amount": 1, "is_choice": true }
+      ]
   }
 }

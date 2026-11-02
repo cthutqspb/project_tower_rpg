@@ -147,14 +147,21 @@ namespace ProjectTowerRpg.Core.UI.Components
         }
 
         // ============================================================
-        // Перестройка
+        // Перестройка (рендерит ВСЕ отслеживаемые квесты)
         // ============================================================
         private void Rebuild()
         {
             if (_questContainer == null) return;
 
-            var tracked = _quests.Find(q => q.IsTracked && q.State != QuestState.TurnedIn);
-            bool shouldShow = !string.IsNullOrEmpty(tracked.QuestId);
+            // 🎯 Собираем ВСЕ активные отслеживаемые квесты
+            var trackedQuests = new List<QuestEntrySnapshot>();
+            foreach (var q in _quests)
+            {
+                if (q.IsTracked && q.State != QuestState.TurnedIn)
+                    trackedQuests.Add(q);
+            }
+
+            bool shouldShow = trackedQuests.Count > 0;
 
             // Не дёргаем layout, если видимость не менялась
             if (shouldShow != _isShown)
@@ -165,78 +172,89 @@ namespace ProjectTowerRpg.Core.UI.Components
 
             if (!shouldShow) return;
 
-            int hash = ComputeSnapshotHash(tracked.QuestId);
+            int hash = ComputeSnapshotHash(trackedQuests);
             if (hash == _lastSnapshotHash) return;
             _lastSnapshotHash = hash;
 
             _questContainer.Clear();
 
-            var config = QuestsDatabase.GetQuest(tracked.QuestId);
-            string title = config != null
-                ? LocalizationManager.Get(config.title_key)
-                : tracked.QuestId;
-
-            // 🆕 Строка заголовка: название + кнопка «убрать из трекера»
-            var headerRow = new VisualElement();
-            headerRow.AddToClassList("quest-tracker__quest-header");
-
-            var titleLabel = new Label(title);
-            titleLabel.AddToClassList("quest-tracker__quest-title");
-            headerRow.Add(titleLabel);
-
-            var removeBtn = new Button();
-            removeBtn.text = "×";
-            removeBtn.AddToClassList("quest-tracker__quest-remove-btn");
-            string capturedQuestId = tracked.QuestId;
-            removeBtn.clicked += () => SendTrackQuest("");
-            headerRow.Add(removeBtn);
-
-            _questContainer.Add(headerRow);
-
-            // Цели
-            foreach (var obj in _objectives)
+            // 🎯 Рисуем каждый квест
+            foreach (var tracked in trackedQuests)
             {
-                if (obj.QuestId != tracked.QuestId) continue;
+                var config = QuestsDatabase.GetQuest(tracked.QuestId);
+                string title = config != null
+                    ? LocalizationManager.Get(config.title_key)
+                    : tracked.QuestId;
 
-                var objConfig = FindObjectiveConfig(config, obj.ObjectiveId);
-                string objText = objConfig != null
-                    ? LocalizationManager.Get(objConfig.text_key)
-                    : obj.ObjectiveId;
+                // Строка заголовка: название + кнопка «убрать из трекера»
+                var headerRow = new VisualElement();
+                headerRow.AddToClassList("quest-tracker__quest-header");
 
-                string prefix = obj.IsCompleted ? "✓" : "•";
-                string progress = (!obj.IsCompleted && obj.Required > 1)
-                    ? $" ({obj.Current}/{obj.Required})"
-                    : "";
+                var titleLabel = new Label(title);
+                titleLabel.AddToClassList("quest-tracker__quest-title");
+                headerRow.Add(titleLabel);
 
-                var label = new Label($"{prefix} {objText}{progress}");
-                label.AddToClassList("quest-tracker__objective");
-                if (obj.IsCompleted) label.AddToClassList("quest-tracker__objective--completed");
+                var removeBtn = new Button();
+                removeBtn.text = "×";
+                removeBtn.AddToClassList("quest-tracker__quest-remove-btn");
 
-                _questContainer.Add(label);
+                string capturedId = tracked.QuestId;
+                removeBtn.clicked += () => SendTrackQuest(capturedId, false); // Снимает все (или конкретный, если передать ID)
+                headerRow.Add(removeBtn);
+
+                _questContainer.Add(headerRow);
+
+                // Цели
+                foreach (var obj in _objectives)
+                {
+                    if (obj.QuestId != tracked.QuestId) continue;
+
+                    var objConfig = FindObjectiveConfig(config, obj.ObjectiveId);
+                    string objText = objConfig != null
+                        ? LocalizationManager.Get(objConfig.text_key)
+                        : obj.ObjectiveId;
+
+                    string prefix = obj.IsCompleted ? "✓" : "•";
+                    string progress = (!obj.IsCompleted && obj.Required > 1)
+                        ? $" ({obj.Current}/{obj.Required})"
+                        : "";
+
+                    var label = new Label($"{prefix} {objText}{progress}");
+                    label.AddToClassList("quest-tracker__objective");
+                    if (obj.IsCompleted) label.AddToClassList("quest-tracker__objective--completed");
+
+                    _questContainer.Add(label);
+                }
+
+                // Отступ между квестами, чтобы не слипались
+                var spacer = new VisualElement();
+                spacer.style.height = 8;
+                _questContainer.Add(spacer);
             }
         }
 
-        private int ComputeSnapshotHash(string trackedId)
+        private int ComputeSnapshotHash(List<QuestEntrySnapshot> trackedQuests)
         {
             unchecked
             {
                 int h = 17;
-                h = h * 31 + trackedId.GetHashCode();
-
-                for (int i = 0; i < _objectives.Count; i++)
+                foreach (var q in trackedQuests)
                 {
-                    h = h * 31 + _objectives[i].QuestId.GetHashCode();
-                    h = h * 31 + _objectives[i].ObjectiveId.GetHashCode();
-                    h = h * 31 + _objectives[i].Current;
-                    h = h * 31 + _objectives[i].Required;
-                    h = h * 31 + (_objectives[i].IsCompleted ? 1 : 0);
+                    h = h * 31 + q.QuestId.GetHashCode();
+                    // Добавляем цели для этого квеста
+                    foreach (var obj in _objectives)
+                    {
+                        if (obj.QuestId != q.QuestId) continue;
+                        h = h * 31 + obj.ObjectiveId.GetHashCode();
+                        h = h * 31 + obj.Current;
+                        h = h * 31 + obj.Required;
+                        h = h * 31 + (obj.IsCompleted ? 1 : 0);
+                    }
                 }
-
                 h = h * 31 + (_collapsed ? 1 : 0);
                 return h;
             }
         }
-
 
         private QuestObjective FindObjectiveConfig(QuestConfig config, string objectiveId)
         {
@@ -258,8 +276,8 @@ namespace ProjectTowerRpg.Core.UI.Components
                 _collapseBtn.text = _collapsed ? "+" : "–";
         }
 
-        // 🆕 Снять трекинг (дублирует чекбокс в журнале)
-        private void SendTrackQuest(string questId)
+        // 🆕 Снять трекинг (передай ID, чтобы снять один; пустая строка — снять все)
+         private void SendTrackQuest(string questId, bool track)
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
             Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
@@ -269,7 +287,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             em.AddComponentData(requestEntity, new QuestTrackRequest
             {
                 Unit = playerEntity,
-                QuestId = questId
+                QuestId = questId,
+                Track = track
             });
         }
     }

@@ -84,6 +84,17 @@ namespace ProjectTowerRpg.ECS.Systems
                     // WOW-КАНОН ПРОТУХАНИЯ
                     if (aura.TimeRemaining <= 0f)
                     {
+                        // 🎯 ШЛЁМ СОБЫТИЕ ОКОНЧАНИЯ АУРЫ (чтобы удалить VFX щита)
+                        if (hasPresentationBus)
+                        {
+                            ecb.AppendToBuffer(presentationEntity, new PresentationEvent
+                            {
+                                Kind = PresentationEventKind.AuraEnd,
+                                Target = aura.TargetEntity, // На ком висела аура
+                                Param = aura.AuraId         // Какая именно аура
+                            });
+                        }
+
 #if UNITY_EDITOR
                         Debug.Log($"🧹 [AuraSystem]: Срок действия ауры '{aura.AuraId}' на контейнере {containerEntity.Index} истёк. Очищаю Си-ячейку.");
 #endif
@@ -100,7 +111,6 @@ namespace ProjectTowerRpg.ECS.Systems
         // =========================================================================
         // ПРИВАТНЫЕ МЕТОДЫ ОБРАБОТКИ ЭФФЕКТОВ
         // =========================================================================
-
         private static void ApplyPeriodicDamage(
             AuraSlot aura,
             AuraConfig auraCfg,
@@ -118,7 +128,8 @@ namespace ProjectTowerRpg.ECS.Systems
             if (em.HasComponent<IsDeadTag>(targetUnit)) return;
 
             // 🎯 Наносим урон через AbilityUtils (он сам обработает смерть и событие)
-            AbilityUtils.ApplyDamage(targetUnit, finalDotDamage, em, ecb, gameEventsEntity);
+            // Передаем presentationEntity, чтобы AbilityUtils мог отправить AuraRemoved при разбитии щита
+            AbilityUtils.ApplyDamage(aura.CasterEntity, targetUnit, finalDotDamage, em, ecb, gameEventsEntity, presentationEntity);
 
             // 🎯 Выстреливаем сигнал Hit через ECB (для визуала)
             if (hasPresentationBus)

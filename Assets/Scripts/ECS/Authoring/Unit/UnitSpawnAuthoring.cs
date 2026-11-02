@@ -72,7 +72,7 @@ namespace ProjectTowerRpg.ECS.Authoring
             // 2. 🦾 ЗАПЕКАНИЕ КАСТOМНOГO ЛУТА: 
             // Если геймдизайнер добавил шмотки через плюс в инспекторе, 
             // мы вешаем буфер ItemSlot прямо на КУБ-МАРКЕР как временный Си-контейнер!
-            if (string.IsNullOrEmpty(authoring.lootTableId) && authoring.customLoot != null && authoring.customLoot.Count > 0)
+            if (authoring.customLoot != null && authoring.customLoot.Count > 0)
             {
                 var markerBuffer = AddBuffer<ItemSlot>(markerEntity);
                 

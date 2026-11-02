@@ -96,6 +96,10 @@ namespace ProjectTowerRpg.ECS.Systems
                 
                 string generatedUid = $"c_{(int)math.floor(spawnPosition.x + 0.5f)}_{(int)math.floor(spawnPosition.z + 0.5f)}";
 
+                string lootTableId = !markerData.LootTableId.IsEmpty 
+                    ? markerData.LootTableId.ToString() 
+                    : (dbCfg.identity.loot_table_id ?? "");
+
                 // 🏗️ 1. РОЖДАЕМ КРИСТАЛЬНО ЧИСТУЮ ECS-СУЩНОСТЬ ДУШИ С НУЛЯ
                 Entity unitEntity = em.CreateEntity();
 
@@ -112,7 +116,8 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     Race = dbCfg.identity.race ?? "",
                     Type = dbCfg.identity.type ?? "",
-                    DefaultRank = dbCfg.identity.default_rank ?? ""
+                    DefaultRank = dbCfg.identity.default_rank ?? "",
+                    LootTableId = lootTableId
                 });
 
                 em.AddComponentData(unitEntity, LocalTransform.FromPosition(spawnPosition));

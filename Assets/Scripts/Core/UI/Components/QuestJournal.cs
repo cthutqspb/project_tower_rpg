@@ -162,14 +162,46 @@ namespace ProjectTowerRpg.Core.UI.Components
                 });
             }
 
-            // Если выбранный квест пропал — выбрать первый активный
-            bool currentStillExists = !string.IsNullOrEmpty(_selectedQuestId)
-                && _quests.Exists(q => q.QuestId == _selectedQuestId && q.State != QuestState.TurnedIn);
+            // 🎯 УМНЫЙ ВЫБОР КВЕСТА
+            // 1. Проверяем, существует ли текущий выбранный квест (и виден ли он в списке с учетом галки)
+            bool currentExists = !string.IsNullOrEmpty(_selectedQuestId) && 
+                                 _quests.Exists(q => q.QuestId == _selectedQuestId && (q.State != QuestState.TurnedIn || !_hideCompleted));
 
-            if (!currentStillExists)
+            if (!currentExists)
             {
-                var firstActive = _quests.Find(q => q.State != QuestState.TurnedIn);
-                _selectedQuestId = firstActive.QuestId;
+                // Если текущий не подходит, ищем новый
+                QuestEntrySnapshot? newSelection = null;
+
+                if (_hideCompleted)
+                {
+                    // Если галка "Скрыть завершенные" стоит, ищем только среди активных
+                    newSelection = _quests.Find(q => q.State != QuestState.TurnedIn);
+                }
+                else
+                {
+                    // Если галки нет, ищем среди всех.
+                    // Приоритет 1: Последний выбранный (если он есть в списке)
+                    if (!string.IsNullOrEmpty(_lastSelectedQuestId))
+                    {
+                        newSelection = _quests.Find(q => q.QuestId == _lastSelectedQuestId);
+                    }
+                    
+                    // Приоритет 2: Если не нашли, берем первый активный
+                    if (newSelection == null)
+                    {
+                        newSelection = _quests.Find(q => q.State != QuestState.TurnedIn);
+                    }
+                }
+
+                // Если нашли — ставим. Если нет — очищаем.
+                if (newSelection.HasValue)
+                {
+                    _selectedQuestId = newSelection.Value.QuestId;
+                }
+                else
+                {
+                    _selectedQuestId = null;
+                }
             }
 
             MarkDirty();
@@ -331,7 +363,7 @@ namespace ProjectTowerRpg.Core.UI.Components
             string capturedIdForToggle = quest.QuestId;
             trackToggle.RegisterValueChangedCallback(evt =>
             {
-                SendTrackQuest(evt.newValue ? capturedIdForToggle : "");
+                SendTrackQuest(capturedIdForToggle, evt.newValue);
                 evt.StopPropagation();
             });
 
@@ -429,12 +461,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             BuildRewardBlock(config);
         }
 
-        private void SendTrackQuest(string questId)
+        private void SendTrackQuest(string questId, bool track)
         {
-            // Не спамим запросами, если трекинг не меняется
-            var current = _quests.Find(q => q.IsTracked);
-            if (current.QuestId == questId) return;
-
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
             Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
             if (playerEntity == Entity.Null) return;
@@ -443,7 +471,8 @@ namespace ProjectTowerRpg.Core.UI.Components
             em.AddComponentData(requestEntity, new QuestTrackRequest
             {
                 Unit = playerEntity,
-                QuestId = questId
+                QuestId = questId,
+                Track = track
             });
         }
 

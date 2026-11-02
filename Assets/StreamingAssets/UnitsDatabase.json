@@ -65,7 +65,7 @@
       "type": "skeleton",
       "default_rank": "common",
       "unit_class": ["warrior"],
-      "loot_table_id": "empty"
+      "loot_table_id": "skeleton_warrior"
     },
     "attributes": {
       "strength": 14,

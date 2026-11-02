@@ -191,7 +191,93 @@
           }
         ]
       }
+    }
+  },
 
+
+  "unit_fortune_witch_anna_name": {
+    "start_node": "start_routing",
+    "nodes": {
+
+      "start_routing": {
+        "type": "condition",
+        "branches": [
+          { "type": "quest", "quest_id": "quest_anna_skeleton_dust", "required_state": "TurnedIn", "next_node": "anna_greet_turned_in" },
+          { "type": "quest", "quest_id": "quest_anna_skeleton_dust", "required_state": "Completed", "next_node": "anna_greet_ready" },
+          { "type": "quest", "quest_id": "quest_anna_skeleton_dust", "required_state": "Active", "next_node": "anna_greet_active" }
+        ],
+        "default_next": "anna_greet"
+      },
+
+      "anna_greet": {
+        "type": "dialogue",
+        "text_key": "dialogue_anna_greet_text",
+        "options": [
+          { "text_key": "dialogue_anna_opt_who_are_you", "next_node": "anna_lore" },
+          { "text_key": "dialogue_anna_opt_what_doing", "next_node": "anna_quest_hook" },
+          { "text_key": "dialogue_anna_opt_leave", "next_node": "end", "actions": [ { "type": "dialogue_close" } ] }
+        ]
+      },
+
+      "anna_lore": {
+        "type": "dialogue",
+        "text_key": "dialogue_anna_lore_text",
+        "options": [ { "text_key": "dialogue_opt_back", "next_node": "anna_greet" } ]
+      },
+
+      "anna_quest_hook": {
+        "type": "dialogue",
+        "text_key": "dialogue_anna_quest_text",
+        "options": [
+          {
+            "text_key": "dialogue_anna_opt_accept_quest",
+            "next_node": "anna_quest_accepted",
+            "actions": [ { "type": "quest_accept", "quest_id": "quest_anna_skeleton_dust" } ]
+          },
+          { "text_key": "dialogue_anna_opt_decline_quest", "next_node": "end", "actions": [ { "type": "dialogue_close" } ] },
+          { "text_key": "dialogue_opt_back", "next_node": "anna_greet" }
+        ]
+      },
+
+      "anna_quest_accepted": {
+        "type": "dialogue",
+        "text_key": "dialogue_anna_quest_accepted_text",
+        "options": [ { "text_key": "dialogue_opt_back", "next_node": "anna_greet" } ]
+      },
+
+      "anna_greet_active": {
+        "type": "dialogue",
+        "text_key": "dialogue_anna_greet_active_text",
+        "options": [
+          { "text_key": "dialogue_anna_opt_remind_quest", "next_node": "anna_quest_reminder" },
+          { "text_key": "dialogue_anna_opt_leave", "next_node": "end", "actions": [ { "type": "dialogue_close" } ] }
+        ]
+      },
+
+      "anna_quest_reminder": {
+        "type": "dialogue",
+        "text_key": "dialogue_anna_quest_reminder_text",
+        "options": [ { "text_key": "dialogue_opt_back", "next_node": "anna_greet_active" } ]
+      },
+
+      "anna_greet_ready": {
+        "type": "dialogue",
+        "text_key": "dialogue_anna_greet_ready_text",
+        "options": [
+          {
+            "text_key": "dialogue_anna_opt_turn_in",
+            "next_node": "anna_greet_turned_in",
+            "actions": [ { "type": "quest_complete", "quest_id": "quest_anna_skeleton_dust" } ]
+          }
+        ]
+      },
+
+      "anna_greet_turned_in": {
+        "type": "dialogue",
+        "text_key": "dialogue_anna_greet_turned_in_text",
+        "options": [ { "text_key": "dialogue_anna_opt_leave", "next_node": "end", "actions": [ { "type": "dialogue_close" } ] } ]
+      }
     }
   }
+
 }

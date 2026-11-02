@@ -22,6 +22,7 @@ namespace ProjectTowerRpg.ECS.Components
         AuraApplied = 20,
         AuraTick = 21,
         AuraEnd = 22,
+        AuraRemoved = 23,
 
         // 🎒 ПРЕДМЕТЫ И МИР (0x30)
         ItemLooted = 30,
@@ -48,6 +49,7 @@ namespace ProjectTowerRpg.ECS.Components
         public const PresentationEventKind Applied = PresentationEventKind.AuraApplied;
         public const PresentationEventKind Tick = PresentationEventKind.AuraTick;
         public const PresentationEventKind End = PresentationEventKind.AuraEnd;
+        public const PresentationEventKind Removed = PresentationEventKind.AuraRemoved;
     }
 
     public static class WorldEvents

@@ -3,6 +3,13 @@ using System.Collections.Generic;
 
 namespace ProjectTowerRpg.Core.Quest
 {
+    public enum QuestObjectiveType : byte
+    {
+        Kill = 0,
+        Collect = 1,
+        Talk = 2, // на будущее
+    }
+
     [Serializable]
     public enum QuestState : byte
     {
@@ -17,7 +24,7 @@ namespace ProjectTowerRpg.Core.Quest
     public class QuestObjective
     {
         public string id;                              // ID цели
-        public string type;                            // "kill" / "talk" / "discover" / "collect" / "use"
+        public QuestObjectiveType type;                            // "kill" / "talk" / "discover" / "collect" / "use"
         public string text_key;                        // ключ локализации
         public int required_amount;                    // сколько надо сделать
         public Dictionary<string, string> identity;      // свободные пары фильтра

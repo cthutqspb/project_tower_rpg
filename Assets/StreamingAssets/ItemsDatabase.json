@@ -352,6 +352,81 @@
         "cooldown": 25
       }
     ]
+  },
+
+  "skeleton_dust" : {
+    "action_type": "item",
+    "identity": {
+      "name_key": "item_skeleton_dust_name",
+      "desc_key": "item_skeleton_dust_desc",
+      "type": "reagent",
+      "quality": "common",
+      "price": 2,
+      "weight": 0.05,
+      "durability": 0
+    },
+    "visuals": {
+      "animation": "skeleton_dust",
+      "icon_char": "󰋵"
+    },
+    "properties": {
+      "equip_slot": null,
+      "weapon_type": null,
+      "armor_type": null,
+      "stackable": true,
+      "max_stack": 20,
+      "triggers_gcd": false
+    },
+    "requirements": {
+      "level": 1,
+      "strength": 0,
+      "agility": 0,
+      "intellect": 0,
+      "resource": "none"
+    },
+    "use_effects": [
+      {
+        
+      }
+    ]
+  },
+
+  "human_bone" : {
+    "action_type": "item",
+    "identity": {
+      "name_key": "item_human_bone_name",
+      "desc_key": "item_human_bone_desc",
+      "type": "reagent",
+      "quality": "common",
+      "price": 3,
+      "weight": 0.3,
+      "durability": 0
+    },
+    "visuals": {
+      "animation": "human_bone",
+      "icon_char": "󰂹"
+    },
+    "properties": {
+      "equip_slot": null,
+      "weapon_type": null,
+      "armor_type": null,
+      "stackable": true,
+      "max_stack": 20,
+      "triggers_gcd": false
+    },
+    "requirements": {
+      "level": 1,
+      "strength": 0,
+      "agility": 0,
+      "intellect": 0,
+      "resource": "none"
+    },
+    "use_effects": [
+      {
+        
+      }
+    ]
   }
+
 }
 

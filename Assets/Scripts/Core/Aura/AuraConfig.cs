@@ -38,7 +38,7 @@ namespace ProjectTowerRpg.Core.Auras
     {
         public string animation;
         public string icon_char; // Символ-значок Nerd Font для SlotElement!
-        public float[] color;    // RGBA массив [1.0, 0.4, 0.4, 1.0]
+        public string vfx_type;
     }
 
     [Serializable]

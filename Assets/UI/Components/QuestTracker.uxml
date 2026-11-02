@@ -1,6 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
 
-    <ui:VisualElement class="quest-tracker" name="root" picking-mode="Position">
+    <ui:VisualElement name="root" picking-mode="Position">
 
         <!-- Заголовок + кнопка свернуть -->
         <ui:VisualElement class="quest-tracker__header" name="header">
