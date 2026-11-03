@@ -48,7 +48,7 @@ namespace ProjectTowerRpg.ECS.Reducers
             Debug.Log($"🎒 [ItemReducer.ClearSlot]: Очищен слот #{index}. Паспорт '{targetSlot.EquipSlot}' сохранён.");
         }
 
-        public static void Transfer(
+       public static void Transfer(
             EntityCommandBuffer ecb,
             ISlotContainer source,
             int sourceSlot,
@@ -70,32 +70,11 @@ namespace ProjectTowerRpg.ECS.Reducers
                 return;
             }
 
-            var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-            var playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>(em);
-
             // КЕЙС А: целевой слот пустой
             if (!target.HasContent(targetSlot))
             {
                 target.SetContent(targetSlot, content);
                 source.ClearSlot(sourceSlot);
-
-                if (playerEntity != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntity))
-                {
-                    var playerLinks = em.GetComponentData<BuffersLinkComponent>(playerEntity);
-
-                    if (source.Entity != playerLinks.Inventory && target.Entity == playerLinks.Inventory)
-                    {
-                        ItemSlot itemSlot = (ItemSlot)content;
-                        ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
-                        {
-                            Kind = PresentationEventKind.ItemLooted,
-                            Source = Entity.Null,
-                            Target = itemSlot.ItemEntity,
-                            Param = itemSlot.DataId
-                        });
-                    }
-                }
-
                 Debug.Log($"[ItemActions] Перенос #{sourceSlot} → #{targetSlot}");
                 return;
             }
@@ -103,10 +82,9 @@ namespace ProjectTowerRpg.ECS.Reducers
             // КЕЙС Б: целевой слот занят → своп
             var targetContent = target.GetContent(targetSlot);
 
-            // 🎯 Пытаемся стакнуть
-            if (TryToStack(ecb, source, sourceSlot, target, targetSlot, presentationBufferEntity))
+            if (TryToStack(ecb, source, sourceSlot, target, targetSlot))
             {
-                return; // Стак успешен, своп не нужен
+                return;
             }
 
             if (!source.CanPlaceContent(sourceSlot, targetContent))
@@ -118,40 +96,8 @@ namespace ProjectTowerRpg.ECS.Reducers
             target.SetContent(targetSlot, content);
             source.SetContent(sourceSlot, targetContent);
 
-            if (playerEntity != Entity.Null && em.HasComponent<BuffersLinkComponent>(playerEntity))
-            {
-                var playerLinks = em.GetComponentData<BuffersLinkComponent>(playerEntity);
-
-                bool isSourceExternal = source.Entity != playerLinks.Inventory;
-                bool isTargetPlayerInventory = target.Entity == playerLinks.Inventory;
-
-                if (isSourceExternal && isTargetPlayerInventory)
-                {
-                    ItemSlot itemSlot = (ItemSlot)content;
-                    ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
-                    {
-                        Kind = PresentationEventKind.ItemLooted,
-                        Source = Entity.Null,
-                        Target = itemSlot.ItemEntity,
-                        Param = itemSlot.DataId
-                    });
-                }
-                else if (!isSourceExternal && !isTargetPlayerInventory && source.Entity == playerLinks.Inventory && target.Entity != playerLinks.Inventory)
-                {
-                    ItemSlot returnedItemSlot = (ItemSlot)targetContent;
-                    ecb.AppendToBuffer(presentationBufferEntity, new PresentationEvent
-                    {
-                        Kind = PresentationEventKind.ItemLooted,
-                        Source = Entity.Null,
-                        Target = returnedItemSlot.ItemEntity,
-                        Param = returnedItemSlot.DataId
-                    });
-                }
-            }
-
             Debug.Log($"[ItemActions] Своп #{sourceSlot} ↔ #{targetSlot}");
         }
-
         // ================================================================
         // DROP
         // ================================================================
@@ -653,25 +599,34 @@ namespace ProjectTowerRpg.ECS.Reducers
             ISlotContainer source,
             int sourceSlot,
             ISlotContainer target,
-            int targetSlot,
-            Entity presentationBufferEntity)
+            int targetSlot)
         {
+            // 1. Нельзя стакать в тот же самый слот
             if (source.Entity == target.Entity && sourceSlot == targetSlot) return false;
+
+            // 2. Проверяем, что оба слота не пустые
             if (!source.HasContent(sourceSlot) || !target.HasContent(targetSlot)) return false;
+
+            // 3. Приводим контент к ItemSlot
             if (source.GetContent(sourceSlot) is not ItemSlot sourceItem) return false;
             if (target.GetContent(targetSlot) is not ItemSlot targetItem) return false;
 
+            // 4. Проверяем, что это один и тот же предмет
             string sourceItemId = sourceItem.DataId.ToString();
             string targetItemId = targetItem.DataId.ToString();
 
             if (string.IsNullOrEmpty(sourceItemId) || sourceItemId != targetItemId) return false;
 
+            // 5. Проверяем, что предмет можно стакать и есть ли место
             var config = ItemsDatabase.GetItem(sourceItemId);
             if (config == null || !config.properties.stackable || config.properties.max_stack <= 0) return false;
 
             int totalAmount = sourceItem.Amount + targetItem.Amount;
             if (totalAmount > config.properties.max_stack) return false;
 
+            // ================================================================
+            // ВЫПОЛНЯЕМ СТАК
+            // ================================================================
             targetItem.Amount = totalAmount;
             target.SetContent(targetSlot, targetItem);
             source.ClearSlot(sourceSlot);

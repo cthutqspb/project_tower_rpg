@@ -184,14 +184,14 @@ namespace ProjectTowerRpg.Core.UI
             // =========================================================================
             if (_root != null && globalUiRoot.Contains(_root))
             {
-                Entity oldPlayerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
+                Entity playerEntity = PlayerUtils.GetEntityByTag<PlayerTag>();
 
                 // Отписываем всё, что было зарегистрировано
-                if (oldPlayerEntity != Entity.Null)
+                if (playerEntity != Entity.Null)
                 {
-                    UIRegistry.Unregister(oldPlayerEntity, _playerFrame);
-                    UIRegistry.Unregister(oldPlayerEntity, _dialogueOverlay);
-                    UIRegistry.Unregister(oldPlayerEntity, _questTracker);
+                    UIRegistry.Unregister(playerEntity, _playerFrame);
+                    UIRegistry.Unregister(playerEntity, _dialogueOverlay);
+                    UIRegistry.Unregister(playerEntity, _questTracker);
                 }
 
                 if (_lastTargetEntity != Entity.Null)
@@ -210,9 +210,9 @@ namespace ProjectTowerRpg.Core.UI
                 {
                     for (int i = 0; i < _actionBars.Count; i++)
                     {
-                        var oldGrid = _actionBars[i].SlotsGrid;
-                        if (oldGrid != null && oldGrid.BoundEntity != Entity.Null)
-                            UIRegistry.Unregister(oldGrid.BoundEntity, oldGrid);
+                        var actionBarGrid = _actionBars[i].SlotsGrid;
+                        if (actionBarGrid != null && actionBarGrid.BoundEntity != Entity.Null)
+                            UIRegistry.Unregister(actionBarGrid.BoundEntity, actionBarGrid);
                     }
                 }
 

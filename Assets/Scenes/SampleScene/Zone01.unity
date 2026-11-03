@@ -955,6 +955,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerMarker
       objectReference: {fileID: 0}
+    - target: {fileID: 7896648224589546530, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

@@ -58,6 +58,12 @@ public class SyncTransformWithEntity : MonoBehaviour
                     if (c.isTrigger) _clickbox = c;
                     else _hitbox = c;
                 }
+
+                // 🎯 Отключаем кликбокс у игрока, чтобы он не мешал ховеру на лут
+                if (_entityManager.HasComponent<PlayerTag>(_boundEntity) && _clickbox != null)
+                {
+                    _clickbox.enabled = false;
+                }
                 
                 // 🆕 Кэшируем параметры аниматора один раз при спавне
                 CacheAnimatorParameters();

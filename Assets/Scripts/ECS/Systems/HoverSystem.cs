@@ -27,6 +27,16 @@ namespace ProjectTowerRpg.ECS.Systems
             EntityManager.CreateSingleton<HoverState>();
         }
 
+        // 🎯 Буфер для SphereCastNonAlloc (создается один раз, не аллоцирует в Update)
+        private readonly RaycastHit[] _hitBuffer = new RaycastHit[16];
+
+        // 🎯 Компаратор для сортировки по дистанции (без лямбды, без мусора)
+        private class HitDistanceComparer : System.Collections.Generic.IComparer<RaycastHit>
+        {
+            public int Compare(RaycastHit a, RaycastHit b) => a.distance.CompareTo(b.distance);
+        }
+        private static readonly HitDistanceComparer _hitComparer = new HitDistanceComparer();
+
         protected override void OnUpdate()
         {
             if (SystemAPI.TryGetSingletonRW<HoverState>(out var hoverState) == false) return;
@@ -40,7 +50,7 @@ namespace ProjectTowerRpg.ECS.Systems
             if (_mainCamera == null)
             {
                 _mainCamera = Camera.main;
-                if (_mainCamera == null) return; // Если камеры до сих пор нет — выходим
+                if (_mainCamera == null) return;
             }
 
             var currentMouse = UnityEngine.InputSystem.Mouse.current;
@@ -49,93 +59,100 @@ namespace ProjectTowerRpg.ECS.Systems
                 : Vector2.zero;
 
             Ray ray = _mainCamera.ScreenPointToRay(mousePosition);
-            
-            if (Physics.SphereCast(ray, 0.3f, out RaycastHit hit, 100f))
+
+            // 🎯 SphereCastNonAlloc: пишет в _hitBuffer, не создает мусор
+            int hitCount = Physics.SphereCastNonAlloc(ray, 0.3f, _hitBuffer, 100f);
+
+            if (hitCount == 0)
             {
-                Entity foundEntity = Entity.Null;
-                bool isItem = false;
-                bool isUnit = false;
-                string currentUnitId = string.Empty;
-                
-                // 🦾 СИ-ФИКС ОБЛАСТИ ВИДИМОСТИ: Вынесли ссылку в общий скоуп SphereCast!
-                UnitView targetUnitView = null;
+                if (hoverState.ValueRO.HasTarget)
+                    ResetHover(ref hoverState.ValueRW);
+                return;
+            }
 
-                // 📦 1. ПРОВЕРЯЕМ ПРЕДМЕТ
+            // Сортируем только валидные хиты (0..hitCount) по дистанции
+            System.Array.Sort(_hitBuffer, 0, hitCount, _hitComparer);
+
+            Entity foundEntity = Entity.Null;
+            bool isItem = false;
+            bool isUnit = false;
+            string currentUnitId = string.Empty;
+            RaycastHit validHit = default;
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                var hit = _hitBuffer[i];
+
+                // 📦 Предмет
                 var itemView = hit.collider.GetComponentInParent<ItemView>();
-                if (itemView != null)
+                if (itemView != null && itemView.entity != Entity.Null)
                 {
-                    if (itemView.entity != Entity.Null)
-                    {
-                        foundEntity = itemView.entity;
-                        isItem = true;
-                    }
-                }
-                // 👥 2. ПРОВЕРЯЕМ ЮНИТА
-                else
-                {
-                    var unitView = hit.collider.GetComponentInParent<UnitView>();
-                    if (unitView != null)
-                    {
-                        if (unitView.entity != Entity.Null)
-                        {
-                            foundEntity = unitView.entity;
-                            currentUnitId = unitView.unitId;
-                            targetUnitView = unitView; // Шёлково сохраняем ссылку для нижнего скоупа
-                            isUnit = true;
-                        }
-                    }
+                    foundEntity = itemView.entity;
+                    isItem = true;
+                    validHit = hit;
+                    break;
                 }
 
-                // ЕСЛИ КОЛЛАЙДЕР ВЕРНУЛ ВАЛИДНУЮ ECS-СУЩНОСТЬ
-                if (foundEntity != Entity.Null)
+                // 👥 Юнит
+                var unitView = hit.collider.GetComponentInParent<UnitView>();
+                if (unitView != null && unitView.entity != Entity.Null)
                 {
-                    if (hoverState.ValueRO.CurrentEntity == foundEntity)
-                    {
-                        hoverState.ValueRW.HitPosition = hit.point;
-                        return;
-                    }
+                    // 🎯 Пропускаем игрока (и тех, кем управляет игрок, например майнд-контроль)
+                    if (EntityManager.HasComponent<PlayerTag>(unitView.entity) || 
+                        EntityManager.HasComponent<ControlledByPlayerTag>(unitView.entity))
+                        continue;
 
-                    hoverState.ValueRW.CurrentEntity = foundEntity;
-                    hoverState.ValueRW.HitPosition = hit.point;
-
-                    // ОБРАБОТКА КОНТЕНТА ПРЕДМЕТА
-                    if (isItem && EntityManager.HasComponent<ItemComponent>(foundEntity))
-                    {
-                        Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto); 
-                        
-                        var itemComponent = EntityManager.GetComponentData<ItemComponent>(foundEntity);
-                        string currentItemIdStr = itemComponent.ItemId.ToString();
-
-                        var dbItemCfg = ItemsDatabase.GetItem(currentItemIdStr);
-                        if (dbItemCfg != null)
-                        {
-                            TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.ITEM, dbItemCfg);
-                        }
-                    }
-                    // ОБРАБОТКА КОНТЕНТА ЮНИТА
-                    else if (isUnit && EntityManager.HasComponent<UnitComponent>(foundEntity))
-                    {
-                        Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto); 
-
-                        var dbUnitCfg = UnitsDatabase.GetUnit(currentUnitId);
-                        if (dbUnitCfg != null)
-                        {
-                            // 🦾 СВЕРХЗВУКОВОЙ ПАСПОРТ: Достаем сырой unmanaged NameKey из ECS-чанка
-                            var unitComp = EntityManager.GetComponentData<UnitComponent>(foundEntity);
-                            string rawNameKey = unitComp.NameKey.ToString();
-
-                            // Шёлково швыряем сырой ключ в context! Никаких локализаций на бэкенде!
-                            TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.UNIT, dbUnitCfg, context: rawNameKey);
-                        }
-                    }
-                    
-                    return;
+                    foundEntity = unitView.entity;
+                    currentUnitId = unitView.unitId;
+                    isUnit = true;
+                    validHit = hit;
+                    break;
                 }
             }
 
-            if (hoverState.ValueRO.HasTarget)
+            if (foundEntity == Entity.Null)
             {
-                ResetHover(ref hoverState.ValueRW);
+                if (hoverState.ValueRO.HasTarget)
+                    ResetHover(ref hoverState.ValueRW);
+                return;
+            }
+
+            if (hoverState.ValueRO.CurrentEntity == foundEntity)
+            {
+                hoverState.ValueRW.HitPosition = validHit.point;
+                return;
+            }
+
+            hoverState.ValueRW.CurrentEntity = foundEntity;
+            hoverState.ValueRW.HitPosition = validHit.point;
+
+            // Обработка предмета
+            if (isItem && EntityManager.HasComponent<ItemComponent>(foundEntity))
+            {
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+
+                var itemComponent = EntityManager.GetComponentData<ItemComponent>(foundEntity);
+                string itemId = itemComponent.ItemId.ToString();
+
+                var config = ItemsDatabase.GetItem(itemId);
+                if (config != null)
+                {
+                    TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.ITEM, config);
+                }
+            }
+            // Обработка юнита
+            else if (isUnit && EntityManager.HasComponent<UnitComponent>(foundEntity))
+            {
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+
+                var unitConfig = UnitsDatabase.GetUnit(currentUnitId);
+                if (unitConfig != null)
+                {
+                    var unitComponent = EntityManager.GetComponentData<UnitComponent>(foundEntity);
+                    string nameKey = unitComponent.NameKey.ToString();
+
+                    TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.UNIT, unitConfig, context: nameKey);
+                }
             }
         }
 
