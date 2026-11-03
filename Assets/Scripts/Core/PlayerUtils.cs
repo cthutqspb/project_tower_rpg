@@ -4,7 +4,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using ProjectTowerRpg.ECS.Components;
 
-namespace ProjectTowerRpg.Core
+namespace ProjectTowerRpg.Core.Utils
 {
     public static class PlayerUtils
     {

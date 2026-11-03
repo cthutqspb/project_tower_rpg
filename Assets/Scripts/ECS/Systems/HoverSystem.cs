@@ -1,7 +1,7 @@
 using Unity.Entities;
 using Unity.Mathematics; // ← Добавлен для math.float3
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.UI;
+using ProjectTowerRpg.UI;
 using ProjectTowerRpg.Core.Units;
 using ProjectTowerRpg.Core.Items;
 // 🚀 ХИРУРГИЧЕСКИЙ РАЗВОД ИМПОРТОВ: Заголовки чисты, клинч векторов и физики ликвидирован!

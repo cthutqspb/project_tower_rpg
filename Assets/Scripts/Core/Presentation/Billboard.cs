@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace ProjectTowerRpg.Core.UI.Components
+namespace ProjectTowerRpg.UI.Components
 {
     public class Billboard : MonoBehaviour
     {

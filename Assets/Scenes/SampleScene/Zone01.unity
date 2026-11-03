@@ -787,7 +787,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7896648224589546530, guid: c846f6319c59120d8acd13950540d9c8, type: 3}
       propertyPath: m_Name
-      value: PlayerMarker (1)
+      value: fortune_witch_anna
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1158,7 +1158,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 6.95
+      value: 40.07
       objectReference: {fileID: 0}
     - target: {fileID: 2439920686481394930, guid: c31108277cc0cb5a6a8aad7d744f0562, type: 3}
       propertyPath: m_LocalRotation.w

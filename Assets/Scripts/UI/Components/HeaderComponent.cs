@@ -1,0 +1,37 @@
+using UnityEngine.UIElements;
+
+namespace ProjectTowerRpg.UI.Components
+{
+    public class HeaderComponent : VisualElement
+    {   
+        private Label _titleLabel;
+        private Button _closeButton;
+        
+        public string Title
+        {
+            get => _titleLabel?.text ?? "";
+            set { if (_titleLabel != null) _titleLabel.text = value; }
+        }
+        
+        public event System.Action OnClose;
+
+        public HeaderComponent(string title = "Заголовок", bool hasCloseButton = true)
+        {   
+            this.AddToClassList("header");
+            
+            _titleLabel = new Label();
+            _titleLabel.AddToClassList("header__label");
+            _titleLabel.text = title; // 🎯 Ставим текст здесь, всё ок
+            Add(_titleLabel);
+            
+            if (hasCloseButton)
+            {
+                _closeButton = new Button();
+                _closeButton.AddToClassList("header__close-btn");
+                _closeButton.text = "✕";
+                _closeButton.RegisterCallback<ClickEvent>(_ => OnClose?.Invoke());
+                Add(_closeButton);
+            }
+        }
+    }
+}

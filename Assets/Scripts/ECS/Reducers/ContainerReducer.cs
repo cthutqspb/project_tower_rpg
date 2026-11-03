@@ -1,9 +1,9 @@
 using Unity.Collections;
 using Unity.Entities;
-using ProjectTowerRpg.Core.UI;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core;
+using ProjectTowerRpg.Core.Utils;
 using ProjectTowerRpg.Core.Loot;
+using ProjectTowerRpg.UI;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Reducers
@@ -55,12 +55,12 @@ namespace ProjectTowerRpg.ECS.Reducers
                     var slotsBuffer = em.GetBuffer<ItemSlot>(bagEntity);
 
                     // 🎯 ЛОГ: сколько уже занято кастомным лутом
-    int occupied = 0;
-    for (int i = 0; i < slotsBuffer.Length; i++)
-    {
-        if (!slotsBuffer[i].DataId.IsEmpty) occupied++;
-    }
-    Debug.Log($"[ContainerReducer] До генерации: занято слотов {occupied} из {slotsBuffer.Length}. Таблица: {lootTableId}");
+                    int occupied = 0;
+                    for (int i = 0; i < slotsBuffer.Length; i++)
+                    {
+                        if (!slotsBuffer[i].DataId.IsEmpty) occupied++;
+                    }
+                    Debug.Log($"[ContainerReducer] До генерации: занято слотов {occupied} из {slotsBuffer.Length}. Таблица: {lootTableId}");
 
                     int filled = 0;
                     for (int i = 0; i < slotsBuffer.Length && filled < dynamicLoot.Count; i++)

@@ -1,7 +1,7 @@
 using Unity.Entities;
 using Unity.Collections;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.UI;
+using ProjectTowerRpg.UI;
 using ProjectTowerRpg.Core.Abilities;
 
 namespace ProjectTowerRpg.ECS.Systems

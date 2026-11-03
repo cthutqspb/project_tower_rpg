@@ -43,6 +43,6 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 264edfe20aa7d2f97b2faced0fbc0329, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.Windows.QuestEndPopup
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.UI.Windows.QuestEndPopup
   _windowUxml: {fileID: 9197481963319205126, guid: aecc381daf328f0cd80d57772b17bd04, type: 3}
   IsInPool: 0

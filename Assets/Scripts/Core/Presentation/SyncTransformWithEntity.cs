@@ -271,7 +271,7 @@ public class SyncTransformWithEntity : MonoBehaviour
         if (_animator == null) return;
 
         // Аппаратно качаем ОДИН общий префаб для всех 40+ существ в игре!
-        var handGlowPrefab = Resources.Load<GameObject>("Shared/HandGlowVfx");
+        var handGlowPrefab = Resources.Load<GameObject>("VFX/Cast/HandGlowVfx");
         if (handGlowPrefab == null) return;
 
         // Меканим за 0 наносекунд выдает кости, запеченные в Humanoid-конфигураторе
@@ -298,7 +298,7 @@ public class SyncTransformWithEntity : MonoBehaviour
     {
         if (_animator == null) return;
 
-        var instantMuzzlePrefab = Resources.Load<GameObject>("Shared/InstantMuzzleVfx");
+        var instantMuzzlePrefab = Resources.Load<GameObject>("VFX/Cast/InstantMuzzleVfx");
         if (instantMuzzlePrefab == null) return;
 
         Transform leftHand = _animator.GetBoneTransform(HumanBodyBones.LeftHand);

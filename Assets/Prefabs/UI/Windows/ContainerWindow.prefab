@@ -43,5 +43,5 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68de0f6f36fa5ff25b634e3a508760fa, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.Core.UI.Windows.ContainerWindow
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectTowerRpg.UI.Windows.ContainerWindow
   _windowUxml: {fileID: 9197481963319205126, guid: 8a95aaff51abb59b78cfb7b4e16c6390, type: 3}

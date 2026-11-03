@@ -10,6 +10,7 @@ using ProjectTowerRpg.Core.Abilities;
 using ProjectTowerRpg.Core.Auras;
 using ProjectTowerRpg.Core.Shared;
 using ProjectTowerRpg.Core.Localization;
+using ProjectTowerRpg.UI;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
@@ -136,7 +137,7 @@ namespace ProjectTowerRpg.ECS.Systems
                 }
             }
 
-            var prefab = Resources.Load<GameObject>("Shared/AuraRune");
+            var prefab = Resources.Load<GameObject>("VFX/AuraRune/AuraRune");
             if (prefab == null) return;
 
             GameObject auraObj = Object.Instantiate(prefab);
@@ -194,7 +195,7 @@ namespace ProjectTowerRpg.ECS.Systems
             // 2. Определяем путь к префабу
             string prefabPath = vfxType switch
             {
-                "magic_shield" => "Shared/MagicShield",
+                "magic_shield" => "VFX/MagicShield/MagicShield",
                 _ => null
             };
 

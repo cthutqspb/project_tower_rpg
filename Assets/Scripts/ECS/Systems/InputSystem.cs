@@ -2,7 +2,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine.InputSystem;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.UI;
+using ProjectTowerRpg.UI;
 using ProjectTowerRpg.ECS.Actions; // Добавляем для ActionResolver
 using Camera = UnityEngine.Camera;
 using Vector2 = UnityEngine.Vector2;

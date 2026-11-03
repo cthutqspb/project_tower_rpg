@@ -1,6 +1,6 @@
 using Unity.Entities;
 using ProjectTowerRpg.ECS.Components;
-using ProjectTowerRpg.Core.UI;
+using ProjectTowerRpg.UI;
 
 namespace ProjectTowerRpg.ECS.Systems
 {
