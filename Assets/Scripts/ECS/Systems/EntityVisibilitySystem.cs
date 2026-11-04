@@ -9,6 +9,7 @@ using GameObject = UnityEngine.GameObject;
 using Resources = UnityEngine.Resources;
 using Quaternion = UnityEngine.Quaternion;
 using Object = UnityEngine.Object;
+using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 namespace ProjectTowerRpg.ECS.Systems
@@ -192,6 +193,69 @@ namespace ProjectTowerRpg.ECS.Systems
                         Debug.Log($"[Visibility-Culling]: Сношу 3D-тело монстра {unitView.gameObject.name} по дистанции.");
 #endif
                         Object.Destroy(unitView.gameObject);
+                        EntityViewRegistry.Unregister(entity);
+                    }
+
+                    ecb.RemoveComponent<VisualizedTag>(entity);
+                }
+            }
+
+                        // =========================================================================
+            // 🚪 [РАЗДЕЛ ИНТЕРАКТИВНЫХ ОБЪЕКТОВ] КЕЙС А: МАТЕРИАЛИЗАЦИЯ
+            // =========================================================================
+            foreach (var (transform, interactable, entity) in 
+                     SystemAPI.Query<RefRO<LocalTransform>, RefRO<InteractableComponent>>()
+                     .WithNone<VisualizedTag>() 
+                     .WithEntityAccess())
+            {
+                float3 objPos = transform.ValueRO.Position;
+
+                if (math.distancesq(playerPosition, objPos) <= MATERIALIZE_DISTANCE_SQ)
+                {
+                    // 🎯 БЕРЕМ ССЫЛКУ НА ПРЕФАБ ИЗ КОМПОНЕНТА (UnityObjectRef)
+                    var gatePrefab = interactable.ValueRO.PrefabRef.Value;
+
+                    if (gatePrefab != null)
+                    {
+                        var gateInstance = Object.Instantiate(gatePrefab, objPos, Quaternion.identity);
+                        gateInstance.name = $"{gatePrefab.name}_{interactable.ValueRO.Id}";
+
+                        // Включаем рендер у спавненной копии (если он был выключен в Awake)
+                        var renderers = gateInstance.GetComponentsInChildren<Renderer>();
+                        foreach (var r in renderers) r.enabled = true;
+
+                        var colliders = gateInstance.GetComponentsInChildren<Collider>();
+                        foreach (var c in colliders) c.enabled = true;
+
+                        var view = gateInstance.GetComponent<InteractableView>();
+                        if (view != null)
+                        {
+                            view.LinkToEntity(entity); // 🎯 ПРИВЯЗКА
+                        }
+
+                        ecb.AddComponent<VisualizedTag>(entity);
+                    }
+                    else
+                    {
+                        Debug.LogError($"[Visibility] У сущности {entity.Index} нет ссылки на префаб (PrefabRef пуст)!");
+                    }
+                }
+            }
+
+            // =========================================================================
+            // 🚪 [РАЗДЕЛ ИНТЕРАКТИВНЫХ ОБЪЕКТОВ] КЕЙС Б: КУЛЛИНГ
+            // =========================================================================
+            foreach (var (transform, entity) in 
+                     SystemAPI.Query<RefRO<LocalTransform>>()
+                     .WithAll<InteractableComponent, VisualizedTag>() 
+                     .WithEntityAccess())
+            {
+                if (math.distancesq(playerPosition, transform.ValueRO.Position) > CULL_DISTANCE_SQ)
+                {
+                    var view = EntityViewRegistry.Get<InteractableView>(entity);
+                    if (view != null)
+                    {
+                        Object.Destroy(view.gameObject);
                         EntityViewRegistry.Unregister(entity);
                     }
 

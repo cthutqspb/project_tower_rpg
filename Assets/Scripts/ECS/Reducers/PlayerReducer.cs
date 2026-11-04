@@ -119,7 +119,7 @@ namespace ProjectTowerRpg.ECS.Reducers
         /// 🦾 ААА-КАНOН ВЗАИМОДЕЙСТВИЯ С NPC И ДРУЖЕСТВЕННЫМИ ЮНИТАМИ:
         /// Записывает цель в буфер дистанции игрока и напрямую триггерит 2D-оверлей диалога!
         /// </summary>
-        public static void Interact(EntityManager em, EntityCommandBuffer ecb, Entity unitEntity, Entity targetNpc)
+        public static void Converse(EntityManager em, EntityCommandBuffer ecb, Entity unitEntity, Entity targetNpc)
         {
             // 🦾 ГВАРД БЕЗОПАСНОСТИ: Проверяем, существует ли вообще цель и есть ли на ней паспорт
             if (targetNpc == Entity.Null || !em.Exists(targetNpc) || !em.HasComponent<UnitComponent>(targetNpc)) 

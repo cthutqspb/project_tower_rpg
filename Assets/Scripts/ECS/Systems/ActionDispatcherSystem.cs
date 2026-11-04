@@ -45,9 +45,9 @@ namespace ProjectTowerRpg.ECS.Systems
                     case ActionKind.ContainerTakeAll:
                         ExecuteContainerTakeAll(cmd.ValueRO, ecb, presentationBufferEntity);
                         break;
-                    case ActionKind.Interact:
-                        ExecuteInteract(cmd.ValueRO, ecb);
-                        break;
+                    case ActionKind.Converse:
+                        ExecuteConverse(cmd.ValueRO, ecb);
+                        break;                    
                     case ActionKind.ItemTransfer:
                         ExecuteItemTransfer(cmd.ValueRO, ecb, presentationBufferEntity);
                         break;
@@ -151,11 +151,11 @@ namespace ProjectTowerRpg.ECS.Systems
             ItemReducer.TakeAll(ref _slotDataLookup, ecb, sourceBagEntity, targetBagEntity, presentationBufferEntity);
         }
 
-        private void ExecuteInteract(ActionCommand cmd, EntityCommandBuffer ecb)
+        private void ExecuteConverse(ActionCommand cmd, EntityCommandBuffer ecb)
         {
             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-            PlayerReducer.Interact(em, ecb, cmd.SourceEntity, cmd.TargetEntity);
-        }
+            PlayerReducer.Converse(em, ecb, cmd.SourceEntity, cmd.TargetEntity);
+        }       
         
         private void ExecuteItemTransfer(ActionCommand cmd, EntityCommandBuffer ecb, Entity presentationBufferEntity)
         {

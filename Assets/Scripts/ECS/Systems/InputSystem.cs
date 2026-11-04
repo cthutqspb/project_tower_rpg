@@ -75,8 +75,10 @@ namespace ProjectTowerRpg.ECS.Systems
                     {
                         var combatState = SystemAPI.GetComponent<CombatStateComponent>(playerEntity);
                         
+                        // 🎯 ДОБАВИЛИ ПРОВЕРКУ НА INTERACTABLE
                         bool isTargetEntity = EntityManager.HasComponent<UnitComponent>(hover.CurrentEntity) || 
-                                             EntityManager.HasComponent<ItemComponent>(hover.CurrentEntity);
+                                              EntityManager.HasComponent<ItemComponent>(hover.CurrentEntity) ||
+                                              EntityManager.HasComponent<InteractableComponent>(hover.CurrentEntity);
                             
                         if (hover.HasTarget && isTargetEntity)
                         {
@@ -86,16 +88,31 @@ namespace ProjectTowerRpg.ECS.Systems
                             combatState.CurrentTarget = targetEntity;
                             SystemAPI.SetComponent(playerEntity, combatState);
 
-                            // 🧠 ПЕРЕДАЁМ РЕШЕНИЕ ЭКШЕНА В RESOLVER (Новый слой!)
+                            // 🧠 ПЕРЕДАЁМ РЕШЕНИЕ В RESOLVER
                             var em = World.DefaultGameObjectInjectionWorld.EntityManager;
-                            var command = ActionResolver.Resolve(playerEntity, targetEntity, em);
+                            
+                            // Получаем кортеж: (ActionCommand, InteractRequest?)
+                            var (command, interactReq) = ActionResolver.Resolve(playerEntity, targetEntity, em);
 
-                            if (command.Action != BaseActions.None)
+                            var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+                                .CreateCommandBuffer(World.Unmanaged);
+
+                            // =========================================================================
+                            // 🚪 КЕЙС 1: Это интерактивный объект (Дверь, Фонарь, Рычаг)
+                            // =========================================================================
+                            if (interactReq.HasValue)
                             {
-                                command.SourceEntity = playerEntity; // ← ЭТА СТРОКА БЫЛА ПРОПУЩЕНА
-
-                                var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
-                                    .CreateCommandBuffer(World.Unmanaged);
+                                var reqEntity = ecb.CreateEntity();
+                                ecb.AddComponent(reqEntity, interactReq.Value);
+                                
+                                Debug.Log($"[InputSystem] Создан InteractRequest для объекта {targetEntity.Index}");
+                            }
+                            // =========================================================================
+                            // 🧙‍♂️ КЕЙС 2: Это Юнит, Предмет или NPC (ActionCommand)
+                            // =========================================================================
+                            else if (command.Action != BaseActions.None)
+                            {
+                                command.SourceEntity = playerEntity; 
 
                                 var cmdEntity = ecb.CreateEntity();
                                 ecb.AddComponent(cmdEntity, command);
@@ -113,7 +130,6 @@ namespace ProjectTowerRpg.ECS.Systems
                     }
                 }
             }
-
             // ================================================================
             // 4. ПРЫЖОК (ТЕСТОВАЯ ТРАТА МАНЫ + УРОН ТАРГЕТУ)
             // ================================================================

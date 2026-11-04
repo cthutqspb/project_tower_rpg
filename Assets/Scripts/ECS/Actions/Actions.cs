@@ -24,7 +24,7 @@ namespace ProjectTowerRpg.ECS.Actions
         AuraDisable = 21,
 
         // 🧙‍♂️ ИГРОК / МИР
-        Interact = 30,
+        Converse = 30,
         ActionBarAssign = 32,
     }
 
@@ -56,7 +56,7 @@ namespace ProjectTowerRpg.ECS.Actions
 
     public static class PlayerActions
     {
-        public const ActionKind Interact = ActionKind.Interact;
+        public const ActionKind Converse = ActionKind.Converse;
         public const ActionKind ActionBarAssign = ActionKind.ActionBarAssign;     
     }
 }

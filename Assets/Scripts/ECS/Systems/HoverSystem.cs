@@ -13,6 +13,8 @@ using RaycastHit = UnityEngine.RaycastHit;
 using Cursor = UnityEngine.Cursor;
 using CursorMode = UnityEngine.CursorMode;
 
+using UnityEngine;
+
 namespace ProjectTowerRpg.ECS.Systems
 {
     [UpdateInGroup(typeof(InitializationSystemGroup))]
@@ -76,6 +78,7 @@ namespace ProjectTowerRpg.ECS.Systems
             Entity foundEntity = Entity.Null;
             bool isItem = false;
             bool isUnit = false;
+            bool isInteractable = false;
             string currentUnitId = string.Empty;
             RaycastHit validHit = default;
 
@@ -105,6 +108,16 @@ namespace ProjectTowerRpg.ECS.Systems
                     foundEntity = unitView.entity;
                     currentUnitId = unitView.unitId;
                     isUnit = true;
+                    validHit = hit;
+                    break;
+                }
+
+                // 🚪 ИНТЕРАКТИВНЫЙ ОБЪЕКТ (Дверь, Фонарь)
+                var interactableView = hit.collider.GetComponentInParent<InteractableView>();
+                if (interactableView != null && interactableView.Entity != Entity.Null)
+                {
+                    foundEntity = interactableView.Entity;
+                    isInteractable = true; // Добавь эту переменную в начале метода
                     validHit = hit;
                     break;
                 }
@@ -140,6 +153,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.ITEM, config);
                 }
             }
+
             // Обработка юнита
             else if (isUnit && EntityManager.HasComponent<UnitComponent>(foundEntity))
             {
@@ -153,6 +167,18 @@ namespace ProjectTowerRpg.ECS.Systems
 
                     TooltipManager.Show(TooltipDomain.WORLD, TooltipKind.UNIT, unitConfig, context: nameKey);
                 }
+            }
+            // 🚪 Обработка интерактивного объекта
+            else if (isInteractable && EntityManager.HasComponent<InteractableComponent>(foundEntity))
+            {
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+
+                var interactable = EntityManager.GetComponentData<InteractableComponent>(foundEntity);
+                
+                // Пока просто выводим в консоль или показываем тултип
+                // TooltipManager.Show(...) 
+                
+                Debug.Log($"[HoverSystem] Наведено на объект: {interactable.Id}");
             }
         }
 

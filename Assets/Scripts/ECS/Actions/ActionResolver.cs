@@ -11,28 +11,28 @@ namespace ProjectTowerRpg.ECS.Actions
         private const float INTERACTION_RANGE = 2.7f;
         private const float LOOT_RANGE = 1.27f;
 
-
-        public static ActionCommand Resolve(Entity actor, Entity target, EntityManager em)
+        /// <summary>
+        /// Возвращает кортеж: 
+        /// 1. ActionCommand (для UI/Инвентаря/NPC)
+        /// 2. InteractRequest? (для 3D-объектов: двери, фонари, рычаги)
+        /// </summary>
+        public static (ActionCommand command, InteractRequest? interactReq) Resolve(Entity actor, Entity target, EntityManager em)
         {
             // 1. Если нет цели или она стёрта — возвращаем пустую команду
             if (target == Entity.Null || !em.Exists(target))
-                return new ActionCommand { Action = BaseActions.None };
+                return (new ActionCommand { Action = BaseActions.None }, null);
 
-            // 2. Получаем дистанцию до цели за 0 наносекунд нагрузки
+            // 2. Получаем дистанцию до цели
             float distance = PositionUtils.GetDistance(actor, target, em);
 
             // 3. Проверяем, является ли цель юнитом (Игрок, Моб, Труп)
             if (em.HasComponent<UnitComponent>(target))
             {
                 // 🪦 WOW/BG3 СКОЛ СИ-ЛОГИКИ ТРУПOВ:
-                // Если на сущности взлетел IsDeadTag — мы нагло перехватываем управление!
-                // Нам плевать, кто это был — монстр или игрок, теперь это просто "мешок с лутом".
                 if (em.HasComponent<IsDeadTag>(target))
                 {
-                    // К трупу нужно сначала честно подойти, как к сундуку!
                     if (distance <= LOOT_RANGE)
-                        // В упор — шёлково выплёвываем команду открытия контейнера!
-                        return new ActionCommand { Action = ContainerActions.Open, TargetEntity = target };
+                        return (new ActionCommand { Action = ContainerActions.Open, TargetEntity = target }, null);
                 }
 
                 // ================================================================
@@ -43,12 +43,10 @@ namespace ProjectTowerRpg.ECS.Actions
                     var aiComponent = em.GetComponentData<AiComponent>(target);
 
                     // 🦾 1. КЕЙС МИРНОГО ЮНИТА (Баньши Залина, Торговцы, Квестодатели):
-                    // Если профиль пассивный или нейтральный — включаем логику разговора/торговли!
                     if (aiComponent.Profile == AiProfileKind.NeutralPassive || aiComponent.Profile == AiProfileKind.Passive)
                     {
-                        if (distance <= INTERACTION_RANGE) // WoW-дистанция честного разговора в 3D
-                            // В упор — шёлково отдаём приказ на взаимодействие!
-                            return new ActionCommand { Action = PlayerActions.Interact, TargetEntity = target };
+                        if (distance <= INTERACTION_RANGE)
+                            return (new ActionCommand { Action = PlayerActions.Converse, TargetEntity = target }, null);
                     }
                 }
             }
@@ -62,28 +60,39 @@ namespace ProjectTowerRpg.ECS.Actions
 
                 Debug.Log($"[ActionResolver] Предмет: {itemIdStr}, Дистанция: {distance:F2}м, Сущность: {target.Index}");
 
-                // 📦 КОНТЕЙНЕР (сундук, матрешка) — проверяем по конфигу из БД
+                // 📦 КОНТЕЙНЕР (сундук, матрешка)
                 if (itemConfig != null && itemConfig.identity.type == "container")
                 {
                     if (distance <= LOOT_RANGE)
-                        return new ActionCommand { Action = ContainerActions.Open, TargetEntity = target };
+                        return (new ActionCommand { Action = ContainerActions.Open, TargetEntity = target }, null);
                 }
 
                 // 💎 ОБЫЧНЫЙ ПРЕДМЕТ (лут с земли)
                 if (distance <= LOOT_RANGE)
-                    return new ActionCommand { Action = ItemActions.Loot, TargetEntity = target };
+                    return (new ActionCommand { Action = ItemActions.Loot, TargetEntity = target }, null);
             }
 
-            // 5. Проверяем, является ли цель объектом (Object)
-            if (em.HasComponent<ObjectComponent>(target))
+            // 5. Проверяем, является ли цель интерактивным объектом (Дверь, Фонарь)
+            if (em.HasComponent<InteractableComponent>(target))
             {
-                // TODO: логика для объектов (двери, рычаги, ловушки)
-                return new ActionCommand { Action = PlayerActions.Interact, TargetEntity = target };
+                // Проверяем дистанцию (используем INTERACTION_RANGE, как для NPC)
+                if (distance <= INTERACTION_RANGE)
+                {
+                    // Возвращаем пустую ActionCommand и заполненный InteractRequest
+                    return (new ActionCommand { Action = BaseActions.None }, new InteractRequest 
+                    { 
+                        Source = actor, 
+                        Target = target 
+                    });
+                }
+                else
+                {
+                    Debug.Log($"[ActionResolver] Объект слишком далеко: {distance:F2}м (Макс: {INTERACTION_RANGE}м)");
+                }
             }
 
             // 6. Если ничего не подошло
-            return new ActionCommand { Action = BaseActions.None };
+            return (new ActionCommand { Action = BaseActions.None }, null);
         }
     }
 }
-
