@@ -31,7 +31,7 @@ namespace ProjectTowerRpg.UI.Components
             _messagesContainer = _root.Q<ScrollView>("messages-container");
 
             _lockBtn = _root.Q<Button>("lock-btn");
-            if (_lockBtn != null) _lockBtn.text = "";
+            if (_lockBtn != null) _lockBtn.text = "";
 
             if (_messagesContainer == null || _windowBody == null)
             {
@@ -154,7 +154,7 @@ namespace ProjectTowerRpg.UI.Components
             if (_isLocked)
             {
                 _windowBody.AddToClassList("chat-log__locked");
-                if (_lockBtn != null) _lockBtn.text = "";
+                if (_lockBtn != null) _lockBtn.text = "";
 
                 var toolbar = _root.Q<VisualElement>("toolbar");
                 if (toolbar != null && _dragManipulator != null)

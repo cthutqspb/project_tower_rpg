@@ -40,6 +40,7 @@ namespace ProjectTowerRpg.ECS.Systems
             public EntityManager Em;
             public EntityCommandBuffer Ecb;
             public Entity Entity;
+            public Entity PlayerEntity;
 
             public AiComponent Ai;
             public MovementComponent Move;
@@ -85,6 +86,11 @@ namespace ProjectTowerRpg.ECS.Systems
 
             _random = new Unity.Mathematics.Random((uint)(currentTime * 10000) + 1);
 
+            Entity playerEntity = Entity.Null;
+            var playerQuery = em.CreateEntityQuery(ComponentType.ReadOnly<PlayerTag>(), ComponentType.ReadOnly<LocalTransform>());
+            if (!playerQuery.IsEmpty)
+                playerEntity = playerQuery.GetSingletonEntity();
+
             var allUnits = em.CreateEntityQuery(
                 ComponentType.ReadOnly<UnitComponent>(),
                 ComponentType.ReadOnly<LocalTransform>(),
@@ -102,10 +108,28 @@ namespace ProjectTowerRpg.ECS.Systems
                 if (!ai.ValueRO.IsFromFactory)
                     continue;
 
+                // 🎯 ПОВОРОТ К ИГРОКУ ДЛЯ МИРНЫХ NPC
                 if (ai.ValueRO.Profile == AiProfileKind.NeutralPassive || ai.ValueRO.Profile == AiProfileKind.Passive)
                 {
                     ai.ValueRW.State = AiState.Idle;
                     movement.ValueRW.Direction = float3.zero;
+
+                    // 🎯 Используем радиус агра как радиус "социального внимания"
+                    if (playerEntity != Entity.Null && em.Exists(playerEntity))
+                    {
+                        float3 playerPos = em.GetComponentData<LocalTransform>(playerEntity).Position;
+                        float3 toPlayer = playerPos - localTransform.ValueRO.Position;
+                        toPlayer.y = 0;
+
+                        // Если игрок в радиусе восприятия (или его половине)
+                        float perceptionRadius = unit.ValueRO.AggroRadius > 0 ? unit.ValueRO.AggroRadius : 5f;
+                        
+                        if (math.lengthsq(toPlayer) < (perceptionRadius * 0.5f) * (perceptionRadius * 0.5f))
+                        {
+                            quaternion targetRot = quaternion.LookRotationSafe(math.normalize(toPlayer), math.up());
+                            localTransform.ValueRW.Rotation = math.slerp(localTransform.ValueRO.Rotation, targetRot, ROTATION_SPEED * deltaTime);
+                        }
+                    }
                     continue;
                 }
 
@@ -134,6 +158,7 @@ namespace ProjectTowerRpg.ECS.Systems
                     Em = em,
                     Ecb = ecb,
                     Entity = entity,
+                    PlayerEntity = playerEntity,
                     Ai = ai.ValueRO,
                     Move = movement.ValueRO,
                     Transform = localTransform.ValueRO,

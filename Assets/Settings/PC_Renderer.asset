@@ -27,7 +27,8 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: 7833122117494664109}
   - {fileID: 1605860912089566553}
-  m_RendererFeatureMap: ad6b866f10d7b46c598dc8c7fd294916l
+  - {fileID: 91552688680292495}
+  m_RendererFeatureMap: ad6b866f10d7b46c598dc8c7fd2949168f50056faf424501l
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   m_AssetVersion: 3
@@ -59,6 +60,21 @@ MonoBehaviour:
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 0
   m_TileOnlyMode: 0
+--- !u!114 &91552688680292495
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0c95d1f170ede4abb04864453b053b5, type: 3}
+  m_Name: HighlightRendererFeature
+  m_EditorClassIdentifier: Assembly-CSharp::HighlightRendererFeature
+  m_Active: 1
+  maskMaterial: {fileID: 2100000, guid: 9765e25b69767e2e0b0e6b1d4d06948c, type: 2}
+  outlineMaterial: {fileID: 2100000, guid: 8b2af2c8ec9ba9db3b5efe1ebc4d5f41, type: 2}
 --- !u!114 &1605860912089566553
 MonoBehaviour:
   m_ObjectHideFlags: 1

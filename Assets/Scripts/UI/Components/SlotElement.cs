@@ -75,7 +75,6 @@ namespace ProjectTowerRpg.UI.Components
         public SlotElement()
         {
             this.AddToClassList("slot");
-            this.style.backgroundColor = SolarizedOsakaNight.Background;
             this.style.overflow = Overflow.Hidden;
             
             _icon = new Label(); // ✅ Создаем как текстовый Label
@@ -85,8 +84,9 @@ namespace ProjectTowerRpg.UI.Components
             _cooldownOverlay = new VisualElement();
             _cooldownOverlay.AddToClassList("slot-cooldown-overlay");
             _cooldownOverlay.generateVisualContent += DrawRadialCooldown;
-            Add(_cooldownOverlay);
             
+            _icon.Add(_cooldownOverlay); 
+
             _bindLabel = new Label();
             _bindLabel.AddToClassList("slot-bind-label");
             Add(_bindLabel);

@@ -10,6 +10,7 @@
 .aura-frame__grid {
     width: 100%;
     flex-direction: row;
+    gap: 2;
     flex-wrap: nowrap;
     justify-content: flex-start;
     align-items: center;
@@ -19,15 +20,15 @@
    Переопределяем размеры стандартного .slot из SlotElement, 
    делая баффы аккуратными и компактными (32х32 вместо 42х42), как в WoW! */
 .aura-frame__grid .slot {
-    margin: 0px;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 54px;
+    overflow: visible;
 }
 
 /* Компактный размер для шрифта-иконки Nerd Font внутри ауры */
 .aura-frame__grid .slot-icon {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     font-size: 27px;
     -unity-text-align: middle-center;
 }
@@ -38,17 +39,18 @@
     position: absolute;
     bottom: 1px;
     right: 2px;
-    color: #ffffff;
+    color: var(--color-text);
     -unity-text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.85);
 }
 
 /* Текстовый таймер оставшегося времени ауры (выводится под или прямо на иконке) */
 .aura-frame__grid .slot-duration-label {
-    font-size: 9px;
+    font-size: 13px;
     position: absolute;
-    top: 1px;
-    right: 2px;
-    color: #e0e0e0;
+    width: 100%;
+    top: 34px;
+    color: var(--osaka-yellow);
+    -unity-text-align: middle-center;
     -unity-text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.9);
 }
 

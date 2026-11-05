@@ -1206,10 +1206,10 @@ MonoBehaviour:
     _auraFrameUxml: {fileID: 9197481963319205126, guid: 9e0b4b554a67543c4b1a66bc2c74fc73, type: 3}
   _actionBarUxml: {fileID: 9197481963319205126, guid: 26f3644edd09a0d25b58b9068041b5ba, type: 3}
   _actionBars:
-  - DefaultLeft: 25
-    DefaultTop: 84
-  - DefaultLeft: 25
-    DefaultTop: 92
+  - DefaultLeft: 35
+    DefaultTop: 88
+  - DefaultLeft: 35
+    DefaultTop: 94
   _progressBarUxml: {fileID: 9197481963319205126, guid: 2e5709dea21d265dd9629eb57af791be, type: 3}
   _chatLogUxml: {fileID: 9197481963319205126, guid: 729b9f6c5b9773f5591589438d068898, type: 3}
   _dialogueOverlayUxml: {fileID: 9197481963319205126, guid: 7aa8c8b2a0cd2ba268ddb55de5131a21, type: 3}
@@ -3557,6 +3557,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2126767774}
   - component: {fileID: 2126767775}
+  - component: {fileID: 2126767776}
   m_Layer: 0
   m_Name: '[GameInitializer]'
   m_TagString: Untagged
@@ -3594,6 +3595,18 @@ MonoBehaviour:
   _auraFont: {fileID: 11400000, guid: a844ed86f13d1e7fbba783868e647588, type: 2}
   _auraVfxPrefab: {fileID: 6044337179388044230, guid: ce3ad1e1c942be81b9df53336f52f496, type: 3}
   _auraGlyphs: "\uE789"
+--- !u!114 &2126767776
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2126767773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ea79d2b3f927dd399151d77eb8d5690, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HighlightManager
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

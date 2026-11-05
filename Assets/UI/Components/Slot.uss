@@ -147,8 +147,7 @@
 }
 
 .slot { 
-  border-width: 1px;
-  border-color: var(--osaka-surface);
+  
 }
 
 .slot.drop-target--hover {
@@ -163,13 +162,10 @@
 
 .slot-icon {
   display: flex;
-  border-width: 2px;
-  position: absolute;
-  left: 50%;
-  top: 50%;
+  border-width: 1px;
   text-align: center;
   -unity-text-align: middle-center;
-  translate: -50% -50%;
+  background-color: var(--osaka-bg);
   transition-property: color, border-color;
   transition-duration: .127s;
   transition-timing-function: ease;

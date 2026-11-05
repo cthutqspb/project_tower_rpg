@@ -7,7 +7,7 @@ namespace ProjectTowerRpg.ECS.Systems
 {
     public class InteractableView : MonoBehaviour
     {
-        [HideInInspector] public Entity Entity;
+        [HideInInspector][System.NonSerialized] public Entity Entity;
         public string AnimatorBoolName = "IsOpen";
 
         private EntityManager _em;

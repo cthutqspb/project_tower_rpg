@@ -1,9 +1,9 @@
 .chat-log {
     width: 100%;
     height: 100%;
-    background-color: rgba(26, 27, 38, 0.85); 
+    background-color: rgba(26, 27, 38, 0.72); 
     border-width: 1px;
-    border-color: rgba(36, 40, 59, 0.7); 
+    border-color: rgba(36, 40, 59, 0.27); 
     border-radius: 4px;
     padding: 4px;
     overflow: hidden;
@@ -12,7 +12,7 @@
 
 /* 🦾 СТEЙТ ЗАБЛОКИРОВАННОГО ЧАТА: Скрываем рамки и фон в рантайме */
 .chat-log__locked {
-    background-color: rgba(26, 27, 38, 0.0);
+    background-color: rgba(26, 27, 38, 0.27);
     border-color: transparent;
 }
 
@@ -33,7 +33,7 @@
 
 /* Скрываем панель управления, если чат заблокирован и мышь не наведена */
 .chat-log__locked .chat-log__toolbar {
-    opacity: 0;
+    opacity: 0.75;
     transition: opacity 0.2s;
 }
 
@@ -51,7 +51,7 @@
 .chat-log__tab-button {
     background-color: transparent;
     border-width: 0;
-    color: rgba(86, 95, 137, 1); /* var(--osaka-text-dim) */
+    color: var(--osaka-text-dim); /* var(--osaka-text-dim) */
     font-size: 11px;
     padding-left: 8px;
     padding-right: 8px;
@@ -60,20 +60,20 @@
 }
 
 .chat-log__tab-button:hover {
-    color: rgba(192, 202, 245, 1);
+    color: var(--osaka-text);
 }
 
 .chat-log__tab-active {
-    color: rgba(125, 207, 255, 1); /* var(--osaka-cyan) акцент активного таба */
+    color: var(--osaka-cyan); /* var(--osaka-cyan) акцент активного таба */
     border-bottom-width: 2px;
-    border-color: rgba(125, 207, 255, 1);
+    border-color: var(--osaka-blue);
 }
 
 /* Иконка замка Lock */
 .chat-log__lock-icon {
     background-color: transparent;
     border-width: 0;
-    color: rgba(86, 95, 137, 0.7);
+    color: var(--osaka-purple);
     font-size: 14px;
     padding: 0;
     margin: 0;
@@ -83,7 +83,7 @@
 }
 
 .chat-log__lock-icon:hover {
-    color: rgba(255, 158, 100, 1); /* var(--osaka-orange) */
+    color: var(--osaka-orange); /* var(--osaka-orange) */
 }
 
 .chat-log__scroll-view {
